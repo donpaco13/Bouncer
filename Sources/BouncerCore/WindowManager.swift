@@ -52,6 +52,10 @@ private let systemBundleIDs: Set<String> = [
 // n'a pas d'identité stable, on ne peut ni la relancer ni mémoriser son verdict. Window Server
 // reste donc exclu, par la règle générale plutôt que par son nom d'affichage localisé.
 
+/// `@MainActor` : la classe publie vers SwiftUI et pilote des API AppKit, et le protocole
+/// `ControleurApps` qu'elle utilise porte le même contrat. L'isolation était déjà vraie en
+/// pratique — elle est maintenant vérifiée par le compilateur.
+@MainActor
 public final class WindowManager: ObservableObject {
     @Published public private(set) var apps: [NotchAppInfo] = []
     @Published public private(set) var accessibilityTrusted: Bool = false
@@ -59,6 +63,10 @@ public final class WindowManager: ObservableObject {
 
     private let ownPid = ProcessInfo.processInfo.processIdentifier
     private var timer: Timer?
+
+    /// Toutes les actions sur les apps tierces passent par là. Injectable : c'est ce qui rendra
+    /// la bascule testable sans lancer ni tuer de vraies apps.
+    private let controleur: ControleurApps
 
     /// Verdict de régissabilité par bundleID, pour la durée de vie de Bouncer — indépendant de la
     /// présence de l'app dans `apps`. Sans ce cache, une app qui sort de `apps` (fenêtre absente
@@ -77,8 +85,13 @@ public final class WindowManager: ObservableObject {
     private let catalogue: CatalogueApps
 
     /// `startTimer: false` pour le self-test CLI (un seul refresh() synchrone, pas de boucle).
-    public init(startTimer: Bool = true, catalogue: CatalogueApps = CatalogueApps()) {
+    public init(
+        startTimer: Bool = true,
+        catalogue: CatalogueApps = CatalogueApps(),
+        controleur: ControleurApps = ControleurAppsSysteme()
+    ) {
         self.catalogue = catalogue
+        self.controleur = controleur
         accessibilityTrusted = AXIsProcessTrusted()
         if !accessibilityTrusted {
             // Popup système une seule fois, ici, à froid — jamais dans la boucle de refresh.
@@ -89,7 +102,9 @@ public final class WindowManager: ObservableObject {
         refresh()
         guard startTimer else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.refreshTrustState()
+            // Le timer est planifié sur la run loop principale : son callback s'exécute donc
+            // déjà sur le main actor, `assumeIsolated` ne fait que le dire au compilateur.
+            MainActor.assumeIsolated { self?.refreshTrustState() }
         }
     }
 
@@ -130,21 +145,15 @@ public final class WindowManager: ObservableObject {
     /// Zone d'encoche en coordonnées AppKit globales (repère utilisé par `NSPanel.setFrame` et
     /// `NSEvent.mouseLocation`) — `public`, pour que `NotchOverlayController` (target exécutable)
     /// positionne son panel sans redériver la géométrie (règle CLAUDE.md : zéro hardcoding).
+    /// Le calcul vit dans `zoneEncoche()` (ControleurApps.swift), pour que le recomptage par pid
+    /// mesure exactement la même zone que le scan de découverte. Ne reste ici que la description
+    /// publiée vers l'UI.
     public func notchZone() -> CGRect? {
-        let screens = NSScreen.screens
-        guard let notchScreen = screens.first(where: { $0.safeAreaInsets.top > 0 }) else {
+        guard let (rect, ecran) = zoneEncoche() else {
             lastNotchZoneDescription = "Aucune encoche détectée sur cette machine."
             return nil
         }
-        let frame = notchScreen.frame
-        let topInset = notchScreen.safeAreaInsets.top
-        let leftArea = notchScreen.auxiliaryTopLeftArea ?? .zero
-        let rightArea = notchScreen.auxiliaryTopRightArea ?? .zero
-        let notchMinX = leftArea != .zero ? leftArea.maxX : frame.midX - 100
-        let notchMaxX = rightArea != .zero ? rightArea.minX : frame.midX + 100
-        let notchWidth = max(notchMaxX - notchMinX, 1)
-        let rect = CGRect(x: notchMinX, y: frame.maxY - topInset, width: notchWidth, height: topInset)
-        lastNotchZoneDescription = "\(notchScreen.localizedName) — \(rect)"
+        lastNotchZoneDescription = "\(ecran) — \(rect)"
         return rect
     }
 
@@ -184,15 +193,8 @@ public final class WindowManager: ObservableObject {
             // plein écran (Discord, Arc) qui toucheraient le haut de l'écran.
             guard layer > 0 else { continue }
 
-            let bounds = CGRect(
-                x: boundsDict["X"] ?? 0, y: boundsDict["Y"] ?? 0,
-                width: boundsDict["Width"] ?? 0, height: boundsDict["Height"] ?? 0
-            )
-            let boundsBottomLeftOrigin = CGRect(
-                x: bounds.origin.x, y: screenHeight - bounds.origin.y - bounds.height,
-                width: bounds.width, height: bounds.height
-            )
-            guard boundsBottomLeftOrigin.intersects(zone) else { continue }
+            guard croiseZoneEncoche(zone, bounds: boundsDict, hauteurEcranPrincipal: screenHeight)
+            else { continue }
 
             seenPids.insert(pidNum)
             results.append((pidNum, bundleID, appName))
@@ -256,33 +258,14 @@ public final class WindowManager: ObservableObject {
         }
     }
 
-    // MARK: - Masquage / vérification (identique à Spike.swift : recomptage CGWindowList, jamais le code retour AX)
-
-    private func countWindows(forPid pid: pid_t) -> Int {
-        guard
-            let list = CGWindowListCopyWindowInfo(
-                [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
-            ) as? [[String: AnyObject]]
-        else { return 0 }
-        return list.filter { ($0[kCGWindowOwnerPID as String] as? pid_t) == pid }.count
-    }
-
-    @discardableResult
-    private func setHidden(_ hidden: Bool, pid: pid_t) -> Bool {
-        let appElement = AXUIElementCreateApplication(pid)
-        let countBefore = countWindows(forPid: pid)
-        AXUIElementSetAttributeValue(appElement, kAXHiddenAttribute as CFString, hidden ? kCFBooleanTrue : kCFBooleanFalse)
-        usleep(300_000) // laisser le WindowServer propager, cf. Spike.swift
-        let countAfter = countWindows(forPid: pid)
-        return hidden ? countAfter < countBefore : countAfter >= countBefore
-    }
+    // MARK: - Masquage / vérification — déléguées au contrôleur (recomptage CGWindowList, jamais le code retour AX)
 
     /// Teste une app à sa découverte : masque, vérifie par recomptage, réaffiche, vérifie à nouveau.
     /// Ne laisse jamais l'app masquée à l'issue du test, que le test réussisse ou non.
     /// Le pid sert à agir (l'API AX ne connaît que lui), le bundleID à mémoriser le verdict.
     private func testSupport(bundleID: String, pid: pid_t) {
-        let hideOK = setHidden(true, pid: pid)
-        let showOK = setHidden(false, pid: pid)
+        let hideOK = controleur.masquer(true, pid: pid)
+        let showOK = controleur.masquer(false, pid: pid)
         let supported = hideOK && showOK
         let verdict: SupportStatus = supported ? .supported : .unsupported
         supportVerdictCache[bundleID] = verdict
@@ -300,7 +283,7 @@ public final class WindowManager: ObservableObject {
               let pid = apps[idx].pid
         else { return }
         let wantHidden = !apps[idx].isHiddenByUs
-        if setHidden(wantHidden, pid: pid) {
+        if controleur.masquer(wantHidden, pid: pid) {
             apps[idx].isHiddenByUs = wantHidden
         }
     }
@@ -338,10 +321,10 @@ public final class WindowManager: ObservableObject {
         guard let suivant = prochaineCible(dans: ids, depuis: courant, forward: forward), suivant != courant
         else { return }
 
-        if let pid = pid(pour: courant), setHidden(true, pid: pid) {
+        if let pid = pid(pour: courant), controleur.masquer(true, pid: pid) {
             updateApp(bundleID: courant) { $0.isHiddenByUs = true }
         }
-        if let pid = pid(pour: suivant), setHidden(false, pid: pid) {
+        if let pid = pid(pour: suivant), controleur.masquer(false, pid: pid) {
             updateApp(bundleID: suivant) { $0.isHiddenByUs = false }
         }
         activeCycleBundleID = suivant
