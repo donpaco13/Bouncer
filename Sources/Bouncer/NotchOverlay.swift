@@ -24,6 +24,9 @@
 import AppKit
 import BouncerCore
 
+// `@MainActor` : ce contrôleur ne manipule que des NSPanel, NSView et monitors NSEvent, et
+// `WindowManager` porte désormais la même isolation. Elle était déjà vraie à l'exécution.
+@MainActor
 final class NotchOverlayController: NSObject {
     private let windowManager: WindowManager
     private var panel: NSPanel?

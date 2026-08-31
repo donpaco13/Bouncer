@@ -8,6 +8,10 @@ import SwiftUI
 import BouncerCore
 
 if CommandLine.arguments.contains("--self-test") {
+    // Le code de haut niveau de `main.swift` n'est pas isolé, alors que `WindowManager` l'est
+    // désormais au main actor. Il tourne bel et bien sur le thread principal : `assumeIsolated`
+    // le déclare au compilateur au lieu d'introduire une hop asynchrone dans un chemin CLI.
+    MainActor.assumeIsolated {
     let wm = WindowManager(startTimer: false)
     print("Accessibilité accordée à ce binaire : \(wm.accessibilityTrusted)")
     print("Zone d'encoche : \(wm.lastNotchZoneDescription)")
@@ -20,6 +24,7 @@ if CommandLine.arguments.contains("--self-test") {
         }
     }
     exit(0)
+    }
 }
 
 BouncerApp.main()
