@@ -4,12 +4,15 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 BUNDLE_ID="io.github.donpaco13.bouncer"
-# NE PAS renommer ce CN malgré le renommage du produit. Ce certificat auto-signé est TRUSTÉ
-# dans le trousseau par une commande que seul l'humain peut lancer (`security add-trusted-cert`).
-# Le renommer créerait un nouveau certificat non trusté : TCC retomberait sur le CDHash du
-# binaire (qui change à chaque build) et l'autorisation Accessibilité ne s'appliquerait plus
-# jamais, tout en restant cochée dans les Réglages. Piège déjà coûté une nuit sur ce projet.
-CERT_CN="Island Switch Local Signing"
+# Ce certificat auto-signé doit être TRUSTÉ dans le trousseau, sinon rien ne marche :
+#   security add-trusted-cert -r trustRoot -p codeSign \
+#     -k ~/Library/Keychains/login.keychain-db <cert.pem>
+# Sans le trust, TCC ne peut pas valider la designated requirement, retombe sur le CDHash du
+# binaire — qui change à chaque build — et l'autorisation Accessibilité ne s'applique JAMAIS,
+# tout en restant cochée dans les Réglages. Symptôme piège : visuellement autorisé,
+# fonctionnellement refusé. Renommer ce CN oblige à refaire le trust ET un
+# `tccutil reset Accessibility io.github.donpaco13.bouncer`.
+CERT_CN="Bouncer Local Signing"
 
 swift build -c release
 
@@ -64,12 +67,12 @@ if ! security find-certificate -c "$CERT_CN" >/dev/null 2>&1; then
         -addext "keyUsage=critical,digitalSignature" >/dev/null 2>&1
 
     openssl pkcs12 -export -in "$TMP_CERT_DIR/cert.pem" -inkey "$TMP_CERT_DIR/key.pem" \
-        -out "$TMP_CERT_DIR/cert.p12" -passout pass:islandswitch-local >/dev/null 2>&1
+        -out "$TMP_CERT_DIR/cert.p12" -passout pass:bouncer-local >/dev/null 2>&1
 
     # -A : le trousseau autorise codesign/security à utiliser la clé sans jamais demander
     # de confirmation interactive (import et usages futurs).
     security import "$TMP_CERT_DIR/cert.p12" -k ~/Library/Keychains/login.keychain-db \
-        -P islandswitch-local -T /usr/bin/codesign -T /usr/bin/security -A >/dev/null
+        -P bouncer-local -T /usr/bin/codesign -T /usr/bin/security -A >/dev/null
 fi
 
 codesign --force --identifier "$BUNDLE_ID" --sign "$CERT_CN" "$APP"
