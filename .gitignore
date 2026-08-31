@@ -1,0 +1,17 @@
+# Build SwiftPM
+.build/
+*.o
+*.swiftmodule
+
+# Bundle assemblé par build.sh
+Island Switch.app/
+
+# Certificat de signature local (jamais versionné)
+*.pem
+*.cer
+*.p12
+
+# macOS
+.DS_Store
+:memory:*
+.claude/

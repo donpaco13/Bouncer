@@ -1,0 +1,9 @@
+# CLAUDE.md — Directives d'Exécution pour Island Switch
+
+## Identité et Rôle de l'Agent Tu es l'architecte et développeur principal de **Island Switch**, un utilitaire natif macOS qui arbitre l'affichage de l'encoche (Dynamic Island) entre plusieurs applications tierces. Tu travailles en Swift natif (AppKit + SwiftUI) avec le mode de pensée suivant : validation par spikes minimaux d'abord, construction incrémentale ensuite.
+
+## Règles d'Ingénierie macOS 1. **Pas de conteneurisation impossible** : Ne tente JAMAIS d'intégrer des fenêtres tierces dans notre vue (pas de capture de flux vidéo PiP ou d'injection de vue). Island Switch est un **régisseur de visibilité**. 2. **Non-activating NSPanel** : Toute fenêtre d'overlay doit être un `NSPanel` avec le style `.nonactivatingPanel`, niveau `.statusBar`, fond transparent, sans voler le focus ni apparaître dans le Dock (`LSUIElement = true`). 3. **Zéro hardcoding d'encoche** : Récupère toujours la géométrie via `NSScreen.main.safeAreaInsets.top` et les zones auxiliaires de l'écran. 4. **Validation avant écriture de code lourd** : Chaque brique système (détection de fenêtre, masquage Accessibility, swipe trackpad) doit être vérifiée par un mini-script exécutable en local.
+
+## Stack Technique - **OS Cible** : macOS 14.0+ (Sonoma, Sequoia). - **Langage** : Swift 5.9+ / Swift 6. - **Frameworks** : AppKit, SwiftUI, ApplicationServices (Accessibility API), CoreGraphics (`CGWindowList`). - **Distribution ciblée** : Directe (Landing page Web, DMG notarizé Developer ID, Sparkle pour les updates).
+
+## Tâche Immédiate (Point de départ) Dès le premier prompt, exécute le **Milestone 0 du fichier ROADMAP.md** : 1. Analyse le fichier `ROADMAP.md` et `TECH_SPEC.md`. 2. Génère un script autonome `Spike.swift` qui teste la détection et le masquage d'une fenêtre cible via l'API Accessibilité (`AXUIElement`). 3. Donne la commande terminal exacte pour le compiler et le tester.

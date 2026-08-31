@@ -1,0 +1,11 @@
+# Product Requirements Document (PRD) — Island Switch
+
+## 1. Problème Sur macOS, de nombreuses applications exploitent l'encoche des MacBook (ex: Vibe Island pour monitorer des agents IA, Boring Notch pour la musique/calendrier, Alcove, Notchy). Cependant, macOS ne fournit aucune API de coordination. Quand deux applications d'encoche sont lancées en même temps, leurs interfaces se superposent et créent un conflit visuel illisible. L'utilisateur est forcé de quitter manuellement une app pour en utiliser une autre.
+
+## 2. Solution Produit **Island Switch** est un utilitaire léger logé dans la barre des menus qui gère la visibilité des applications d'encoche : - Toutes les applications d'encoche restent ouvertes et actives en mémoire. - Une seule application d'encoche est visible à la fois sous le hardware notch. - L'utilisateur bascule instantanément entre ses applications via un swipe latéral à 2 doigts sur l'encoche ou via de petites flèches au survol.
+
+## 3. Utilisateurs Cibles - Développeurs, tech operators et power users sous MacBook à encoche (M1 Pro/Max, M2, M3, M4). - Utilisateurs combinant plusieurs outils spécialisés (ex: suivi d'agents IA/LLM + widget audio + calendrier).
+
+## 4. Fonctionnalités Clés (v1 MVP) 1. **Détection Automatique** : Détection en temps réel des fenêtres tiers positionnées dans la zone de l'encoche via `CGWindowList`. 2. **Régie de Visibilité** : Masquage programmatique de toutes les fenêtres d'encoche concurrentes sauf la fenêtre active (via Accessibility API). 3. **Contrôleur Gestuel & Visuel** : - Overlay transparent positionné sur l'encoche. - Flèches discrètes apparaissant au survol de la souris pour switcher à gauche/droite. - Geste de balayage (swipe trackpad 2 doigts) pour changer d'application active.4. **Menu Bar Manager** : Menu déroulant listant les applications détectées, l'application active et l'accès aux réglages. 
+
+## 5. Hors Scope (Strictement exclu pour la v1) - Réécrire ou cloner les fonctionnalités des apps tierces. - Afficher deux applications en mode split-screen dans l'encoche. - Supporter les versions antérieures à macOS 14. - Distribution sur le Mac App Store (bloqué par les restrictions de sandboxing sur l'API Accessibilité).
