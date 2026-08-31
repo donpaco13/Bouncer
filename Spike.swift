@@ -1,6 +1,6 @@
 #!/usr/bin/env swift
 //
-// Spike.swift — Milestone 0 : preuve de faisabilité pour Island Switch.
+// Spike.swift — Milestone 0 : preuve de faisabilité pour Bouncer.
 // Usage : swift Spike.swift [--pid <N>]
 // Aucune dépendance externe. AppKit + ApplicationServices + CoreGraphics uniquement.
 

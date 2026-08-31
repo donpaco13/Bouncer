@@ -1,18 +1,23 @@
 #!/bin/bash
-# Build Island Switch.app depuis le Swift Package — pas d'Xcode, ligne de commande uniquement.
+# Build Bouncer.app depuis le Swift Package — pas d'Xcode, ligne de commande uniquement.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-BUNDLE_ID="fr.yeita.islandswitch"
+BUNDLE_ID="io.github.donpaco13.bouncer"
+# NE PAS renommer ce CN malgré le renommage du produit. Ce certificat auto-signé est TRUSTÉ
+# dans le trousseau par une commande que seul l'humain peut lancer (`security add-trusted-cert`).
+# Le renommer créerait un nouveau certificat non trusté : TCC retomberait sur le CDHash du
+# binaire (qui change à chaque build) et l'autorisation Accessibilité ne s'appliquerait plus
+# jamais, tout en restant cochée dans les Réglages. Piège déjà coûté une nuit sur ce projet.
 CERT_CN="Island Switch Local Signing"
 
 swift build -c release
 
-APP="Island Switch.app"
+APP="Bouncer.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp .build/release/IslandSwitch "$APP/Contents/MacOS/IslandSwitch"
+cp .build/release/Bouncer "$APP/Contents/MacOS/Bouncer"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -20,9 +25,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Island Switch</string>
+    <string>Bouncer</string>
     <key>CFBundleDisplayName</key>
-    <string>Island Switch</string>
+    <string>Bouncer</string>
     <key>CFBundleIdentifier</key>
     <string>$BUNDLE_ID</string>
     <key>CFBundleVersion</key>
@@ -32,7 +37,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>IslandSwitch</string>
+    <string>Bouncer</string>
     <key>LSUIElement</key>
     <true/>
     <key>LSMinimumSystemVersion</key>
@@ -76,4 +81,4 @@ echo "✅ Bundle construit : $APP"
 pkill -f "$APP/Contents/MacOS/" 2>/dev/null || true
 sleep 0.3
 open "$APP"
-echo "🔄 Island Switch relancée"
+echo "🔄 Bouncer relancée"

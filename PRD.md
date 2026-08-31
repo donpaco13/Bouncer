@@ -1,8 +1,8 @@
-# Product Requirements Document (PRD) — Island Switch
+# Product Requirements Document (PRD) — Bouncer
 
 ## 1. Problème Sur macOS, de nombreuses applications exploitent l'encoche des MacBook (ex: Vibe Island pour monitorer des agents IA, Boring Notch pour la musique/calendrier, Alcove, Notchy). Cependant, macOS ne fournit aucune API de coordination. Quand deux applications d'encoche sont lancées en même temps, leurs interfaces se superposent et créent un conflit visuel illisible. L'utilisateur est forcé de quitter manuellement une app pour en utiliser une autre.
 
-## 2. Solution Produit **Island Switch** est un utilitaire léger logé dans la barre des menus qui gère la visibilité des applications d'encoche : - Toutes les applications d'encoche restent ouvertes et actives en mémoire. - Une seule application d'encoche est visible à la fois sous le hardware notch. - L'utilisateur bascule instantanément entre ses applications via un swipe latéral à 2 doigts sur l'encoche ou via de petites flèches au survol.
+## 2. Solution Produit **Bouncer** est un utilitaire léger logé dans la barre des menus qui gère la visibilité des applications d'encoche : - Toutes les applications d'encoche restent ouvertes et actives en mémoire. - Une seule application d'encoche est visible à la fois sous le hardware notch. - L'utilisateur bascule instantanément entre ses applications via un swipe latéral à 2 doigts sur l'encoche ou via de petites flèches au survol.
 
 ## 3. Utilisateurs Cibles - Développeurs, tech operators et power users sous MacBook à encoche (M1 Pro/Max, M2, M3, M4). - Utilisateurs combinant plusieurs outils spécialisés (ex: suivi d'agents IA/LLM + widget audio + calendrier).
 

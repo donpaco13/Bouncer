@@ -1,4 +1,4 @@
-# Roadmap & Plan d'Exécution — Island Switch
+# Roadmap & Plan d'Exécution — Bouncer
 
 ## Milestone 0 : Spike de Faisabilité (Validation Technique) - [ ] Créer un script autonome Swift (`Spike.swift`) sans interface graphique. - [ ] Vérifier et demander les droits Accessibilité. - [ ] Scanner et lister les fenêtres situées dans la zone du notch. - [ ] Tester le masquage puis le réaffichage d'une application d'encoche ouverte (ex: Boring Notch ou Vibe Island). - [ ] Valider le temps de réponse et la fluidité de `AXHidden`.
 

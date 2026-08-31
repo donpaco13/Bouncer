@@ -4,7 +4,7 @@
 *.swiftmodule
 
 # Bundle assemblé par build.sh
-Island Switch.app/
+Bouncer.app/
 
 # Certificat de signature local (jamais versionné)
 *.pem

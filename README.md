@@ -1,10 +1,10 @@
-# Island Switch
+# Bouncer
 
 Sur un MacBook à encoche, deux apps d'encoche ouvertes en même temps dessinent au même
 endroit et se superposent. macOS ne coordonne rien : il n'existe aucune notion d'« app
 d'encoche active », donc la seule sortie est de quitter l'une pour utiliser l'autre.
 
-Island Switch régit la visibilité de ces apps : il masque et réaffiche celles qui se
+Bouncer régit la visibilité de ces apps : il masque et réaffiche celles qui se
 disputent l'encoche, pour qu'une seule y soit visible à la fois. Le contrôle se fait
 depuis la barre des menus, par un swipe deux doigts sur l'encoche, ou par deux flèches
 qui apparaissent au survol.
@@ -14,14 +14,14 @@ dessinent leur propre pilule sous le hardware notch.
 
 ## Ce que ça fait vraiment, aujourd'hui
 
-**Island Switch régit l'app d'encoche que vous avez.** Il ne fait pas encore basculer
+**Bouncer régit l'app d'encoche que vous avez.** Il ne fait pas encore basculer
 entre deux apps, parce que ça n'a jamais pu être démontré : sur les quatre apps
 testées, une seule se laisse régir. Faute d'un second candidat, le cycle « app 1 → app
 2 → app 1 » est écrit et fonctionnel dans le code, mais jamais vérifié en conditions
 réelles.
 
-**Toutes les apps d'encoche ne sont pas régissables**, et ça ne dépend pas d'Island
-Switch. Autant le savoir avant d'installer.
+**Toutes les apps d'encoche ne sont pas régissables**, et ça ne dépend pas de Bouncer.
+Autant le savoir avant d'installer.
 
 ## Pourquoi certaines apps résistent
 
@@ -70,7 +70,7 @@ ci-dessus suffit à l'ajouter.
 
 ## Comportement face à une app non régissable
 
-Island Switch détecte toutes les fenêtres de la zone d'encoche, teste chaque app une
+Bouncer détecte toutes les fenêtres de la zone d'encoche, teste chaque app une
 fois à sa découverte, puis marque celles qui ne répondent pas comme « Non supportée ».
 Elles restent listées dans le menu mais sortent du cycle de switch, et ne sont plus
 jamais retestées : pas de clignotement en boucle, pas de fenêtre laissée masquée après
@@ -100,7 +100,7 @@ Tools Xcode (Swift 5.9+).
 
 ### Autorisation Accessibilité
 
-Island Switch a besoin de l'autorisation Accessibilité pour masquer les fenêtres
+Bouncer a besoin de l'autorisation Accessibilité pour masquer les fenêtres
 tierces. L'app la demande au premier lancement ; le menu propose aussi « Autoriser dans
 les Réglages… » qui ouvre directement le bon volet.
 
@@ -110,7 +110,7 @@ recompilez ailleurs ou lancez le binaire depuis un terminal, il faut réautorise
 ### Vérifier sans interface
 
 ```bash
-"Island Switch.app/Contents/MacOS/IslandSwitch" --self-test
+"Bouncer.app/Contents/MacOS/Bouncer" --self-test
 ```
 
 Imprime l'état de l'autorisation, la géométrie de l'encoche détectée, et la liste des
@@ -125,7 +125,7 @@ apps trouvées avec leur statut de régissabilité. Un seul passage, pas de bouc
 - **Régie** : `kAXHiddenAttribute` au niveau application, vérifié par recomptage.
 - **Overlay** : un `NSPanel` non activant, transparent, qui porte les flèches et n'est
   ordonné à l'écran que pendant le survol de l'encoche. Hors survol, aucune fenêtre
-  d'Island Switch ne recouvre la zone.
+  de Bouncer ne recouvre la zone.
 - **Swipe** : monitor global sur `.scrollWheel`, avec accumulateur et cooldown pour
   qu'une rafale de scroll ne produise qu'une bascule. Le monitor doit être global :
   dès qu'une app d'encoche déploie son panneau, sa fenêtre consomme le scroll avant nous.
@@ -144,7 +144,7 @@ l'architecture, [`PRD.md`](PRD.md) pour le cadrage produit.
 
 ## Hors périmètre
 
-Island Switch ne réimplémente aucune fonctionnalité des apps tierces, n'affiche pas deux
+Bouncer ne réimplémente aucune fonctionnalité des apps tierces, n'affiche pas deux
 apps côte à côte dans l'encoche, et ne capture pas leur contenu pour le redessiner. Il
 décide seulement qui est visible.
 

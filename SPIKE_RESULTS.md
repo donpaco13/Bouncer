@@ -149,7 +149,7 @@ quand même entre les deux apps testées.
    privée non documentée par Apple — l'utiliser expose à un rejet de notarisation ou
    à une rupture sans préavis lors d'une mise à jour macOS. À évaluer en M1
    seulement si le nombre d'apps récalcitrantes en usage réel le justifie ; sinon,
-   accepter que ces apps restent hors du périmètre garanti d'Island Switch et le
+   accepter que ces apps restent hors du périmètre garanti de Bouncer et le
    documenter côté utilisateur plutôt que de dépendre d'une API privée.
 4. La piste 4 (déplacement `kAXPositionAttribute` hors écran) reste non concluante
    sur les deux apps et n'apporte rien de plus que la stratégie 1 — ne pas
@@ -276,7 +276,7 @@ Vérifié par documentation communautaire, pas par opinion :
   un window ID depuis un élément AX) et revendique explicitement ne jamais exiger
   de désactiver SIP (https://github.com/nikitabobko/AeroSpace).
 
-**Conséquence directe pour Island Switch** : même en root, sans injection dans un
+**Conséquence directe pour Bouncer** : même en root, sans injection dans un
 process privilégié comme Dock.app et sans SIP désactivé, `CGSSetWindowAlpha` sur
 une fenêtre d'un autre process échouera côté serveur. Cette voie est incompatible
 avec la distribution DMG notarized Developer ID visée par le `CLAUDE.md` du
@@ -438,7 +438,7 @@ présence de la fenêtre (testé en direct pour le réglage le plus prometteur),
 soit inexistants (URL scheme, notification distribuée), soit une frappe
 nucléaire qui tue l'app plutôt que de la masquer (Quit) ; le Milestone 1 doit
 donc traiter boringNotch comme définitivement hors du périmètre garanti
-d'Island Switch, sans piste de repli restante à explorer côté app tierce.**
+de Bouncer, sans piste de repli restante à explorer côté app tierce.**
 
 ## Compatibilité des applications d'encoche
 
@@ -453,7 +453,7 @@ officiel, `tryalcove.com`) ; Notchy via le DMG signé servi par `notchy.dev`
 été utilisé (tap non officiel non vérifiable), le DMG signé/notarié a suffi.
 
 **Aucune des deux n'a pu être testée en direct jusqu'au bout — pour deux raisons
-différentes, aucune des deux liée à Island Switch :**
+différentes, aucune des deux liée à Bouncer :**
 
 - **Alcove (1.7.7) reste bloqué au tout premier instant de son lancement.** Le
   process démarre (`open -a Alcove.app`), apparaît dans `ps`, mais reste figé à
@@ -513,11 +513,11 @@ vivante à masquer pendant cette session.
 |---|---|:---:|---|
 | **Vibe Island** | 1.0.48 | ✅ Oui | `kAXHiddenAttribute` (niveau app) : hide 31,7 ms / show 5,1 ms, confirmé par recomptage `CGWindowList` |
 | **boringNotch** | 2.7.3 | ❌ Non | Épingle sa fenêtre à un Space CGS privé qu'elle crée et affiche en permanence (`CGSSpaceCreate` + `CGSAddWindowsToSpaces`, confirmé par lecture du source) — hors du circuit `AXHidden` |
-| **Alcove** | 1.7.7 | ❌ Non *(prédit, non confirmé en direct)* | Lancement de l'app bloqué sur cette machine (figé à `_dyld_start`, cause probable : timeout réseau `syspolicyd`/OCSP, non lié à Island Switch) — aucune fenêtre disponible pour un test de bout en bout ; analyse statique du binaire (`otool -L`/`nm -u`) montre le même pattern d'écriture CGS Space (`CGSSpaceCreate`/`CGSSpaceSetAbsoluteLevel`/`CGSShowSpaces`/`CGSAddWindowsToSpaces`) que boringNotch |
+| **Alcove** | 1.7.7 | ❌ Non *(prédit, non confirmé en direct)* | Lancement de l'app bloqué sur cette machine (figé à `_dyld_start`, cause probable : timeout réseau `syspolicyd`/OCSP, non lié à Bouncer) — aucune fenêtre disponible pour un test de bout en bout ; analyse statique du binaire (`otool -L`/`nm -u`) montre le même pattern d'écriture CGS Space (`CGSSpaceCreate`/`CGSSpaceSetAbsoluteLevel`/`CGSShowSpaces`/`CGSAddWindowsToSpaces`) que boringNotch |
 | **Notchy** | 1.0.135 | ❌ Non *(prédit, non confirmé en direct)* | App lancée avec succès mais n'affiche aucune fenêtre en l'absence de contenu contextuel actif (musique/appel/AirPods/calendrier) — rien à masquer pendant cette session ; analyse statique montre le même pattern d'écriture CGS Space que boringNotch, plus `CGSSetWindowAlpha` (fondu SkyLight, déjà écarté comme piste de repli au Milestone 0) |
 
 **Conclusion de ce complément :** aucune deuxième app réellement régissable n'a été
-trouvée dans cette passe — la bascule entre deux apps régies par Island Switch reste,
+trouvée dans cette passe — la bascule entre deux apps régies par Bouncer reste,
 à ce stade, non démontrable en conditions réelles (un seul candidat qui réponde,
 Vibe Island). Alcove et Notchy rejoignent vraisemblablement boringNotch hors du
 périmètre garanti, mais ce verdict repose sur une analyse statique et non sur la
@@ -527,7 +527,7 @@ machine où Alcove démarre et où Notchy peut être amenée à afficher un cont
 plutôt que de publier une prédiction comme un fait mesuré.
 
 Nettoyage effectué avant de rendre la main : recomptage final `CGWindowList` sur la
-zone d'encoche — aucune fenêtre tierce masquée (Island Switch et Vibe Island
+zone d'encoche — aucune fenêtre tierce masquée (Bouncer et Vibe Island
 retrouvés dans leur état initial). Alcove et Notchy laissés installés dans
 `/Applications` à la décision du propriétaire ; Alcove reste dans son état figé au
 lancement au moment de la rédaction — un `killall Alcove` puis relance réglera

@@ -2,15 +2,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "IslandSwitch",
+    name: "Bouncer",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "IslandSwitch", targets: ["IslandSwitch"])
+        .executable(name: "Bouncer", targets: ["Bouncer"])
     ],
     targets: [
         .executableTarget(
-            name: "IslandSwitch",
-            path: "Sources/IslandSwitch"
+            name: "Bouncer",
+            path: "Sources/Bouncer"
         )
     ]
 )

@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-struct IslandSwitchApp: App {
+struct BouncerApp: App {
     @StateObject private var windowManager: WindowManager
     private let overlayController: NotchOverlayController
 
@@ -19,7 +19,7 @@ struct IslandSwitchApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("Island Switch", systemImage: "rectangle.on.rectangle") {
+        MenuBarExtra("Bouncer", systemImage: "rectangle.on.rectangle") {
             MenuBarContentView(windowManager: windowManager)
         }
     }

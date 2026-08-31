@@ -1,6 +1,6 @@
 # Architecture Globale
 +-------------------------------------------------------------+
-|                      Island Switch Host                     |
+|                        Bouncer Host                         |
 |                                                             |
 |  +---------------------+        +------------------------+  |
 |  |   NotchOverlayView  |        |    WindowManager       |  |

@@ -20,4 +20,4 @@ if CommandLine.arguments.contains("--self-test") {
     exit(0)
 }
 
-IslandSwitchApp.main()
+BouncerApp.main()
