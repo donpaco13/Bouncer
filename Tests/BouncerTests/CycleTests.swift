@@ -1,9 +1,10 @@
-import XCTest
+import Testing
 @testable import BouncerCore
 
-final class CycleTests: XCTestCase {
-    func testCibleSuivanteEnAvant() {
+struct CycleTests {
+    @Test("L'élément suivant d'un cycle en avant")
+    func cibleSuivanteEnAvant() {
         let apps = ["a", "b", "c"]
-        XCTAssertEqual(prochaineCible(dans: apps, depuis: "a", forward: true), "b")
+        #expect(prochaineCible(dans: apps, depuis: "a", forward: true) == "b")
     }
 }
