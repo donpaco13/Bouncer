@@ -20,7 +20,14 @@ struct BouncerApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("Bouncer", systemImage: "rectangle.on.rectangle") {
+        // L'icône change quand la dernière bascule a échoué : un swipe raté ne bouge rien à
+        // l'écran, et le message qui l'explique dort dans un menu que personne n'ouvrira sans
+        // raison de le faire.
+        MenuBarExtra(
+            "Bouncer",
+            systemImage: windowManager.echecBascule == nil
+                ? "rectangle.on.rectangle" : "exclamationmark.triangle"
+        ) {
             MenuBarContentView(windowManager: windowManager)
         }
     }

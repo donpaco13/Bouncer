@@ -12,6 +12,14 @@ struct MenuBarContentView: View {
             Divider()
         }
 
+        if let echec = windowManager.echecBascule {
+            // Une bascule ratée ne change rien à l'écran — c'est la garantie de la machine à
+            // états, l'app précédente reste en place. Sans cette ligne, le geste passerait donc
+            // pour non détecté. Rien à cliquer : il n'y a qu'à réessayer.
+            Text("⚠️ \(echec)")
+            Divider()
+        }
+
         let entrees = windowManager.entreesMenu
         if entrees.isEmpty {
             Text("Aucune app d'encoche détectée")

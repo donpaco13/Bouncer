@@ -65,10 +65,15 @@ public final class WindowManager: ObservableObject {
     /// doit le montrer : la voie par cycle de vie prend environ une seconde, et sans retour visuel
     /// l'utilisateur clique une seconde fois.
     ///
-    /// Rien ne le pose encore — la machine à états qui l'allumera arrive avec la seconde moitié de
-    /// la Task 5. Il existe dès maintenant pour que le menu n'ait pas à changer de forme à ce
-    /// moment-là : il suffira de l'affecter autour de la bascule.
-    @Published public internal(set) var bundleIDEnCoursDeBascule: String?
+    /// Il sert aussi de verrou : tant qu'il n'est pas `nil`, toute nouvelle demande de bascule
+    /// est ignorée. Deux bascules concurrentes se marcheraient dessus — la seconde éteindrait
+    /// l'app que la première vient tout juste d'allumer.
+    @Published public private(set) var bundleIDEnCoursDeBascule: String?
+
+    /// Ce que la dernière bascule a raté, dit en clair, `nil` si elle a abouti. Un échec ne change
+    /// rien à l'écran — l'app précédente reste en place, c'est la garantie de la machine à états —
+    /// donc sans ce message l'utilisateur ne verrait qu'un geste sans effet.
+    @Published public private(set) var echecBascule: String?
 
     private let ownPid = ProcessInfo.processInfo.processIdentifier
     private var timer: Timer?
@@ -93,6 +98,11 @@ public final class WindowManager: ObservableObject {
     /// ce catalogue (donc l'apparition des apps arrêtées dans la liste) vient avec la bascule.
     private let catalogue: CatalogueApps
 
+    /// La machine à états de la bascule, montée sur le même contrôleur que le reste. Une seule
+    /// instance, un seul chemin : le swipe, les flèches et le menu y aboutissent tous. Deux
+    /// chemins qui font « la même chose » finiraient par diverger.
+    private let bascule: Bascule
+
     /// `startTimer: false` pour le self-test CLI (un seul refresh() synchrone, pas de boucle).
     public init(
         startTimer: Bool = true,
@@ -101,6 +111,7 @@ public final class WindowManager: ObservableObject {
     ) {
         self.catalogue = catalogue
         self.controleur = controleur
+        bascule = Bascule(controleur: controleur)
         accessibilityTrusted = AXIsProcessTrusted()
         if !accessibilityTrusted {
             // Popup système une seule fois, ici, à froid — jamais dans la boucle de refresh.
@@ -284,37 +295,75 @@ public final class WindowManager: ObservableObject {
         }
     }
 
-    /// Bascule manuelle (clic) : uniquement pour les apps régissables ET lancées — masquer une app
-    /// arrêtée n'a pas de sens, et l'API AX n'a rien à cibler sans pid.
-    public func toggle(bundleID: String) {
-        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }),
-              apps[idx].support == .supported,
-              let pid = apps[idx].pid
-        else { return }
-        let wantHidden = !apps[idx].isHiddenByUs
-        if controleur.masquer(wantHidden, pid: pid) {
-            apps[idx].isHiddenByUs = wantHidden
+    // MARK: - Bascule : le point d'entrée unique du menu, du swipe et des flèches
+
+    /// « Rends cette app active » : elle s'ouvre si elle est arrêtée, et celle qui occupait
+    /// l'encoche est masquée ou quittée selon ce qu'elle accepte. C'est l'action du clic sur une
+    /// entrée du menu, et c'est exactement celle du swipe — `cycle(forward:)` aboutit ici.
+    ///
+    /// Synchrone pour ses appelants (un bouton SwiftUI, un callback AppKit) ; le travail part dans
+    /// une tâche, parce que la voie par cycle de vie attend l'apparition d'une fenêtre.
+    public func rendreActive(bundleID: String) {
+        Task { await basculer(vers: bundleID) }
+    }
+
+    /// La même bascule, attendable — c'est la forme qu'utilise un appelant déjà asynchrone.
+    public func basculer(vers bundleID: String) async {
+        // Un second geste pendant la bascule éteindrait l'app que le premier vient d'allumer.
+        // Le menu marque déjà l'entrée en cours ; ici on se contente de refuser le doublon.
+        guard bundleIDEnCoursDeBascule == nil else { return }
+        guard let cible = infoPourBascule(bundleID) else { return }
+        let actuelle = bundleIDActive.flatMap(infoPourBascule)
+
+        bundleIDEnCoursDeBascule = bundleID
+        echecBascule = nil
+        let resultat = await bascule.basculer(vers: cible, depuis: actuelle)
+        bundleIDEnCoursDeBascule = nil
+
+        switch resultat {
+        case .reussie:
+            appliquerReussite(cible: cible.bundleID, actuelle: actuelle?.bundleID)
+        case .lancementImpossible:
+            echecBascule = "\(cible.name) n'a pas pu être lancée."
+        case .cibleJamaisApparue:
+            let repli = actuelle.map { "\($0.name) reste en place." } ?? "L'encoche est inchangée."
+            echecBascule = "\(cible.name) s'est lancée sans rien afficher dans l'encoche. \(repli)"
         }
     }
 
-    // MARK: - Point d'entrée du menu
+    /// L'app telle que la bascule doit la connaître. Une app arrêtée n'est pas dans `apps` — c'est
+    /// toute la raison d'être du catalogue — on la fabrique donc à partir de lui, avec le verdict
+    /// mémorisé s'il en existe un. Sans verdict, `.testing` envoie la bascule sur la voie cycle de
+    /// vie, la seule qui marche tant qu'on ignore si l'app se laisse masquer.
+    private func infoPourBascule(_ bundleID: String) -> NotchAppInfo? {
+        if let app = apps.first(where: { $0.bundleID == bundleID }) { return app }
+        guard let installee = catalogue.installees().first(where: { $0.bundleID == bundleID })
+        else { return nil }
+        return NotchAppInfo(
+            bundleID: bundleID, name: installee.nom,
+            support: supportVerdictCache[bundleID] ?? .testing,
+            pid: controleur.pid(pour: bundleID), isHiddenByUs: false
+        )
+    }
 
-    /// « Rends cette app active » : l'action que déclenche un clic sur une entrée du menu. C'est
-    /// la même intention que le swipe, exprimée depuis le menu — une seule voie de code, pas deux
-    /// comportements à maintenir.
-    ///
-    /// POUR LE WORKER DE LA SECONDE MOITIÉ DE LA TASK 5 : c'est ici, et nulle part ailleurs, que
-    /// le menu se branche. Remplace le corps de cette méthode par un appel à la machine à états de
-    /// la bascule (`Bascule`, Task 4) — celle-là même qu'appellera `cycle(forward:)` — et pense à
-    /// entourer l'appel de `bundleIDEnCoursDeBascule = bundleID` / `= nil`, que le menu affiche
-    /// déjà. Rien d'autre n'est à toucher côté présentation.
-    ///
-    /// En attendant, le corps délègue à `toggle(bundleID:)` : comportement strictement inchangé,
-    /// y compris son no-op sur une app résistante ou arrêtée. Le menu, lui, ne grise plus rien —
-    /// ces entrées sont cliquables et le resteront, c'est la bascule derrière qui doit apprendre à
-    /// les honorer.
-    public func rendreActive(bundleID: String) {
-        toggle(bundleID: bundleID)
+    /// Recale le modèle après une bascule réussie. Une seule chose est mesurée — la cible occupe-
+    /// t-elle l'encoche — parce que `.reussie` recouvre deux issues : le passage d'une app à une
+    /// autre, et l'interrupteur sur une app seule au catalogue, qui vient au contraire de
+    /// l'éteindre.
+    private func appliquerReussite(cible: String, actuelle: String?) {
+        let cibleVisible = controleur.pid(pour: cible)
+            .map { controleur.fenetreVisibleDansNotch(pid: $0) } ?? false
+
+        // Marqué AVANT le refresh : une app masquée n'a plus de fenêtre dans l'encoche, donc le
+        // scan ne la voit plus, et c'est ce drapeau qui empêche `refresh()` de la retirer de la
+        // liste — sans lui elle serait masquée sans retour possible. Une app quittée, elle, n'a
+        // plus de pid : elle sort de `apps`, et le catalogue la garde au menu.
+        if let actuelle, actuelle != cible, controleur.pid(pour: actuelle) != nil {
+            updateApp(bundleID: actuelle) { $0.isHiddenByUs = true }
+        }
+        updateApp(bundleID: cible) { $0.isHiddenByUs = !cibleVisible }
+        activeCycleBundleID = cibleVisible ? cible : nil
+        refresh()
     }
 
     /// L'app qui occupe le notch : celle que la dernière bascule a désignée si elle est toujours
@@ -331,10 +380,12 @@ public final class WindowManager: ObservableObject {
     /// Les lignes du menu : les apps détectées, plus les apps du catalogue qui ne tournent pas.
     ///
     /// ponytail: `catalogue.installees()` interroge LaunchServices pour chaque bundleID connu.
-    /// C'est une propriété calculée plutôt qu'un `@Published` recalculé au refresh parce que le
-    /// refresh tourne toutes les 2 s alors que le corps du menu n'est évalué que menu ouvert —
-    /// l'appel est donc plus rare ici. Si le catalogue grossit au point que l'ouverture du menu
-    /// se sente, le mettre en cache dans `CatalogueApps` avec invalidation sur `apprendre`.
+    /// C'est une propriété calculée plutôt qu'un `@Published` recalculé au refresh parce que ses
+    /// deux appelants sont rares : le corps du menu n'est évalué que menu ouvert, et `cyclableApps`
+    /// à chaque cran de swipe — que le seuil de défilement et le cooldown de `NotchOverlay`
+    /// limitent à quelques-uns par seconde. Si le catalogue grossit au point que l'ouverture du
+    /// menu ou le swipe se sentent, le mettre en cache dans `CatalogueApps` avec invalidation
+    /// sur `apprendre`.
     public var entreesMenu: [EntreeMenu] {
         construireEntreesMenu(
             apps: apps,
@@ -352,42 +403,21 @@ public final class WindowManager: ObservableObject {
     /// visibilité. Un bundleID plutôt qu'un pid : le point de départ survit à une app quittée.
     private var activeCycleBundleID: String?
 
-    /// Apps utilisables dans le cycle swipe/flèches — régissables et lancées, jamais les
-    /// "Non supportée" (cf. consigne M2). Le filtre sur `estLancee` tombera à la Task 5, quand la
-    /// bascule saura relancer une app arrêtée ; aujourd'hui le cycle ne sait que masquer/réafficher.
-    var cyclableApps: [NotchAppInfo] { apps.filter { $0.support == .supported && $0.estLancee } }
+    /// Les apps que le cycle parcourt : exactement les lignes du menu, dans le même ordre. Plus
+    /// aucun filtre — ni sur le verdict, une app résistante participe désormais au cycle et c'est
+    /// tout l'objet du chantier, ni sur l'état de lancement, puisque la bascule sait relancer une
+    /// app arrêtée. Dérivé de `entreesMenu` plutôt que recalculé : le menu et le swipe doivent
+    /// désigner la même « app suivante », sinon les deux gestes divergent sans rien signaler.
+    var cyclableApps: [String] { entreesMenu.map(\.bundleID) }
 
-    /// Une bascule = masque l'app active courante, montre la suivante (ou précédente) du cycle
-    /// circulaire. No-op s'il n'y a rien à basculer.
+    /// Un cran de swipe, ou un clic sur une flèche : l'app suivante (ou précédente) du cycle
+    /// circulaire devient active, par la bascule qu'emprunte aussi le menu. Une seule app au
+    /// catalogue redonne l'interrupteur d'origine, la bascule d'une app sur elle-même. No-op si
+    /// le catalogue est vide.
     public func cycle(forward: Bool) {
-        let cyclable = cyclableApps
-        if cyclable.isEmpty { return }
-
-        if cyclable.count == 1 {
-            toggle(bundleID: cyclable[0].bundleID)
-            return
-        }
-
-        let ids = cyclable.map(\.bundleID)
-        let courant = activeCycleBundleID ?? cyclable.first(where: { !$0.isHiddenByUs })?.bundleID ?? ids[0]
-        guard ids.contains(courant) else {
-            activeCycleBundleID = ids[0]
-            return
-        }
-        guard let suivant = prochaineCible(dans: ids, depuis: courant, forward: forward), suivant != courant
+        guard let suivant = prochaineCible(dans: cyclableApps, depuis: bundleIDActive, forward: forward)
         else { return }
-
-        if let pid = pid(pour: courant), controleur.masquer(true, pid: pid) {
-            updateApp(bundleID: courant) { $0.isHiddenByUs = true }
-        }
-        if let pid = pid(pour: suivant), controleur.masquer(false, pid: pid) {
-            updateApp(bundleID: suivant) { $0.isHiddenByUs = false }
-        }
-        activeCycleBundleID = suivant
-    }
-
-    private func pid(pour bundleID: String) -> pid_t? {
-        apps.first(where: { $0.bundleID == bundleID })?.pid
+        rendreActive(bundleID: suivant)
     }
 
     private func updateApp(bundleID: String, _ mutate: (inout NotchAppInfo) -> Void) {

@@ -75,6 +75,40 @@ struct MenuTests {
         #expect(entrees.first(where: { $0.bundleID == "b.boring" })?.etat == .inactive)
     }
 
+    /// Le cycle du swipe parcourt exactement ces lignes-là : `WindowManager.cyclableApps` les
+    /// dérive de cette fonction, pour que le menu et le swipe ne puissent pas désigner deux « app
+    /// suivante » différentes. Ce que la Task 5 a changé se lit ici — une app résistante et une
+    /// app arrêtée sont des étapes du cycle comme les autres, là où les filtres
+    /// `support == .supported` et `estLancee` les en excluaient.
+    @Test func leCycleAtteintUneAppResistanteEtUneAppArretee() {
+        let ids = construireEntreesMenu(
+            apps: [app("a.vibe", "Vibe Island"), app("b.boring", "boringNotch", support: .unsupported)],
+            installees: [installee("c.notchy", "Notchy")], // installée, pas lancée
+            active: "a.vibe",
+            enCoursDeBascule: nil
+        ).map(\.bundleID)
+        #expect(ids == ["b.boring", "c.notchy", "a.vibe"])
+
+        // Trois crans de swipe depuis l'app active : le tour complet passe par les deux exclues
+        // d'hier, puis revient au point de départ.
+        var courant: String? = "a.vibe"
+        var visite: [String] = []
+        for _ in 0..<3 {
+            courant = prochaineCible(dans: ids, depuis: courant, forward: true)
+            visite.append(courant ?? "—")
+        }
+        #expect(visite == ["b.boring", "c.notchy", "a.vibe"])
+    }
+
+    /// Une seule app au catalogue : le cycle la redésigne elle-même, et `Bascule` en fait
+    /// l'interrupteur d'origine (masquer puis réafficher) au lieu d'un geste sans effet.
+    @Test func avecUneSeuleAppLeCycleDesigneCetteAppLaMeme() {
+        let ids = construireEntreesMenu(
+            apps: [app("a.vibe", "Vibe Island")], installees: [], active: "a.vibe", enCoursDeBascule: nil
+        ).map(\.bundleID)
+        #expect(prochaineCible(dans: ids, depuis: "a.vibe", forward: true) == "a.vibe")
+    }
+
     /// Aucune app active : aucune marque, et surtout aucun plantage.
     @Test func sansAppActiveAucuneEntreeNEstMarquee() {
         let entrees = construireEntreesMenu(
