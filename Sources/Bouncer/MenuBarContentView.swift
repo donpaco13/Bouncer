@@ -1,4 +1,5 @@
 import SwiftUI
+import BouncerCore
 
 struct MenuBarContentView: View {
     @ObservedObject var windowManager: WindowManager

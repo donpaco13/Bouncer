@@ -8,9 +8,10 @@ let package = Package(
         .executable(name: "Bouncer", targets: ["Bouncer"])
     ],
     targets: [
-        .executableTarget(
-            name: "Bouncer",
-            path: "Sources/Bouncer"
-        )
+        // La logique vit dans une bibliothèque, seule façon qu'une target de test puisse
+        // l'importer : une target exécutable n'est pas importable.
+        .target(name: "BouncerCore", path: "Sources/BouncerCore"),
+        .executableTarget(name: "Bouncer", dependencies: ["BouncerCore"], path: "Sources/Bouncer"),
+        .testTarget(name: "BouncerTests", dependencies: ["BouncerCore"], path: "Tests/BouncerTests"),
     ]
 )

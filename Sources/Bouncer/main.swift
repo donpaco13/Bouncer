@@ -5,6 +5,7 @@
 // l'autorisation Accessibilité se donne par binaire, pas par processus parent (cf. SPIKE_RESULTS.md).
 
 import SwiftUI
+import BouncerCore
 
 if CommandLine.arguments.contains("--self-test") {
     let wm = WindowManager(startTimer: false)

@@ -18,19 +18,19 @@ import ApplicationServices
 import CoreGraphics
 import Foundation
 
-enum SupportStatus: String {
+public enum SupportStatus: String {
     case testing = "Test en cours…"
     case supported = "Régissable"
     case unsupported = "Non supportée"
 }
 
-struct NotchAppInfo: Identifiable, Equatable {
-    var id: pid_t { pid }
-    let pid: pid_t
-    let bundleID: String?
-    let name: String
-    var support: SupportStatus
-    var isHiddenByUs: Bool
+public struct NotchAppInfo: Identifiable, Equatable {
+    public var id: pid_t { pid }
+    public let pid: pid_t
+    public let bundleID: String?
+    public let name: String
+    public var support: SupportStatus
+    public var isHiddenByUs: Bool
 }
 
 /// Processus systèmes à ignorer dans le scan de la zone d'encoche, identifiés par bundleID —
@@ -46,10 +46,10 @@ private let systemBundleIDs: Set<String> = [
 /// aujourd'hui seul Window Server est dans ce cas.
 private let systemProcessNamesFallback: Set<String> = ["Window Server"]
 
-final class WindowManager: ObservableObject {
-    @Published private(set) var apps: [NotchAppInfo] = []
-    @Published private(set) var accessibilityTrusted: Bool = false
-    @Published private(set) var lastNotchZoneDescription: String = "—"
+public final class WindowManager: ObservableObject {
+    @Published public private(set) var apps: [NotchAppInfo] = []
+    @Published public private(set) var accessibilityTrusted: Bool = false
+    @Published public private(set) var lastNotchZoneDescription: String = "—"
 
     private let ownPid = ProcessInfo.processInfo.processIdentifier
     private var timer: Timer?
@@ -61,7 +61,7 @@ final class WindowManager: ObservableObject {
     private var supportVerdictCache: [pid_t: SupportStatus] = [:]
 
     /// `startTimer: false` pour le self-test CLI (un seul refresh() synchrone, pas de boucle).
-    init(startTimer: Bool = true) {
+    public init(startTimer: Bool = true) {
         accessibilityTrusted = AXIsProcessTrusted()
         if !accessibilityTrusted {
             // Popup système une seule fois, ici, à froid — jamais dans la boucle de refresh.
@@ -78,7 +78,7 @@ final class WindowManager: ObservableObject {
 
     /// Ouvre le volet Accessibilité des Réglages Système, pour que l'utilisateur y aille
     /// quand il veut plutôt que de subir la popup système.
-    func openAccessibilitySettings() {
+    public func openAccessibilitySettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
         else { return }
         NSWorkspace.shared.open(url)
@@ -111,9 +111,9 @@ final class WindowManager: ObservableObject {
     // MARK: - Géométrie de l'encoche (portée depuis Spike.swift)
 
     /// Zone d'encoche en coordonnées AppKit globales (repère utilisé par `NSPanel.setFrame` et
-    /// `NSEvent.mouseLocation`) — interne, pas `private`, pour que `NotchOverlayController`
+    /// `NSEvent.mouseLocation`) — `public`, pour que `NotchOverlayController` (target exécutable)
     /// positionne son panel sans redériver la géométrie (règle CLAUDE.md : zéro hardcoding).
-    func notchZone() -> CGRect? {
+    public func notchZone() -> CGRect? {
         let screens = NSScreen.screens
         guard let notchScreen = screens.first(where: { $0.safeAreaInsets.top > 0 }) else {
             lastNotchZoneDescription = "Aucune encoche détectée sur cette machine."
@@ -185,7 +185,7 @@ final class WindowManager: ObservableObject {
 
     // MARK: - Rafraîchissement : découverte + suivi par identité (pas seulement géométrie)
 
-    func refresh() {
+    public func refresh() {
         guard let zone = notchZone() else {
             apps = []
             return
@@ -258,7 +258,7 @@ final class WindowManager: ObservableObject {
     }
 
     /// Bascule manuelle (clic) : uniquement pour les apps régissables. Ignore les non supportées.
-    func toggle(pid: pid_t) {
+    public func toggle(pid: pid_t) {
         guard let idx = apps.firstIndex(where: { $0.pid == pid }), apps[idx].support == .supported else { return }
         let wantHidden = !apps[idx].isHiddenByUs
         if setHidden(wantHidden, pid: pid) {
@@ -279,7 +279,7 @@ final class WindowManager: ObservableObject {
 
     /// Une bascule = masque l'app active courante, montre la suivante (ou précédente) du cycle
     /// circulaire. No-op s'il y a moins de deux apps régissables (rien à basculer).
-    func cycle(forward: Bool) {
+    public func cycle(forward: Bool) {
         let cyclable = cyclableApps
         if cyclable.isEmpty { return }
         

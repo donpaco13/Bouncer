@@ -22,6 +22,7 @@
 // hors écran (retiré) ou nil (pas encore construit / plus d'encoche détectée).
 
 import AppKit
+import BouncerCore
 
 final class NotchOverlayController: NSObject {
     private let windowManager: WindowManager

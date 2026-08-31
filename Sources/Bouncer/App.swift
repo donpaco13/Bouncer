@@ -7,6 +7,7 @@
 // aussi longtemps que l'app.
 
 import SwiftUI
+import BouncerCore
 
 struct BouncerApp: App {
     @StateObject private var windowManager: WindowManager
