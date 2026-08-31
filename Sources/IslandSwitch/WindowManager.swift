@@ -97,7 +97,10 @@ final class WindowManager: ObservableObject {
 
     // MARK: - Géométrie de l'encoche (portée depuis Spike.swift)
 
-    private func notchZone() -> CGRect? {
+    /// Zone d'encoche en coordonnées AppKit globales (repère utilisé par `NSPanel.setFrame` et
+    /// `NSEvent.mouseLocation`) — interne, pas `private`, pour que `NotchOverlayController`
+    /// positionne son panel sans redériver la géométrie (règle CLAUDE.md : zéro hardcoding).
+    func notchZone() -> CGRect? {
         let screens = NSScreen.screens
         guard let notchScreen = screens.first(where: { $0.safeAreaInsets.top > 0 }) else {
             lastNotchZoneDescription = "Aucune encoche détectée sur cette machine."
@@ -223,6 +226,43 @@ final class WindowManager: ObservableObject {
         if setHidden(wantHidden, pid: pid) {
             apps[idx].isHiddenByUs = wantHidden
         }
+    }
+
+    // MARK: - Cycle circulaire (Milestone 2 : swipe / flèches)
+
+    /// pid actif du cycle swipe/flèches. Distinct de `isHiddenByUs` : plusieurs apps régissables
+    /// peuvent être visibles à la fois (rien ne les a masquées), le cycle a besoin d'un point de
+    /// départ explicite plutôt que de deviner "l'app active" depuis leur état de visibilité.
+    private var activeCyclePid: pid_t?
+
+    /// Apps utilisables dans le cycle swipe/flèches — régissables uniquement, jamais les
+    /// "Non supportée" (cf. consigne M2).
+    var cyclableApps: [NotchAppInfo] { apps.filter { $0.support == .supported } }
+
+    /// Une bascule = masque l'app active courante, montre la suivante (ou précédente) du cycle
+    /// circulaire. No-op s'il y a moins de deux apps régissables (rien à basculer).
+    func cycle(forward: Bool) {
+        let cyclable = cyclableApps
+        guard cyclable.count > 1 else { return }
+
+        let currentPid = activeCyclePid ?? cyclable.first(where: { !$0.isHiddenByUs })?.pid ?? cyclable[0].pid
+        guard let currentIdx = cyclable.firstIndex(where: { $0.pid == currentPid }) else {
+            activeCyclePid = cyclable[0].pid
+            return
+        }
+        let nextIdx = forward
+            ? (currentIdx + 1) % cyclable.count
+            : (currentIdx - 1 + cyclable.count) % cyclable.count
+        let nextPid = cyclable[nextIdx].pid
+        guard nextPid != currentPid else { return }
+
+        if setHidden(true, pid: currentPid) {
+            updateApp(pid: currentPid) { $0.isHiddenByUs = true }
+        }
+        if setHidden(false, pid: nextPid) {
+            updateApp(pid: nextPid) { $0.isHiddenByUs = false }
+        }
+        activeCyclePid = nextPid
     }
 
     private func updateApp(pid: pid_t, _ mutate: (inout NotchAppInfo) -> Void) {
