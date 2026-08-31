@@ -254,13 +254,29 @@ Commit : `Bascule par cycle de vie, avec pré-lancement et timeout`.
 
 `cycle(forward:)` délègue à la machine à états. `cyclableApps` ne filtre plus sur
 `support == .supported` — une app résistante participe désormais au cycle, c'est tout l'objet du
-changement. Le menu affiche l'état réel : lancée / arrêtée / active, et l'entrée d'une app
-résistante n'est plus grisée.
+changement.
 
-L'échec de bascule doit être visible par l'utilisateur, pas avalé en silence — au minimum l'entrée
-de menu reste sur l'app courante et un état d'erreur s'affiche.
+**Le menu change de nature.** Aujourd'hui il affiche « Vibe Island — Régissable » : c'est le
+verdict d'un test interne, du vocabulaire de développeur, et ça ne dit pas à l'utilisateur ce qui
+l'intéresse. Demandé par le propriétaire, et c'est la bonne lecture du produit :
 
-Commit : `Le swipe et les flèches passent par la bascule par cycle de vie`.
+- **Cliquer sur une app la rend active.** Elle s'ouvre si elle est arrêtée, et l'app qui occupait
+  le notch est masquée ou quittée selon sa méthode. C'est exactement l'action du swipe, déclenchée
+  depuis le menu. `toggle(pid:)` disparaît au profit d'un `rendreActive(bundleID:)` qui appelle la
+  même machine à états que le swipe — une seule voie de code, pas deux comportements à maintenir.
+- **Le libellé dit l'état, pas le verdict.** Le nom de l'app, et une marque sur celle qui occupe le
+  notch. Rien d'autre par défaut.
+- **Le verdict ne disparaît pas, il change de place.** Il reste utile : il explique pourquoi une
+  bascule est instantanée et l'autre prend une seconde. Il devient une information secondaire —
+  un sous-titre discret, une infobulle — et surtout il cesse d'être une raison de griser l'entrée.
+  Une app résistante est cliquable comme les autres, c'est le point de tout ce chantier.
+- **Une app en cours de bascule doit se voir.** La voie cycle de vie prend ~1 s : sans retour
+  visuel, l'utilisateur clique deux fois. Un état « en cours » sur l'entrée concernée.
+
+L'échec de bascule doit être visible, pas avalé en silence : si la cible n'apparaît jamais, l'app
+courante reste active et l'erreur s'affiche.
+
+Commit : `Le swipe, les flèches et le menu passent par la même bascule`.
 
 ---
 
