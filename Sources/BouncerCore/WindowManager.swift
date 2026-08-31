@@ -71,8 +71,14 @@ public final class WindowManager: ObservableObject {
     /// quitte puis relance, qui reprend son verdict sans repasser par le test destructif.
     private var supportVerdictCache: [String: SupportStatus] = [:]
 
+    /// Les apps de notch installées, lancées ou non. Alimenté par la découverte : toute app vue
+    /// une fois dans le notch y est mémorisée pour de bon. La construction de `apps` à partir de
+    /// ce catalogue (donc l'apparition des apps arrêtées dans la liste) vient avec la bascule.
+    private let catalogue: CatalogueApps
+
     /// `startTimer: false` pour le self-test CLI (un seul refresh() synchrone, pas de boucle).
-    public init(startTimer: Bool = true) {
+    public init(startTimer: Bool = true, catalogue: CatalogueApps = CatalogueApps()) {
+        self.catalogue = catalogue
         accessibilityTrusted = AXIsProcessTrusted()
         if !accessibilityTrusted {
             // Popup système une seule fois, ici, à froid — jamais dans la boucle de refresh.
@@ -224,6 +230,13 @@ public final class WindowManager: ObservableObject {
             } else if let pid = apps[idx].pid, NSRunningApplication(processIdentifier: pid) == nil {
                 apps[idx].pid = nil
             }
+        }
+
+        // Toute app vue dans le notch entre au catalogue, y compris celles qu'on ne connaissait
+        // pas : c'est le seul moyen de la retrouver plus tard, une fois quittée et absente de
+        // `CGWindowList`. Idempotent, donc pas de garde à ajouter ici.
+        for (_, bundleID, _) in discovered {
+            catalogue.apprendre(bundleID: bundleID)
         }
 
         for (pid, bundleID, name) in discovered where !apps.contains(where: { $0.bundleID == bundleID }) {
