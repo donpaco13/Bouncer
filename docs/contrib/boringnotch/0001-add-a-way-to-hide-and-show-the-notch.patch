@@ -1,0 +1,205 @@
+From adca4607e10fe125b2fb8d028defcd2928d754df Mon Sep 17 00:00:00 2001
+From: donpaco13 <design@yeita.fr>
+Date: Tue, 1 Sep 2026 01:02:40 +0200
+Subject: [PATCH] Add a way to hide and show the notch
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The notch windows are pinned to a private CGS space, so nothing outside the
+app can get them out of the way — hiding meant quitting boring.notch.
+
+Adds a single primitive, setNotchHidden(_:), that orders the notch windows
+out (or back in) without closing them, so view models, media observers and
+notch space membership survive and showing again is instant. Windows created
+while hidden stay hidden, which keeps the state correct across display
+changes, screen lock and the show-on-all-displays toggle.
+
+Three ways to reach it:
+- a Hide/Show Notch item in the menu bar
+- a keyboard shortcut (no default binding), asked for in #1176
+- a boringnotch:// URL scheme (hide/show/toggle) for Shortcuts, Raycast,
+  scripts and other notch apps
+
+The hidden state is intentionally not persisted: the notch always comes back
+on the next launch, so a script or a mis-typed shortcut cannot leave someone
+with a notch they don't know how to restore.
+
+This also revives togglePopover(_:), which was dead code and only ever
+handled the single-display window.
+---
+ boringNotch/Info.plist                        | 11 +++
+ boringNotch/Shortcuts/ShortcutConstants.swift |  1 +
+ boringNotch/boringNotchApp.swift              | 77 +++++++++++++++++--
+ .../Views/ShortcutsSettingsView.swift         |  6 ++
+ 4 files changed, 89 insertions(+), 6 deletions(-)
+
+diff --git a/boringNotch/Info.plist b/boringNotch/Info.plist
+index fe01cd8..37d1631 100644
+--- a/boringNotch/Info.plist
++++ b/boringNotch/Info.plist
+@@ -4,6 +4,17 @@
+ <dict>
+ 	<key>CFBundleAllowMixedLocalizations</key>
+ 	<true/>
++	<key>CFBundleURLTypes</key>
++	<array>
++		<dict>
++			<key>CFBundleURLName</key>
++			<string>$(PRODUCT_BUNDLE_IDENTIFIER).control</string>
++			<key>CFBundleURLSchemes</key>
++			<array>
++				<string>boringnotch</string>
++			</array>
++		</dict>
++	</array>
+ 	<key>NSAppTransportSecurity</key>
+ 	<dict>
+ 		<key>NSAllowsArbitraryLoads</key>
+diff --git a/boringNotch/Shortcuts/ShortcutConstants.swift b/boringNotch/Shortcuts/ShortcutConstants.swift
+index 4e476a2..d7200c5 100644
+--- a/boringNotch/Shortcuts/ShortcutConstants.swift
++++ b/boringNotch/Shortcuts/ShortcutConstants.swift
+@@ -15,4 +15,5 @@ extension KeyboardShortcuts.Name {
+     static let increaseBacklight = Self("increaseBacklight", default: .init(.f2, modifiers: [.command]))
+     static let toggleSneakPeek = Self("toggleSneakPeek", default: .init(.h, modifiers: [.command, .shift]))
+     static let toggleNotchOpen = Self("toggleNotchOpen", default: .init(.i, modifiers: [.command, .shift]))
++    static let toggleNotchVisibility = Self("toggleNotchVisibility")
+ }
+diff --git a/boringNotch/boringNotchApp.swift b/boringNotch/boringNotchApp.swift
+index 489a9ee..e6335f2 100644
+--- a/boringNotch/boringNotchApp.swift
++++ b/boringNotch/boringNotchApp.swift
+@@ -39,6 +39,11 @@ struct DynamicNotchApp: App {
+                 }
+             }
+             .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
++            Button(appDelegate.isNotchHidden ? "Show Notch" : "Hide Notch") {
++                Task { @MainActor in
++                    appDelegate.setNotchHidden(!appDelegate.isNotchHidden)
++                }
++            }
+             CheckForUpdatesView(updater: updaterController.updater)
+             Divider()
+             Button("Restart Boring Notch") {
+@@ -64,7 +69,14 @@ final class BoringSparkleUpdaterDelegate: NSObject, SPUUpdaterDelegate {
+     }
+ }
+ 
+-class AppDelegate: NSObject, NSApplicationDelegate {
++class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
++    /// `true` while every notch window is ordered out.
++    ///
++    /// Deliberately not persisted: the notch always comes back on the next
++    /// launch, so a script or a mis-typed shortcut can never leave someone with
++    /// a notch they don't know how to get back.
++    @Published private(set) var isNotchHidden: Bool = false
++
+     var statusItem: NSStatusItem?
+     var windows: [String: NSWindow] = [:] // UUID -> NSWindow
+     var viewModels: [String: BoringViewModel] = [:] // UUID -> BoringViewModel
+@@ -280,7 +292,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
+                 .environmentObject(viewModel)
+         )
+ 
+-        window.orderFrontRegardless()
++        if !isNotchHidden {
++            window.orderFrontRegardless()
++        }
+         NotchSpaceManager.shared.notchSpace.windows.insert(window)
+ 
+         // Observe when the window's screen changes so we can update drag detectors
+@@ -402,6 +416,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
+             }
+         }
+ 
++        KeyboardShortcuts.onKeyDown(for: .toggleNotchVisibility) { [weak self] in
++            Task { @MainActor in
++                guard let self else { return }
++                self.setNotchHidden(!self.isNotchHidden)
++            }
++        }
++
+         KeyboardShortcuts.onKeyDown(for: .toggleNotchOpen) { [weak self] in
+             Task { [weak self] in
+                 guard let self = self else { return }
+@@ -589,11 +610,55 @@ class AppDelegate: NSObject, NSApplicationDelegate {
+         coordinator.applyOSDSources()
+     }
+ 
++    /// Every notch window currently owned by the delegate, whichever display
++    /// mode is active.
++    private var notchWindows: [NSWindow] {
++        Defaults[.showOnAllDisplays] ? Array(windows.values) : [window].compactMap { $0 }
++    }
++
++    /// Hides or restores the notch. Single entry point behind the menu bar
++    /// item, the keyboard shortcut and the `boringnotch://` URL scheme.
++    ///
++    /// Windows are ordered out rather than closed, so the view models, the
++    /// media observers and the notch space membership all survive untouched —
++    /// showing again is instant and keeps whatever was playing.
++    @MainActor
++    func setNotchHidden(_ hidden: Bool) {
++        guard isNotchHidden != hidden else { return }
++        isNotchHidden = hidden
++
++        for window in notchWindows {
++            if hidden {
++                window.orderOut(nil)
++            } else {
++                window.orderFrontRegardless()
++            }
++        }
++    }
++
++    @MainActor
+     @objc func togglePopover(_ sender: Any?) {
+-        if window?.isVisible == true {
+-            window?.orderOut(nil)
+-        } else {
+-            window?.orderFrontRegardless()
++        setNotchHidden(!isNotchHidden)
++    }
++
++    /// Handles `boringnotch://hide`, `boringnotch://show` and
++    /// `boringnotch://toggle`, so scripts, Shortcuts, Raycast and other notch
++    /// apps can get the notch out of the way without quitting boring.notch.
++    func application(_ application: NSApplication, open urls: [URL]) {
++        for url in urls where url.scheme?.lowercased() == "boringnotch" {
++            guard let command = url.host()?.lowercased() else { continue }
++            Task { @MainActor in
++                switch command {
++                case "hide":
++                    self.setNotchHidden(true)
++                case "show":
++                    self.setNotchHidden(false)
++                case "toggle":
++                    self.setNotchHidden(!self.isNotchHidden)
++                default:
++                    NSLog("boring.notch: ignoring unknown URL command \"\(command)\"")
++                }
++            }
+         }
+     }
+ 
+diff --git a/boringNotch/components/Settings/Views/ShortcutsSettingsView.swift b/boringNotch/components/Settings/Views/ShortcutsSettingsView.swift
+index 7d39732..15cd96c 100644
+--- a/boringNotch/components/Settings/Views/ShortcutsSettingsView.swift
++++ b/boringNotch/components/Settings/Views/ShortcutsSettingsView.swift
+@@ -25,6 +25,12 @@ struct Shortcuts: View {
+             }
+             Section {
+                 KeyboardShortcuts.Recorder("Toggle Notch Open:", name: .toggleNotchOpen)
++                KeyboardShortcuts.Recorder("Hide/Show Notch:", name: .toggleNotchVisibility)
++            } footer: {
++                Text("Hiding the notch orders its windows out until you show it again. It always comes back when boring.notch restarts.")
++                    .multilineTextAlignment(.trailing)
++                    .foregroundStyle(.secondary)
++                    .font(.caption)
+             }
+         }
+         .accentColor(.effectiveAccent)
+-- 
+2.39.5 (Apple Git-154)
+
