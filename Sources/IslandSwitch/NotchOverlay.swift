@@ -1,15 +1,25 @@
 //
-// NotchOverlay.swift — Milestone 2 : overlay sur l'encoche (NSPanel), swipe 2 doigts, flèches
-// au survol. Géométrie dérivée de `WindowManager.notchZone()` (source unique, cf. CLAUDE.md
-// "zéro hardcoding d'encoche"). Ne devient interactif (`ignoresMouseEvents = false`) que
-// pendant le survol de la zone d'encoche ; le reste du temps les clics passent aux fenêtres
-// dessous.
+// NotchOverlay.swift — Milestone 2 : flèches ‹ › au survol de l'encoche, swipe deux doigts.
+// Géométrie dérivée de `WindowManager.notchZone()` (source unique, cf. CLAUDE.md "zéro
+// hardcoding d'encoche"). Le panel (NSPanel transparent) n'existe plus que pour porter ces
+// flèches et leur donner une cible de clic : il est construit une seule fois puis ordonné à
+// l'écran (`orderFrontRegardless()`) UNIQUEMENT pendant le survol de la zone d'encoche, et
+// retiré (`orderOut(nil)`) dès que le curseur en sort. Hors survol, aucune fenêtre d'Island
+// Switch ne recouvre l'encoche — un panel resté à l'écran en permanence, même transparent en
+// théorie (`isOpaque = false`), masquait visuellement le logo replié des apps d'encoche
+// tierces (constaté en réel avec Vibe Island) sans qu'on ait pu établir pourquoi la
+// transparence ne s'appliquait pas ; plutôt que déboguer ça, on supprime le besoin.
 //
-// Le survol est détecté par un monitor GLOBAL (`.mouseMoved`) : tant que
-// `ignoresMouseEvents = true`, le panel ne reçoit RIEN (ni move, ni scroll) — un monitor local
-// ne verrait donc jamais l'entrée dans la zone. Une fois `ignoresMouseEvents = false`, le
-// monitor local de `.scrollWheel` (posé une fois, actif seulement quand le panel reçoit
-// effectivement les événements) capte le swipe.
+// Le survol est détecté par un monitor GLOBAL (`.mouseMoved`) : tant que le panel n'est pas à
+// l'écran (ou que `ignoresMouseEvents = true`), il ne reçoit RIEN — un monitor local ne
+// verrait donc jamais l'entrée dans la zone. Le scroll est capté par un monitor GLOBAL aussi
+// (`.scrollWheel`) : un monitor local ne voit que les événements que macOS a déjà remis à notre
+// app, or dès qu'une app d'encoche tierce (Vibe Island, boringNotch…) déploie son panneau, sa
+// fenêtre consomme le scroll avant nous, même quand notre panel est à l'écran. Le monitor
+// global observe l'événement quel que soit qui le consomme ensuite — c'est pour ça que
+// `handleScroll` et `updateHover` revérifient la position du curseur directement via
+// `windowManager.notchZone()` plutôt que de faire confiance au frame du panel, qui peut être
+// hors écran (retiré) ou nil (pas encore construit / plus d'encoche détectée).
 
 import AppKit
 
@@ -97,29 +107,45 @@ final class NotchOverlayController: NSObject {
         arrows.onArrowClicked = { [weak self] forward in self?.windowManager.cycle(forward: forward) }
         p.contentView = arrows
 
-        p.orderFrontRegardless()
+        // Pas d'orderFrontRegardless() ici : le panel n'est ordonné à l'écran que pendant le
+        // survol, piloté par updateHover() — cf. commentaire d'en-tête.
         panel = p
         arrowsView = arrows
 
-        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+        scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
             self?.handleScroll(event)
-            return event
         }
+    }
+
+    // Porte sur windowManager.notchZone() et non panel.frame : le panel peut être hors écran
+    // (retiré hors survol) ou nil (pas d'encoche détectée) — cf. commentaire d'en-tête. Marge
+    // verticale partagée : la zone d'encoche fait ~29pt de haut, difficile à survoler pile.
+    private func isCursorOnNotch() -> Bool {
+        guard let zone = windowManager.notchZone() else { return false }
+        return zone.insetBy(dx: 0, dy: -6).contains(NSEvent.mouseLocation)
     }
 
     private func updateHover() {
         guard let panel else { return }
-        // Marge verticale : la zone d'encoche fait ~29pt de haut, difficile à survoler pile.
-        let hovering = panel.frame.insetBy(dx: 0, dy: -6).contains(NSEvent.mouseLocation)
+        let hovering = isCursorOnNotch()
         guard hovering != isHovering else { return }
         isHovering = hovering
+        if hovering {
+            panel.orderFrontRegardless()
+        } else {
+            panel.orderOut(nil)
+        }
         panel.ignoresMouseEvents = !hovering
         arrowsView?.setVisible(hovering)
         if !hovering { swipeAccumulator = 0 }
     }
 
     private func handleScroll(_ event: NSEvent) {
-        guard isHovering, Date() >= swipeGateUntil else { return }
+        // `isHovering` est latché par le monitor `.mouseMoved` : il ne se remet pas à jour si le
+        // curseur reste immobile pendant qu'une app d'encoche tierce déploie son panneau
+        // par-dessus. On revérifie donc la position réelle du curseur ici plutôt que de faire
+        // confiance à cet état.
+        guard isCursorOnNotch(), Date() >= swipeGateUntil else { return }
         swipeAccumulator += event.scrollingDeltaX
         guard abs(swipeAccumulator) >= swipeThreshold else { return }
         // Swipe vers la gauche (deltaX négatif) -> app suivante ; vers la droite -> précédente.

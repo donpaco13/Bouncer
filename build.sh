@@ -70,3 +70,10 @@ fi
 codesign --force --identifier "$BUNDLE_ID" --sign "$CERT_CN" "$APP"
 
 echo "✅ Bundle construit : $APP"
+
+# Relance : sans ça, chaque itération coûte deux gestes manuels (quitter, rouvrir). Le pkill vise
+# le binaire par son chemin complet pour ne pas toucher un homonyme.
+pkill -f "$APP/Contents/MacOS/" 2>/dev/null || true
+sleep 0.3
+open "$APP"
+echo "🔄 Island Switch relancée"

@@ -439,3 +439,97 @@ soit inexistants (URL scheme, notification distribuée), soit une frappe
 nucléaire qui tue l'app plutôt que de la masquer (Quit) ; le Milestone 1 doit
 donc traiter boringNotch comme définitivement hors du périmètre garanti
 d'Island Switch, sans piste de repli restante à explorer côté app tierce.**
+
+## Compatibilité des applications d'encoche
+
+Objectif : élargir l'échantillon au-delà de Vibe Island/boringNotch en testant les deux
+autres apps citées dans le `PRD.md` — **Alcove** et **Notchy** — pour savoir si l'une
+donne une deuxième app réellement régissable (démonstration de bascule entre deux apps
+jamais possible jusqu'ici, faute de second candidat qui réponde). Installation depuis
+les sources officielles : Alcove via `brew install --cask alcove` (Homebrew Cask
+officiel, `tryalcove.com`) ; Notchy via le DMG signé servi par `notchy.dev`
+(redirige vers `github.com/vishvavariya/notchy-feedback/releases`, Developer ID
+`PKQWZ2BV83`) — le tap Homebrew tiers `vishvavariya/notchy` annoncé par le site n'a pas
+été utilisé (tap non officiel non vérifiable), le DMG signé/notarié a suffi.
+
+**Aucune des deux n'a pu être testée en direct jusqu'au bout — pour deux raisons
+différentes, aucune des deux liée à Island Switch :**
+
+- **Alcove (1.7.7) reste bloqué au tout premier instant de son lancement.** Le
+  process démarre (`open -a Alcove.app`), apparaît dans `ps`, mais reste figé à
+  **32 Ko de RSS, 0 % CPU, échantillonné à `_dyld_start`** (avant même `main()`) —
+  aussi bien à son premier lancement qu'après un `kill -9` + retrait du flag
+  `com.apple.quarantine` + relance. `spctl --assess` accepte le binaire
+  (« Notarized Developer ID »), aucun crash report généré, et le journal unifié ne
+  montre aucune erreur `amfid`/`coretrustd` pointant vers Alcove — seulement une
+  requête OCSP de `syspolicyd` en timeout (30 s, `Operation timed out`, réseau Wi-Fi)
+  au même moment, sans certitude que ce soit la cause exacte du blocage. Conclusion
+  honnête : **non testé en direct**, l'app ne quitte jamais son état de lancement sur
+  cette machine dans cette session — pas un verdict sur sa régissabilité en usage
+  normal ailleurs.
+- **Notchy (1.0.135) se lance normalement (RSS ~30 Mo, séquence de démarrage propre
+  dans le journal unifié : CoreLocation, requêtes TCC, vérification d'automatisation
+  Musique/Spotify/Messages/Notes) mais ne crée strictement aucune fenêtre.**
+  Recomptage `CGWindowList` sur son pid : **0 avant tout test**, sur tout l'écran, pas
+  seulement la zone d'encoche. Confirmé indépendamment via `System Events` : 0 fenêtre,
+  0 élément AX, pas même de menu bar (`menu bar 1` renvoie « index non valable »). Ce
+  n'est pas un crash ni un blocage — c'est une app de type « Dynamic Island » dont le
+  contenu de la pilule est **conditionnel** (musique en lecture, appel FaceTime,
+  ouverture du boîtier AirPods, événement calendrier…) plutôt qu'une barre permanente
+  comme boringNotch/Vibe Island ; sans déclencheur actif pendant la session de test,
+  elle n'affiche rien à masquer. Déclencher un de ces événements (lancer Music.app,
+  simuler un appel) a été jugé disproportionné pour une mesure — risque d'interférer
+  avec la session de travail en cours de François.
+
+**Faute de fenêtre vivante sur les deux apps, le critère de régissabilité a été évalué
+par la méthode économique suggérée par la mission : analyse statique du binaire**
+(`otool -L`, `nm -u | grep -i CGS`) — la même API privée CGS/SkyLight identifiée
+comme cause racine de la résistance de boringNotch (`CGSSpaceCreate`,
+`CGSSpaceSetAbsoluteLevel`, `CGSShowSpaces`, `CGSAddWindowsToSpaces`,
+`CGSRemoveWindowsFromSpaces` — créer un Space CGS dédié, le régler au niveau max, y
+épingler ses fenêtres). Comparaison à quatre binaires :
+
+| Binaire | Symboles CGS liés (`nm -u`) | Lecture |
+|---|---|---|
+| **Vibe Island** (régissable ✅, prouvé en direct) | `CGSCopyManagedDisplaySpaces`, `CGSCopySpacesForWindows`, `CGSMainConnectionID`, `CGSessionCopyCurrentDictionary` — **uniquement des appels de lecture** (interroger les Spaces existants) | Ne crée ni ne s'épingle à aucun Space privé — cohérent avec le fait que `kAXHiddenAttribute` la masque réellement |
+| **boringNotch** (non régissable ❌, prouvé en direct + lu dans le source) | `CGSSpaceCreate`, `CGSSpaceSetAbsoluteLevel`, `CGSShowSpaces`, `CGSAddWindowsToSpaces`, `CGSRemoveWindowsFromSpaces` | Pattern de **création + épinglage** d'un Space dédié (confirmé par le code, cf. section précédente) |
+| **Alcove** (non testé en direct) | `CGSSpaceCreate`, `CGSSpaceSetAbsoluteLevel`, `CGSShowSpaces`, `CGSAddWindowsToSpaces`, `CGSRemoveWindowsFromSpaces`, `CGSSpaceDestroy`, `CGSSpaceGetType`, `CGSGetActiveSpace` | **Même pattern d'écriture que boringNotch**, symbole pour symbole, plus complet encore (destroy/getType en prime) |
+| **Notchy** (non testé en direct) | `CGSSpaceCreate`, `CGSSpaceSetAbsoluteLevel`, `CGSShowSpaces`, `CGSAddWindowsToSpaces`, `CGSRemoveWindowsFromSpaces`, `CGSSetWindowAlpha`, `CGSHideSpaces`, `CGShieldingWindowLevel` | **Même pattern d'écriture**, plus `CGSSetWindowAlpha` — la fonction SkyLight de fondu en transparence explicitement identifiée comme piste de repli « morte » au Milestone 0 (Question 2) : Notchy semble l'utiliser en interne pour sa propre app, ce qui ne l'aide en rien à se laisser masquer par un tiers |
+
+Le signal est net : les apps qui **lisent seulement** l'état des Spaces restent dans
+le circuit standard `-[NSApplication hide:]` et répondent à `kAXHiddenAttribute`
+(Vibe Island, prouvé). Les apps qui **créent et épinglent leur propre Space CGS**
+en sortent (boringNotch, prouvé) — et Alcove comme Notchy présentent exactement ce
+second pattern, symbole pour symbole identique à celui de boringNotch. Prédiction
+fondée sur ce signal, pas sur un test de bout en bout faute de fenêtre exploitable :
+**Alcove et Notchy sont vraisemblablement non régissables**, au même titre que
+boringNotch — mais ce n'est **pas confirmé par recomptage `CGWindowList` avant/après
+hide** comme pour les deux autres apps, faute d'avoir pu produire une fenêtre
+vivante à masquer pendant cette session.
+
+### Tableau de compatibilité
+
+| Application | Version testée | Régissable | Raison |
+|---|---|:---:|---|
+| **Vibe Island** | 1.0.48 | ✅ Oui | `kAXHiddenAttribute` (niveau app) : hide 31,7 ms / show 5,1 ms, confirmé par recomptage `CGWindowList` |
+| **boringNotch** | 2.7.3 | ❌ Non | Épingle sa fenêtre à un Space CGS privé qu'elle crée et affiche en permanence (`CGSSpaceCreate` + `CGSAddWindowsToSpaces`, confirmé par lecture du source) — hors du circuit `AXHidden` |
+| **Alcove** | 1.7.7 | ❌ Non *(prédit, non confirmé en direct)* | Lancement de l'app bloqué sur cette machine (figé à `_dyld_start`, cause probable : timeout réseau `syspolicyd`/OCSP, non lié à Island Switch) — aucune fenêtre disponible pour un test de bout en bout ; analyse statique du binaire (`otool -L`/`nm -u`) montre le même pattern d'écriture CGS Space (`CGSSpaceCreate`/`CGSSpaceSetAbsoluteLevel`/`CGSShowSpaces`/`CGSAddWindowsToSpaces`) que boringNotch |
+| **Notchy** | 1.0.135 | ❌ Non *(prédit, non confirmé en direct)* | App lancée avec succès mais n'affiche aucune fenêtre en l'absence de contenu contextuel actif (musique/appel/AirPods/calendrier) — rien à masquer pendant cette session ; analyse statique montre le même pattern d'écriture CGS Space que boringNotch, plus `CGSSetWindowAlpha` (fondu SkyLight, déjà écarté comme piste de repli au Milestone 0) |
+
+**Conclusion de ce complément :** aucune deuxième app réellement régissable n'a été
+trouvée dans cette passe — la bascule entre deux apps régies par Island Switch reste,
+à ce stade, non démontrable en conditions réelles (un seul candidat qui réponde,
+Vibe Island). Alcove et Notchy rejoignent vraisemblablement boringNotch hors du
+périmètre garanti, mais ce verdict repose sur une analyse statique et non sur la
+même preuve empirique par recomptage `CGWindowList` que les deux autres apps ; si le
+produit doit s'appuyer dessus pour la page publique, il vaut mieux le refaire sur une
+machine où Alcove démarre et où Notchy peut être amenée à afficher un contenu actif,
+plutôt que de publier une prédiction comme un fait mesuré.
+
+Nettoyage effectué avant de rendre la main : recomptage final `CGWindowList` sur la
+zone d'encoche — aucune fenêtre tierce masquée (Island Switch et Vibe Island
+retrouvés dans leur état initial). Alcove et Notchy laissés installés dans
+`/Applications` à la décision du propriétaire ; Alcove reste dans son état figé au
+lancement au moment de la rédaction — un `killall Alcove` puis relance réglera
+probablement le blocage une fois le run passager de `syspolicyd` terminé, mais ça n'a
+pas été retenté pour ne pas multiplier les popups système sur la session en cours.

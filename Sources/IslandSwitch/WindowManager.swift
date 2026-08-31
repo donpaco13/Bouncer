@@ -33,11 +33,18 @@ struct NotchAppInfo: Identifiable, Equatable {
     var isHiddenByUs: Bool
 }
 
-/// Processus systèmes à ignorer dans le scan de la zone d'encoche (identique à Spike.swift).
-private let systemProcessNames: Set<String> = [
-    "Window Server", "Dock", "SystemUIServer", "Control Center", "Spotlight",
-    "NotificationCenter", "WindowManager", "Notification Center",
+/// Processus systèmes à ignorer dans le scan de la zone d'encoche, identifiés par bundleID —
+/// jamais par nom d'affichage localisé (kCGWindowOwnerName suit la langue système : "Centre de
+/// notifications" en français, "Notification Center" en anglais).
+private let systemBundleIDs: Set<String> = [
+    "com.apple.notificationcenterui", "com.apple.controlcenter", "com.apple.dock",
+    "com.apple.systemuiserver", "com.apple.loginwindow", "com.apple.PowerChime",
+    "com.apple.Spotlight", "com.apple.WindowManager",
 ]
+
+/// Repli par nom, uniquement pour les process sans NSRunningApplication (donc sans bundleID) —
+/// aujourd'hui seul Window Server est dans ce cas.
+private let systemProcessNamesFallback: Set<String> = ["Window Server"]
 
 final class WindowManager: ObservableObject {
     @Published private(set) var apps: [NotchAppInfo] = []
@@ -46,6 +53,12 @@ final class WindowManager: ObservableObject {
 
     private let ownPid = ProcessInfo.processInfo.processIdentifier
     private var timer: Timer?
+
+    /// Verdict de régissabilité par pid, pour la durée de vie du process — indépendant de la
+    /// présence de l'app dans `apps`. Sans ce cache, une app qui sort de `apps` (fenêtre absente
+    /// une fraction de seconde) puis y revient repasserait par `testSupport`, qui masque/réaffiche
+    /// réellement la fenêtre : l'app clignoterait à chaque redécouverte.
+    private var supportVerdictCache: [pid_t: SupportStatus] = [:]
 
     /// `startTimer: false` pour le self-test CLI (un seul refresh() synchrone, pas de boucle).
     init(startTimer: Bool = true) {
@@ -134,13 +147,25 @@ final class WindowManager: ObservableObject {
         for entry in list {
             guard
                 let pidNum = entry[kCGWindowOwnerPID as String] as? pid_t,
-                let boundsDict = entry[kCGWindowBounds as String] as? [String: CGFloat]
+                let boundsDict = entry[kCGWindowBounds as String] as? [String: CGFloat],
+                let layer = entry[kCGWindowLayer as String] as? Int
             else { continue }
 
             if pidNum == ownPid || seenPids.contains(pidNum) { continue }
 
             let appName = (entry[kCGWindowOwnerName as String] as? String) ?? "?"
-            if systemProcessNames.contains(appName) { continue }
+            let runningApp = NSRunningApplication(processIdentifier: pidNum)
+            if let bundleID = runningApp?.bundleIdentifier {
+                if systemBundleIDs.contains(bundleID) { continue }
+            } else if systemProcessNamesFallback.contains(appName) {
+                continue
+            }
+
+            // Une app d'encoche est structurellement un overlay flottant (kCGWindowLayer > 0,
+            // au-dessus de kCGNormalWindowLevel) ; une fenêtre de document normale est à 0, et le
+            // plein écran ne change pas son layer — donc ce test écarte aussi les fenêtres
+            // plein écran (Discord, Arc) qui toucheraient le haut de l'écran.
+            guard layer > 0 else { continue }
 
             let bounds = CGRect(
                 x: boundsDict["X"] ?? 0, y: boundsDict["Y"] ?? 0,
@@ -167,13 +192,24 @@ final class WindowManager: ObservableObject {
         }
         let discovered = scanNotchPids(zone: zone)
 
-        // Un process qui a quitté est retiré même s'il n'intersectait plus la zone au moment
-        // de sa disparition (cf. TECH_SPEC/consigne : le suivi se fait par identité de process,
-        // pas seulement par intersection géométrique instantanée).
-        apps.removeAll { info in NSRunningApplication(processIdentifier: info.pid) == nil }
+        // Une entrée sort de la liste dès que son process est mort OU qu'il ne croise plus
+        // l'encoche — SAUF si on l'a nous-mêmes masquée : dans ce cas plus aucune fenêtre ne
+        // croise l'encoche par construction (c'est le but du masquage), donc la garder est
+        // le seul moyen de pouvoir la réafficher. Sans cette exception, masquer une app la
+        // ferait disparaître du menu et deviendrait irréversible.
+        let discoveredPids = Set(discovered.map { $0.0 })
+        apps.removeAll { info in
+            guard !info.isHiddenByUs else { return false }
+            return NSRunningApplication(processIdentifier: info.pid) == nil || !discoveredPids.contains(info.pid)
+        }
+        supportVerdictCache = supportVerdictCache.filter { NSRunningApplication(processIdentifier: $0.key) != nil }
 
         for (pid, name) in discovered where !apps.contains(where: { $0.pid == pid }) {
             let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
+            if let cachedVerdict = supportVerdictCache[pid] {
+                apps.append(NotchAppInfo(pid: pid, bundleID: bundleID, name: name, support: cachedVerdict, isHiddenByUs: false))
+                continue
+            }
             apps.append(NotchAppInfo(pid: pid, bundleID: bundleID, name: name, support: .testing, isHiddenByUs: false))
             // ponytail: constaté en test réel — un appel AXUIElementSetAttributeValue fait par ce
             // process AVANT l'octroi du trust laisse sa connexion Accessibility hors service pour
@@ -213,8 +249,10 @@ final class WindowManager: ObservableObject {
         let hideOK = setHidden(true, pid: pid)
         let showOK = setHidden(false, pid: pid)
         let supported = hideOK && showOK
+        let verdict: SupportStatus = supported ? .supported : .unsupported
+        supportVerdictCache[pid] = verdict
         updateApp(pid: pid) {
-            $0.support = supported ? .supported : .unsupported
+            $0.support = verdict
             $0.isHiddenByUs = false
         }
     }
@@ -243,7 +281,12 @@ final class WindowManager: ObservableObject {
     /// circulaire. No-op s'il y a moins de deux apps régissables (rien à basculer).
     func cycle(forward: Bool) {
         let cyclable = cyclableApps
-        guard cyclable.count > 1 else { return }
+        if cyclable.isEmpty { return }
+        
+        if cyclable.count == 1 {
+            toggle(pid: cyclable[0].pid)
+            return
+        }
 
         let currentPid = activeCyclePid ?? cyclable.first(where: { !$0.isHiddenByUs })?.pid ?? cyclable[0].pid
         guard let currentIdx = cyclable.firstIndex(where: { $0.pid == currentPid }) else {
