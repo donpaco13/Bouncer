@@ -177,3 +177,115 @@ struct ControleurAppsDoubleTests {
         #expect(pidBoring != nil)
     }
 }
+
+// MARK: - La machine à états de la bascule
+//
+// C'est ici que se joue la valeur de la task. Chaque test répond à une question qu'un
+// utilisateur poserait devant son encoche : est-ce que l'app d'avant a bien attendu que la
+// suivante soit là pour disparaître ? est-ce qu'un échec me laisse avec un notch vide ?
+
+@MainActor
+struct BasculeTests {
+    private let vibe = "app.vibeisland.macos"       // régissable : se laisse masquer
+    private let boring = "com.thecoolbeans.boringnotch" // résistante : Space privé, seul le cycle de vie l'atteint
+    private let notchy = "dev.notchy.notchy"        // seconde régissable, pour les bascules AX pures
+
+    private func app(_ bundleID: String, _ support: SupportStatus, pid: pid_t? = nil) -> NotchAppInfo {
+        NotchAppInfo(bundleID: bundleID, name: bundleID, support: support, pid: pid, isHiddenByUs: false)
+    }
+
+    /// Sondages rapides : la logique testée est l'ordre des actions, pas la durée réelle.
+    private func bascule(_ double: ControleurAppsDouble, delaiMax: Duration = .seconds(2)) -> Bascule {
+        Bascule(controleur: double, intervalleSondage: .milliseconds(1), delaiMax: delaiMax)
+    }
+
+    @Test("La cible apparaît au 3e sondage : l'actuelle est tuée, et pas avant")
+    func actuelleTueeSeulementApresApparitionDeLaCible() async {
+        let double = ControleurAppsDouble(lancees: [boring: 200], installees: [vibe])
+        double.resistantes = [boring]
+        double.sondagesAvantApparition[vibe] = 3
+
+        let resultat = await bascule(double).basculer(
+            vers: app(vibe, .supported), depuis: app(boring, .unsupported, pid: 200)
+        )
+
+        #expect(resultat == .reussie)
+        // Les trois sondages négatifs ont bien été consommés : le `tue` est arrivé après.
+        #expect(double.sondagesAvantApparition[vibe] == 0)
+        #expect(double.journal == [.lance(vibe), .tue(200)])
+        #expect(double.pid(pour: boring) == nil)
+        #expect(double.pid(pour: vibe) != nil)
+    }
+
+    @Test("La cible n'apparaît jamais : l'actuelle est intacte et la bascule remonte l'échec")
+    func timeoutNeToucheJamaisALActuelle() async {
+        let double = ControleurAppsDouble(lancees: [boring: 200], installees: [vibe])
+        double.resistantes = [boring]
+        double.sondagesAvantApparition[vibe] = .max
+
+        let resultat = await bascule(double, delaiMax: .milliseconds(30)).basculer(
+            vers: app(vibe, .supported), depuis: app(boring, .unsupported, pid: 200)
+        )
+
+        #expect(resultat == .cibleJamaisApparue)
+        #expect(double.journal == [.lance(vibe)]) // ni `tue`, ni `masque`
+        #expect(double.pid(pour: boring) == 200)  // l'utilisateur garde l'app qu'il avait
+        #expect(double.fenetreVisibleDansNotch(pid: 200))
+    }
+
+    @Test("Cible régissable et déjà lancée : la voie rapide, deux masquages et aucun lancement")
+    func voieRapideSansLancement() async {
+        let double = ControleurAppsDouble(lancees: [vibe: 100, notchy: 300])
+
+        let resultat = await bascule(double).basculer(
+            vers: app(vibe, .supported, pid: 100), depuis: app(notchy, .supported, pid: 300)
+        )
+
+        #expect(resultat == .reussie)
+        #expect(double.journal == [.masque(false, 100), .masque(true, 300)])
+        #expect(double.fenetreVisibleDansNotch(pid: 100))
+        #expect(double.fenetreVisibleDansNotch(pid: 300) == false)
+    }
+
+    @Test("Une actuelle régissable est masquée, jamais tuée")
+    func actuelleRegissableEstMasquee() async {
+        let double = ControleurAppsDouble(lancees: [vibe: 100], installees: [boring])
+        double.resistantes = [boring]
+
+        let resultat = await bascule(double).basculer(
+            vers: app(boring, .unsupported), depuis: app(vibe, .supported, pid: 100)
+        )
+
+        #expect(resultat == .reussie)
+        #expect(double.journal == [.lance(boring), .masque(true, 100)])
+        #expect(double.pid(pour: vibe) == 100) // toujours vivante, juste masquée
+        #expect(double.fenetreVisibleDansNotch(pid: 100) == false)
+    }
+
+    @Test("Une seule app au catalogue : la bascule la masque, puis la réaffiche")
+    func uneSeuleAppBasculeSurElleMeme() async {
+        let double = ControleurAppsDouble(lancees: [vibe: 100])
+        let seule = app(vibe, .supported, pid: 100)
+        let bascule = bascule(double)
+
+        #expect(await bascule.basculer(vers: seule, depuis: seule) == .reussie)
+        #expect(double.fenetreVisibleDansNotch(pid: 100) == false)
+
+        #expect(await bascule.basculer(vers: seule, depuis: seule) == .reussie)
+        #expect(double.fenetreVisibleDansNotch(pid: 100))
+        #expect(double.journal == [.masque(true, 100), .masque(false, 100)])
+    }
+
+    @Test("Une cible qui n'est plus installée ne coûte pas l'app courante")
+    func lancementRefuseNeToucheJamaisALActuelle() async {
+        let double = ControleurAppsDouble(lancees: [vibe: 100]) // `boring` n'est pas installée
+
+        let resultat = await bascule(double).basculer(
+            vers: app(boring, .unsupported), depuis: app(vibe, .supported, pid: 100)
+        )
+
+        #expect(resultat == .lancementImpossible)
+        #expect(double.journal == [.lance(boring)])
+        #expect(double.fenetreVisibleDansNotch(pid: 100))
+    }
+}
