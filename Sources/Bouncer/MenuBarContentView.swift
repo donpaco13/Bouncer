@@ -17,11 +17,13 @@ struct MenuBarContentView: View {
         } else {
             ForEach(windowManager.apps) { app in
                 Button {
-                    windowManager.toggle(pid: app.pid)
+                    windowManager.toggle(bundleID: app.id)
                 } label: {
                     Text("\(app.isHiddenByUs ? "○" : "●") \(app.name) — \(app.support.rawValue)")
                 }
-                .disabled(app.support != .supported)
+                // Une app arrêtée n'est pas masquable : la Task 5 la rendra cliquable, en la
+                // relançant au lieu de la masquer.
+                .disabled(app.support != .supported || !app.estLancee)
             }
         }
 

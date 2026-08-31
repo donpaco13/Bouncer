@@ -15,7 +15,8 @@ if CommandLine.arguments.contains("--self-test") {
         print("Aucune app d'encoche détectée.")
     } else {
         for app in wm.apps {
-            print("pid=\(app.pid)\tapp=\(app.name)\tbundle=\(app.bundleID ?? "?")\tstatut=\(app.support.rawValue)\tmasquée=\(app.isHiddenByUs)")
+            let pid = app.pid.map(String.init) ?? "—"
+            print("bundle=\(app.bundleID)\tapp=\(app.name)\tpid=\(pid)\tlancée=\(app.estLancee)\tstatut=\(app.support.rawValue)\tmasquée=\(app.isHiddenByUs)")
         }
     }
     exit(0)

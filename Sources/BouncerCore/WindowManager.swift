@@ -24,13 +24,17 @@ public enum SupportStatus: String {
     case unsupported = "Non supportée"
 }
 
+/// L'identité d'une app est son bundleID, jamais son pid : une app qu'on a quittée n'a plus de
+/// pid mais doit rester listée — c'est elle qu'on relancera à la bascule suivante.
 public struct NotchAppInfo: Identifiable, Equatable {
-    public var id: pid_t { pid }
-    public let pid: pid_t
-    public let bundleID: String?
+    public var id: String { bundleID }
+    public let bundleID: String
     public let name: String
     public var support: SupportStatus
+    /// nil quand l'app n'est pas lancée. Une app tuée reste listée : c'est elle qu'on relancera.
+    public var pid: pid_t?
     public var isHiddenByUs: Bool
+    public var estLancee: Bool { pid != nil }
 }
 
 /// Processus systèmes à ignorer dans le scan de la zone d'encoche, identifiés par bundleID —
@@ -42,9 +46,11 @@ private let systemBundleIDs: Set<String> = [
     "com.apple.Spotlight", "com.apple.WindowManager",
 ]
 
-/// Repli par nom, uniquement pour les process sans NSRunningApplication (donc sans bundleID) —
-/// aujourd'hui seul Window Server est dans ce cas.
-private let systemProcessNamesFallback: Set<String> = ["Window Server"]
+// Il n'y a plus de repli par nom d'affichage. Il ne servait qu'aux process sans
+// NSRunningApplication — donc sans bundleID, aujourd'hui le seul Window Server — et ces process-là
+// sont maintenant écartés par une règle plus large dans `scanNotchApps` : sans bundleID, une app
+// n'a pas d'identité stable, on ne peut ni la relancer ni mémoriser son verdict. Window Server
+// reste donc exclu, par la règle générale plutôt que par son nom d'affichage localisé.
 
 public final class WindowManager: ObservableObject {
     @Published public private(set) var apps: [NotchAppInfo] = []
@@ -54,11 +60,16 @@ public final class WindowManager: ObservableObject {
     private let ownPid = ProcessInfo.processInfo.processIdentifier
     private var timer: Timer?
 
-    /// Verdict de régissabilité par pid, pour la durée de vie du process — indépendant de la
+    /// Verdict de régissabilité par bundleID, pour la durée de vie de Bouncer — indépendant de la
     /// présence de l'app dans `apps`. Sans ce cache, une app qui sort de `apps` (fenêtre absente
     /// une fraction de seconde) puis y revient repasserait par `testSupport`, qui masque/réaffiche
     /// réellement la fenêtre : l'app clignoterait à chaque redécouverte.
-    private var supportVerdictCache: [pid_t: SupportStatus] = [:]
+    ///
+    /// La clé est le bundleID et non le pid, ce qui règle deux choses d'un coup : le système
+    /// recycle un pid — le verdict d'une app morte pouvait donc être attribué à un process sans
+    /// rapport — alors qu'un bundleID n'est jamais recyclé ; et le verdict survit à une app qu'on
+    /// quitte puis relance, qui reprend son verdict sans repasser par le test destructif.
+    private var supportVerdictCache: [String: SupportStatus] = [:]
 
     /// `startTimer: false` pour le self-test CLI (un seul refresh() synchrone, pas de boucle).
     public init(startTimer: Bool = true) {
@@ -133,7 +144,7 @@ public final class WindowManager: ObservableObject {
 
     // MARK: - Scan (portée depuis Spike.swift, réduit à pid -> nom d'app)
 
-    private func scanNotchPids(zone: CGRect) -> [(pid: pid_t, name: String)] {
+    private func scanNotchApps(zone: CGRect) -> [(pid: pid_t, bundleID: String, name: String)] {
         guard
             let list = CGWindowListCopyWindowInfo(
                 [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
@@ -142,7 +153,7 @@ public final class WindowManager: ObservableObject {
         else { return [] }
 
         var seenPids = Set<pid_t>()
-        var results: [(pid_t, String)] = []
+        var results: [(pid_t, String, String)] = []
 
         for entry in list {
             guard
@@ -154,12 +165,12 @@ public final class WindowManager: ObservableObject {
             if pidNum == ownPid || seenPids.contains(pidNum) { continue }
 
             let appName = (entry[kCGWindowOwnerName as String] as? String) ?? "?"
-            let runningApp = NSRunningApplication(processIdentifier: pidNum)
-            if let bundleID = runningApp?.bundleIdentifier {
-                if systemBundleIDs.contains(bundleID) { continue }
-            } else if systemProcessNamesFallback.contains(appName) {
-                continue
-            }
+            // Un process sans bundleID (Window Server, agents non-app) n'a pas d'identité stable :
+            // impossible de le relancer une fois quitté, impossible de mémoriser son verdict. Il
+            // n'a donc rien à faire dans la liste, et cette règle remplace l'ancien repli par nom.
+            guard let bundleID = NSRunningApplication(processIdentifier: pidNum)?.bundleIdentifier
+            else { continue }
+            if systemBundleIDs.contains(bundleID) { continue }
 
             // Une app d'encoche est structurellement un overlay flottant (kCGWindowLayer > 0,
             // au-dessus de kCGNormalWindowLevel) ; une fenêtre de document normale est à 0, et le
@@ -178,7 +189,7 @@ public final class WindowManager: ObservableObject {
             guard boundsBottomLeftOrigin.intersects(zone) else { continue }
 
             seenPids.insert(pidNum)
-            results.append((pidNum, appName))
+            results.append((pidNum, bundleID, appName))
         }
         return results
     }
@@ -190,34 +201,44 @@ public final class WindowManager: ObservableObject {
             apps = []
             return
         }
-        let discovered = scanNotchPids(zone: zone)
+        let discovered = scanNotchApps(zone: zone)
+        let vuesParBundleID = Dictionary(discovered.map { ($0.bundleID, $0) }, uniquingKeysWith: { premiere, _ in premiere })
 
         // Une entrée sort de la liste dès que son process est mort OU qu'il ne croise plus
         // l'encoche — SAUF si on l'a nous-mêmes masquée : dans ce cas plus aucune fenêtre ne
         // croise l'encoche par construction (c'est le but du masquage), donc la garder est
         // le seul moyen de pouvoir la réafficher. Sans cette exception, masquer une app la
         // ferait disparaître du menu et deviendrait irréversible.
-        let discoveredPids = Set(discovered.map { $0.0 })
         apps.removeAll { info in
             guard !info.isHiddenByUs else { return false }
-            return NSRunningApplication(processIdentifier: info.pid) == nil || !discoveredPids.contains(info.pid)
+            return vuesParBundleID[info.bundleID] == nil
         }
-        supportVerdictCache = supportVerdictCache.filter { NSRunningApplication(processIdentifier: $0.key) != nil }
+        // Le cache n'a plus rien à purger : une clé bundleID reste valable même quand l'app est
+        // arrêtée, et n'est jamais réattribuée à une autre app comme l'était un pid recyclé.
 
-        for (pid, name) in discovered where !apps.contains(where: { $0.pid == pid }) {
-            let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
-            if let cachedVerdict = supportVerdictCache[pid] {
-                apps.append(NotchAppInfo(pid: pid, bundleID: bundleID, name: name, support: cachedVerdict, isHiddenByUs: false))
+        // Le pid n'est plus une identité, seulement un état : il suit ce que dit la découverte, et
+        // tombe à nil dès que le process a disparu — l'entrée, elle, reste.
+        for idx in apps.indices {
+            if let vue = vuesParBundleID[apps[idx].bundleID] {
+                apps[idx].pid = vue.pid
+            } else if let pid = apps[idx].pid, NSRunningApplication(processIdentifier: pid) == nil {
+                apps[idx].pid = nil
+            }
+        }
+
+        for (pid, bundleID, name) in discovered where !apps.contains(where: { $0.bundleID == bundleID }) {
+            if let cachedVerdict = supportVerdictCache[bundleID] {
+                apps.append(NotchAppInfo(bundleID: bundleID, name: name, support: cachedVerdict, pid: pid, isHiddenByUs: false))
                 continue
             }
-            apps.append(NotchAppInfo(pid: pid, bundleID: bundleID, name: name, support: .testing, isHiddenByUs: false))
+            apps.append(NotchAppInfo(bundleID: bundleID, name: name, support: .testing, pid: pid, isHiddenByUs: false))
             // ponytail: constaté en test réel — un appel AXUIElementSetAttributeValue fait par ce
             // process AVANT l'octroi du trust laisse sa connexion Accessibility hors service pour
             // le reste de sa vie, même après que AXIsProcessTrusted() repasse à true (il faut alors
             // relancer l'app). On ne touche donc jamais l'API AX sans trust : les apps restent en
             // "Test en cours…" jusqu'au prochain retest déclenché par refreshTrustState().
             if accessibilityTrusted {
-                testSupport(pid: pid)
+                testSupport(bundleID: bundleID, pid: pid)
             }
         }
     }
@@ -245,21 +266,26 @@ public final class WindowManager: ObservableObject {
 
     /// Teste une app à sa découverte : masque, vérifie par recomptage, réaffiche, vérifie à nouveau.
     /// Ne laisse jamais l'app masquée à l'issue du test, que le test réussisse ou non.
-    private func testSupport(pid: pid_t) {
+    /// Le pid sert à agir (l'API AX ne connaît que lui), le bundleID à mémoriser le verdict.
+    private func testSupport(bundleID: String, pid: pid_t) {
         let hideOK = setHidden(true, pid: pid)
         let showOK = setHidden(false, pid: pid)
         let supported = hideOK && showOK
         let verdict: SupportStatus = supported ? .supported : .unsupported
-        supportVerdictCache[pid] = verdict
-        updateApp(pid: pid) {
+        supportVerdictCache[bundleID] = verdict
+        updateApp(bundleID: bundleID) {
             $0.support = verdict
             $0.isHiddenByUs = false
         }
     }
 
-    /// Bascule manuelle (clic) : uniquement pour les apps régissables. Ignore les non supportées.
-    public func toggle(pid: pid_t) {
-        guard let idx = apps.firstIndex(where: { $0.pid == pid }), apps[idx].support == .supported else { return }
+    /// Bascule manuelle (clic) : uniquement pour les apps régissables ET lancées — masquer une app
+    /// arrêtée n'a pas de sens, et l'API AX n'a rien à cibler sans pid.
+    public func toggle(bundleID: String) {
+        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }),
+              apps[idx].support == .supported,
+              let pid = apps[idx].pid
+        else { return }
         let wantHidden = !apps[idx].isHiddenByUs
         if setHidden(wantHidden, pid: pid) {
             apps[idx].isHiddenByUs = wantHidden
@@ -268,48 +294,52 @@ public final class WindowManager: ObservableObject {
 
     // MARK: - Cycle circulaire (Milestone 2 : swipe / flèches)
 
-    /// pid actif du cycle swipe/flèches. Distinct de `isHiddenByUs` : plusieurs apps régissables
-    /// peuvent être visibles à la fois (rien ne les a masquées), le cycle a besoin d'un point de
-    /// départ explicite plutôt que de deviner "l'app active" depuis leur état de visibilité.
-    private var activeCyclePid: pid_t?
+    /// bundleID de l'app active du cycle swipe/flèches. Distinct de `isHiddenByUs` : plusieurs apps
+    /// régissables peuvent être visibles à la fois (rien ne les a masquées), le cycle a besoin d'un
+    /// point de départ explicite plutôt que de deviner "l'app active" depuis leur état de
+    /// visibilité. Un bundleID plutôt qu'un pid : le point de départ survit à une app quittée.
+    private var activeCycleBundleID: String?
 
-    /// Apps utilisables dans le cycle swipe/flèches — régissables uniquement, jamais les
-    /// "Non supportée" (cf. consigne M2).
-    var cyclableApps: [NotchAppInfo] { apps.filter { $0.support == .supported } }
+    /// Apps utilisables dans le cycle swipe/flèches — régissables et lancées, jamais les
+    /// "Non supportée" (cf. consigne M2). Le filtre sur `estLancee` tombera à la Task 5, quand la
+    /// bascule saura relancer une app arrêtée ; aujourd'hui le cycle ne sait que masquer/réafficher.
+    var cyclableApps: [NotchAppInfo] { apps.filter { $0.support == .supported && $0.estLancee } }
 
     /// Une bascule = masque l'app active courante, montre la suivante (ou précédente) du cycle
-    /// circulaire. No-op s'il y a moins de deux apps régissables (rien à basculer).
+    /// circulaire. No-op s'il n'y a rien à basculer.
     public func cycle(forward: Bool) {
         let cyclable = cyclableApps
         if cyclable.isEmpty { return }
-        
+
         if cyclable.count == 1 {
-            toggle(pid: cyclable[0].pid)
+            toggle(bundleID: cyclable[0].bundleID)
             return
         }
 
-        let currentPid = activeCyclePid ?? cyclable.first(where: { !$0.isHiddenByUs })?.pid ?? cyclable[0].pid
-        guard let currentIdx = cyclable.firstIndex(where: { $0.pid == currentPid }) else {
-            activeCyclePid = cyclable[0].pid
+        let ids = cyclable.map(\.bundleID)
+        let courant = activeCycleBundleID ?? cyclable.first(where: { !$0.isHiddenByUs })?.bundleID ?? ids[0]
+        guard ids.contains(courant) else {
+            activeCycleBundleID = ids[0]
             return
         }
-        let nextIdx = forward
-            ? (currentIdx + 1) % cyclable.count
-            : (currentIdx - 1 + cyclable.count) % cyclable.count
-        let nextPid = cyclable[nextIdx].pid
-        guard nextPid != currentPid else { return }
+        guard let suivant = prochaineCible(dans: ids, depuis: courant, forward: forward), suivant != courant
+        else { return }
 
-        if setHidden(true, pid: currentPid) {
-            updateApp(pid: currentPid) { $0.isHiddenByUs = true }
+        if let pid = pid(pour: courant), setHidden(true, pid: pid) {
+            updateApp(bundleID: courant) { $0.isHiddenByUs = true }
         }
-        if setHidden(false, pid: nextPid) {
-            updateApp(pid: nextPid) { $0.isHiddenByUs = false }
+        if let pid = pid(pour: suivant), setHidden(false, pid: pid) {
+            updateApp(bundleID: suivant) { $0.isHiddenByUs = false }
         }
-        activeCyclePid = nextPid
+        activeCycleBundleID = suivant
     }
 
-    private func updateApp(pid: pid_t, _ mutate: (inout NotchAppInfo) -> Void) {
-        guard let idx = apps.firstIndex(where: { $0.pid == pid }) else { return }
+    private func pid(pour bundleID: String) -> pid_t? {
+        apps.first(where: { $0.bundleID == bundleID })?.pid
+    }
+
+    private func updateApp(bundleID: String, _ mutate: (inout NotchAppInfo) -> Void) {
+        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         mutate(&apps[idx])
     }
 }
