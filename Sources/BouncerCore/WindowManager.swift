@@ -61,6 +61,15 @@ public final class WindowManager: ObservableObject {
     @Published public private(set) var accessibilityTrusted: Bool = false
     @Published public private(set) var lastNotchZoneDescription: String = "—"
 
+    /// bundleID de l'app dont la bascule est en cours, `nil` si aucune. Publié parce que le menu
+    /// doit le montrer : la voie par cycle de vie prend environ une seconde, et sans retour visuel
+    /// l'utilisateur clique une seconde fois.
+    ///
+    /// Rien ne le pose encore — la machine à états qui l'allumera arrive avec la seconde moitié de
+    /// la Task 5. Il existe dès maintenant pour que le menu n'ait pas à changer de forme à ce
+    /// moment-là : il suffira de l'affecter autour de la bascule.
+    @Published public internal(set) var bundleIDEnCoursDeBascule: String?
+
     private let ownPid = ProcessInfo.processInfo.processIdentifier
     private var timer: Timer?
 
@@ -286,6 +295,53 @@ public final class WindowManager: ObservableObject {
         if controleur.masquer(wantHidden, pid: pid) {
             apps[idx].isHiddenByUs = wantHidden
         }
+    }
+
+    // MARK: - Point d'entrée du menu
+
+    /// « Rends cette app active » : l'action que déclenche un clic sur une entrée du menu. C'est
+    /// la même intention que le swipe, exprimée depuis le menu — une seule voie de code, pas deux
+    /// comportements à maintenir.
+    ///
+    /// POUR LE WORKER DE LA SECONDE MOITIÉ DE LA TASK 5 : c'est ici, et nulle part ailleurs, que
+    /// le menu se branche. Remplace le corps de cette méthode par un appel à la machine à états de
+    /// la bascule (`Bascule`, Task 4) — celle-là même qu'appellera `cycle(forward:)` — et pense à
+    /// entourer l'appel de `bundleIDEnCoursDeBascule = bundleID` / `= nil`, que le menu affiche
+    /// déjà. Rien d'autre n'est à toucher côté présentation.
+    ///
+    /// En attendant, le corps délègue à `toggle(bundleID:)` : comportement strictement inchangé,
+    /// y compris son no-op sur une app résistante ou arrêtée. Le menu, lui, ne grise plus rien —
+    /// ces entrées sont cliquables et le resteront, c'est la bascule derrière qui doit apprendre à
+    /// les honorer.
+    public func rendreActive(bundleID: String) {
+        toggle(bundleID: bundleID)
+    }
+
+    /// L'app qui occupe le notch : celle que la dernière bascule a désignée si elle est toujours
+    /// lancée, sinon la première app lancée que nous n'avons pas masquée. Tant qu'aucune bascule
+    /// n'a eu lieu, plusieurs apps peuvent être visibles à la fois — le menu marque alors la
+    /// première, exactement comme le cycle choisit son point de départ.
+    public var bundleIDActive: String? {
+        if let id = activeCycleBundleID, apps.contains(where: { $0.bundleID == id && $0.estLancee }) {
+            return id
+        }
+        return apps.first(where: { $0.estLancee && !$0.isHiddenByUs })?.bundleID
+    }
+
+    /// Les lignes du menu : les apps détectées, plus les apps du catalogue qui ne tournent pas.
+    ///
+    /// ponytail: `catalogue.installees()` interroge LaunchServices pour chaque bundleID connu.
+    /// C'est une propriété calculée plutôt qu'un `@Published` recalculé au refresh parce que le
+    /// refresh tourne toutes les 2 s alors que le corps du menu n'est évalué que menu ouvert —
+    /// l'appel est donc plus rare ici. Si le catalogue grossit au point que l'ouverture du menu
+    /// se sente, le mettre en cache dans `CatalogueApps` avec invalidation sur `apprendre`.
+    public var entreesMenu: [EntreeMenu] {
+        construireEntreesMenu(
+            apps: apps,
+            installees: catalogue.installees(),
+            active: bundleIDActive,
+            enCoursDeBascule: bundleIDEnCoursDeBascule
+        )
     }
 
     // MARK: - Cycle circulaire (Milestone 2 : swipe / flèches)

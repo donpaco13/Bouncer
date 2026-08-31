@@ -12,23 +12,46 @@ struct MenuBarContentView: View {
             Divider()
         }
 
-        if windowManager.apps.isEmpty {
+        let entrees = windowManager.entreesMenu
+        if entrees.isEmpty {
             Text("Aucune app d'encoche détectée")
         } else {
-            ForEach(windowManager.apps) { app in
+            ForEach(entrees) { entree in
                 Button {
-                    windowManager.toggle(bundleID: app.id)
+                    windowManager.rendreActive(bundleID: entree.bundleID)
                 } label: {
-                    Text("\(app.isHiddenByUs ? "○" : "●") \(app.name) — \(app.support.rawValue)")
+                    // Le libellé ne dit que le nom : c'est l'état, porté par le symbole, qui
+                    // intéresse l'utilisateur. Le verdict de régissabilité passe en infobulle.
+                    Label(entree.nom, systemImage: symbole(entree.etat))
                 }
-                // Une app arrêtée n'est pas masquable : la Task 5 la rendra cliquable, en la
-                // relançant au lieu de la masquer.
-                .disabled(app.support != .supported || !app.estLancee)
+                .help(entree.detail)
+                // Le symbole seul ne se lit pas au VoiceOver : l'état est redit en toutes lettres.
+                .accessibilityLabel("\(entree.nom), \(descriptionEtat(entree.etat)). \(entree.detail)")
+                // Aucun `.disabled` ici, volontairement. Une app résistante ou arrêtée est
+                // cliquable comme les autres : c'est tout l'objet du chantier de bascule.
             }
         }
 
         Divider()
         Button("Rafraîchir") { windowManager.refresh() }
         Button("Quitter") { NSApplication.shared.terminate(nil) }
+    }
+
+    /// Un symbole sur chaque entrée, y compris inactive : c'est ce qui garde les libellés alignés
+    /// et fait ressortir la marque de l'app active au lieu de la noyer.
+    private func symbole(_ etat: EntreeMenu.Etat) -> String {
+        switch etat {
+        case .active: return "checkmark.circle.fill"
+        case .inactive: return "circle"
+        case .enCours: return "hourglass"
+        }
+    }
+
+    private func descriptionEtat(_ etat: EntreeMenu.Etat) -> String {
+        switch etat {
+        case .active: return "occupe l'encoche"
+        case .inactive: return "n'occupe pas l'encoche"
+        case .enCours: return "bascule en cours"
+        }
     }
 }
