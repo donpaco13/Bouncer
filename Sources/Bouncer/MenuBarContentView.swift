@@ -28,9 +28,11 @@ struct MenuBarContentView: View {
                 Button {
                     windowManager.rendreActive(bundleID: entree.bundleID)
                 } label: {
-                    // Le libellé ne dit que le nom : c'est l'état, porté par le symbole, qui
-                    // intéresse l'utilisateur. Le verdict de régissabilité passe en infobulle.
-                    Label(entree.nom, systemImage: symbole(entree.etat))
+                    // Le marqueur d'état est un CARACTÈRE, pas un SF Symbol : un menu de barre
+                    // d'état macOS ne rend pas de façon fiable l'image d'un `Label`, et le
+                    // symbole disparaissait purement et simplement à l'écran. Constaté en réel.
+                    // Le verdict de régissabilité, lui, reste en infobulle.
+                    Text("\(symbole(entree.etat))  \(entree.nom)")
                 }
                 .help(entree.detail)
                 // Le symbole seul ne se lit pas au VoiceOver : l'état est redit en toutes lettres.
@@ -49,9 +51,9 @@ struct MenuBarContentView: View {
     /// et fait ressortir la marque de l'app active au lieu de la noyer.
     private func symbole(_ etat: EntreeMenu.Etat) -> String {
         switch etat {
-        case .active: return "checkmark.circle.fill"
-        case .inactive: return "circle"
-        case .enCours: return "hourglass"
+        case .active: return "●"
+        case .inactive: return "○"
+        case .enCours: return "◐"
         }
     }
 
