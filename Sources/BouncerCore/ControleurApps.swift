@@ -68,6 +68,27 @@ public func zoneEncoche() -> (rect: CGRect, ecran: String)? {
     return (rect, ecranNotch.localizedName)
 }
 
+/// Cadre de l'overlay de survol : le boîtier caméra, plus une marge VISIBLE de chaque côté.
+///
+/// `zoneEncoche()` décrit le boîtier lui-même — tout ce qui sépare `auxiliaryTopLeftArea.maxX` de
+/// `auxiliaryTopRightArea.minX`. Cette bande n'est pas affichable : c'est la caméra, pas de l'écran.
+/// Mesuré en réel sur le MacBook de référence (écran 1352×878) : aire gauche 0→593, boîtier
+/// 593→759, aire droite 759→1352. Une flèche dessinée dans le boîtier est cachée par le matériel,
+/// et un curseur qu'on y attend y est invisible — personne ne vise ce qu'il ne voit pas. D'où la
+/// marge : les flèches vivent dedans, et la zone sensible (survol, swipe) les englobe.
+public func zoneSurvol(encoche: CGRect, marge: CGFloat) -> CGRect {
+    encoche.insetBy(dx: -marge, dy: 0)
+}
+
+/// Abscisses des deux flèches dans le repère de l'overlay, centrées chacune dans sa marge — donc
+/// hors du boîtier caméra par construction, ce que verrouille `ZoneSurvolTests`.
+public func abscissesFleches(largeurOverlay: CGFloat, marge: CGFloat, taille: CGFloat)
+    -> (gauche: CGFloat, droite: CGFloat)
+{
+    let decalage = (marge - taille) / 2
+    return (decalage, largeurOverlay - marge + decalage)
+}
+
 /// Une entrée `CGWindowList` croise-t-elle la zone de l'encoche ?
 ///
 /// Point unique de la conversion de repère : `CGWindowList` a son origine en haut à gauche,
