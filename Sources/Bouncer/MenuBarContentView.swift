@@ -4,6 +4,10 @@ import BouncerCore
 struct MenuBarContentView: View {
     @ObservedObject var windowManager: WindowManager
 
+    /// Rouvre la fenêtre de bienvenue. Le geste du produit — survoler l'encoche, swiper — ne
+    /// s'écrit que là ; sans cette entrée, il devient introuvable dès l'accueil refermé.
+    let ouvrirAccueil: () -> Void
+
     var body: some View {
         if !windowManager.accessibilityTrusted {
             Button("⚠️ Autoriser dans les Réglages…") {
@@ -43,6 +47,7 @@ struct MenuBarContentView: View {
         }
 
         Divider()
+        Button("Guide de démarrage…") { ouvrirAccueil() }
         Button("Rafraîchir") { windowManager.refresh() }
         Button("Quitter") { NSApplication.shared.terminate(nil) }
     }

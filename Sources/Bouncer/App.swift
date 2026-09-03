@@ -12,11 +12,21 @@ import BouncerCore
 struct BouncerApp: App {
     @StateObject private var windowManager: WindowManager
     private let overlayController: NotchOverlayController
+    private let accueilController: FenetreAccueilController
 
     init() {
         let windowManager = WindowManager()
         _windowManager = StateObject(wrappedValue: windowManager)
         overlayController = NotchOverlayController(windowManager: windowManager)
+
+        // L'accueil s'affiche APRÈS le retour de cet init : ordonner une fenêtre à l'écran depuis
+        // l'init d'un `App` la pose avant que l'app ait fini son lancement, et elle n'obtient
+        // alors pas le focus. Un tour de run loop suffit.
+        let accueil = FenetreAccueilController(windowManager: windowManager)
+        accueilController = accueil
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { accueil.afficherSiPremierLancement() }
+        }
     }
 
     var body: some Scene {
@@ -28,7 +38,10 @@ struct BouncerApp: App {
             systemImage: windowManager.echecBascule == nil
                 ? "rectangle.on.rectangle" : "exclamationmark.triangle"
         ) {
-            MenuBarContentView(windowManager: windowManager)
+            MenuBarContentView(
+                windowManager: windowManager,
+                ouvrirAccueil: { [accueilController] in accueilController.afficher() }
+            )
         }
     }
 }

@@ -22,10 +22,16 @@ import Foundation
 /// bundleID ne serait qu'une devinette, et une devinette fausse ne fait rien (elle ne résout pas)
 /// tout en donnant l'illusion d'une couverture. L'apprentissage les rattrapera à leur première
 /// apparition dans le notch ; les ajouter ici demande seulement de relever leur identifiant réel.
-public let amorcageCatalogue: Set<String> = [
-    "app.vibeisland.macos",      // Vibe Island
-    "theboringteam.boringnotch", // boringNotch
+/// bundleID -> nom d'affichage. Le nom sert à l'accueil de première ouverture, qui doit pouvoir
+/// nommer une app d'encoche ABSENTE de la machine (donc introuvable sur le disque, donc sans nom
+/// à en tirer). Une seule table pour les deux usages : une liste de noms écrite à part finirait
+/// par diverger de la liste de bundleIDs.
+public let appsEncocheConnues: [String: String] = [
+    "app.vibeisland.macos": "Vibe Island",
+    "theboringteam.boringnotch": "boringNotch",
 ]
+
+public let amorcageCatalogue: Set<String> = Set(appsEncocheConnues.keys)
 
 /// Une app de notch présente sur le disque. Rien sur son état d'exécution : le catalogue dit ce
 /// qui est installable/lançable, pas ce qui tourne — c'est `WindowManager` qui sait ça.
