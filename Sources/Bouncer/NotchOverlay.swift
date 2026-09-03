@@ -27,8 +27,21 @@
 // fenêtre consomme le scroll avant nous, même quand notre panel est à l'écran. Le monitor
 // global observe l'événement quel que soit qui le consomme ensuite — c'est pour ça que
 // `handleScroll` et `updateHover` revérifient la position du curseur directement via
-// `overlayZone()` plutôt que de faire confiance au frame du panel, qui peut être hors écran
+// `zoneSensible` plutôt que de faire confiance au frame du panel, qui peut être hors écran
 // (retiré) ou nil (pas encore construit / plus d'encoche détectée).
+//
+// MESURÉ le 2026-09-03 sur la machine de référence, en capturant un geste réel à travers ce même
+// monitor global : le repère est bien celui annoncé (NSEvent.mouseLocation et zoneEncoche() sont
+// à l'écart vertical 0,0 pt), le monitor voit bien les 86 événements du geste avec le curseur
+// dans la bande — donc ni le repère ni le plumbing n'étaient en cause. Ce qui l'était : la
+// traîne d'INERTIE, 72 événements sur 1,32 s après que les doigts ont quitté la surface, comptée
+// comme du geste. Un geste produisait deux bascules (+0,025 s puis +0,622 s). La décision vit
+// désormais dans `DetecteurSwipe` (BouncerCore), rejouable en test sur ce flux enregistré.
+//
+// La zone est CALCULÉE UNE FOIS par `rebuild()` et gardée, pas redemandée à chaque événement :
+// `notchZone()` écrit dans un `@Published`, et l'appeler depuis un monitor `.mouseMoved` faisait
+// publier SwiftUI des centaines de fois par seconde pour une valeur qui ne change qu'au
+// changement de configuration d'écrans — le seul moment où `rebuild()` tourne.
 
 import AppKit
 import BouncerCore
@@ -43,20 +56,23 @@ final class NotchOverlayController: NSObject {
     private var hoverMonitor: Any?
     private var scrollMonitor: Any?
 
-    private var isHovering = false
+    /// Zone sensible courante, calculée par `rebuild()`. Cf. commentaire d'en-tête : la relire à
+    /// chaque événement souris coûtait une publication SwiftUI par mouvement.
+    private var zoneSensible: CGRect?
+    private var opaciteCourante: CGFloat = 0
 
     /// Largeur de bande visible prise de chaque côté du boîtier caméra — assez pour loger une
     /// flèche et lui donner une cible de clic atteignable, assez peu pour ne pas s'étaler sur les
     /// menus. Cf. commentaire d'en-tête.
     private let sideMargin: CGFloat = 44
 
-    // Anti-rebond swipe : une rafale de scrollWheel (un seul geste physique) ne doit produire
-    // qu'UNE bascule. On accumule deltaX jusqu'au seuil, puis on ferme la porte le temps du
-    // cooldown — le reste de la rafale tombe pendant cette fenêtre.
-    private var swipeAccumulator: CGFloat = 0
-    private var swipeGateUntil: Date = .distantPast
-    private let swipeThreshold: CGFloat = 12
-    private let swipeCooldown: TimeInterval = 0.5
+    /// Distance à laquelle les flèches commencent à apparaître, au-delà de la zone sensible.
+    /// SEULE CONSTANTE DE CE CORRECTIF QUI RESTE AU JUGÉ : la bande fait 41 pt de haut, 72 pt
+    /// donne une rampe encore perceptible à vitesse de pointeur normale sans allumer les flèches
+    /// dès qu'on longe le haut de l'écran. À régler au retour de test réel.
+    private let porteeApproche: CGFloat = 72
+
+    private var detecteur = DetecteurSwipe()
 
     init(windowManager: WindowManager) {
         self.windowManager = windowManager
@@ -76,18 +92,21 @@ final class NotchOverlayController: NSObject {
         if let m = scrollMonitor { NSEvent.removeMonitor(m) }
     }
 
-    /// Zone sensible et cadre du panel : le boîtier caméra élargi de `sideMargin` de chaque côté.
-    private func overlayZone() -> CGRect? {
+    /// Cadre du panel : le boîtier caméra élargi de `sideMargin` de chaque côté. La zone SENSIBLE
+    /// ajoute 6 pt en haut et en bas — la bande fait ~29 pt, difficile à survoler pile.
+    private func cadrePanel() -> CGRect? {
         windowManager.notchZone().map { zoneSurvol(encoche: $0, marge: sideMargin) }
     }
 
     /// (Re)positionne le panel sur la zone actuelle. Pas d'encoche détectée -> pas de
     /// panel, pas de crash (appelé aussi au changement de configuration d'écrans).
     @objc private func rebuild() {
-        guard let zone = overlayZone() else {
+        guard let zone = cadrePanel() else {
+            zoneSensible = nil
             teardownPanel()
             return
         }
+        zoneSensible = zone.insetBy(dx: 0, dy: -6)
         if let panel {
             panel.setFrame(zone, display: true)
             arrowsView?.frame = NSRect(origin: .zero, size: zone.size)
@@ -101,7 +120,7 @@ final class NotchOverlayController: NSObject {
         panel?.orderOut(nil)
         panel = nil
         arrowsView = nil
-        isHovering = false
+        opaciteCourante = 0
     }
 
     private func buildPanel(zone: CGRect) {
@@ -142,44 +161,60 @@ final class NotchOverlayController: NSObject {
         }
     }
 
-    // Porte sur overlayZone() et non panel.frame : le panel peut être hors écran (retiré hors
-    // survol) ou nil (pas d'encoche détectée) — cf. commentaire d'en-tête. Marge verticale
-    // partagée : la bande fait ~29pt de haut, difficile à survoler pile.
-    private func isCursorOnOverlay() -> Bool {
-        guard let zone = overlayZone() else { return false }
-        return zone.insetBy(dx: 0, dy: -6).contains(NSEvent.mouseLocation)
+    private func curseurDansLaZone() -> Bool {
+        zoneSensible?.contains(NSEvent.mouseLocation) ?? false
     }
 
+    /// Les flèches se révèlent À L'APPROCHE et non au survol : l'opacité suit la distance du
+    /// curseur à la zone. Le panel n'est à l'écran que tant qu'elles sont visibles — hors de la
+    /// portée, on le retire, ce que l'en-tête explique.
     private func updateHover() {
-        guard let panel else { return }
-        let hovering = isCursorOnOverlay()
-        guard hovering != isHovering else { return }
-        isHovering = hovering
-        if hovering {
-            panel.orderFrontRegardless()
+        guard let panel, let zone = zoneSensible else { return }
+        let opacite = opaciteFleches(curseur: NSEvent.mouseLocation, zone: zone, portee: porteeApproche)
+        guard opacite != opaciteCourante else { return }
+        let etaitVisible = opaciteCourante > 0
+        opaciteCourante = opacite
+
+        if opacite > 0 {
+            if !etaitVisible { panel.orderFrontRegardless() }
         } else {
             panel.orderOut(nil)
+            detecteur.reinitialise()
         }
-        arrowsView?.setVisible(hovering)
-        if !hovering { swipeAccumulator = 0 }
+        arrowsView?.opacite = opacite
     }
 
     private func handleScroll(_ event: NSEvent) {
-        // `isHovering` est latché par le monitor `.mouseMoved` : il ne se remet pas à jour si le
-        // curseur reste immobile pendant qu'une app d'encoche tierce déploie son panneau
-        // par-dessus. On revérifie donc la position réelle du curseur ici plutôt que de faire
-        // confiance à cet état.
-        guard isCursorOnOverlay(), Date() >= swipeGateUntil else { return }
-        swipeAccumulator += event.scrollingDeltaX
-        guard abs(swipeAccumulator) >= swipeThreshold else { return }
-        // Swipe vers la gauche (deltaX négatif) -> app suivante ; vers la droite -> précédente.
-        windowManager.cycle(forward: swipeAccumulator < 0)
-        swipeAccumulator = 0
-        swipeGateUntil = Date().addingTimeInterval(swipeCooldown)
+        // La position du curseur est revérifiée ici plutôt que déduite d'un état latché par le
+        // monitor `.mouseMoved` : celui-ci ne se remet pas à jour si le curseur reste immobile
+        // pendant qu'une app d'encoche tierce déploie son panneau par-dessus.
+        let decision = detecteur.recoit(
+            EvenementDefilement(
+                phase: phaseGeste(event),
+                inertie: event.momentumPhase != [],
+                deltaX: event.scrollingDeltaX,
+                deltaY: event.scrollingDeltaY,
+                instant: event.timestamp,
+                dansLaZone: curseurDansLaZone()
+            )
+        )
+        if case .bascule(let versLaSuite) = decision {
+            windowManager.cycle(forward: versLaSuite)
+        }
+    }
+
+    /// `NSEvent.Phase` -> phase de geste. Un périphérique sans phase (molette classique) tombe
+    /// dans `aucune`, où le détecteur retombe sur sa fenêtre de repos temporelle.
+    private func phaseGeste(_ event: NSEvent) -> EvenementDefilement.Phase {
+        let p = event.phase
+        if p.contains(.began) { return .debut }
+        if p.contains(.changed) { return .encours }
+        if p.contains(.ended) || p.contains(.cancelled) { return .fin }
+        return .aucune
     }
 }
 
-/// Flèches ‹ › de part et d'autre du boîtier caméra, invisibles par défaut, révélées au survol.
+/// Flèches ‹ › de part et d'autre du boîtier caméra, invisibles par défaut, révélées à l'approche.
 private final class NotchArrowsView: NSView {
     var onArrowClicked: ((_ forward: Bool) -> Void)?
 
@@ -227,10 +262,12 @@ private final class NotchArrowsView: NSView {
         rightButton.frame = NSRect(x: x.droite, y: y, width: size, height: size)
     }
 
-    /// Le panel couvre une portion de barre des menus pendant le survol : sans ce passe-plat, il
+    /// Le panel couvre une portion de barre des menus dès l'approche : sans ce passe-plat, il
     /// avalerait les clics sur les menus et les icônes de statut qui s'y trouvent. Seuls les deux
-    /// boutons répondent, le reste de la surface se comporte comme si le panel n'était pas là.
+    /// boutons répondent, et seulement une fois franchement visibles — une flèche à 10 %
+    /// d'opacité est une cible qu'on ne voit pas, donc qu'on ne vise pas volontairement.
     override func hitTest(_ point: NSPoint) -> NSView? {
+        guard opacite >= 0.5 else { return nil }
         let hit = super.hitTest(point)
         return hit === self ? nil : hit
     }
@@ -239,11 +276,13 @@ private final class NotchArrowsView: NSView {
         onArrowClicked?(sender.tag == 1)
     }
 
-    func setVisible(_ visible: Bool) {
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.15
-            leftButton.animator().alphaValue = visible ? 1 : 0
-            rightButton.animator().alphaValue = visible ? 1 : 0
+    /// Le fondu, c'est cette rampe : elle suit la distance du curseur, donc la main. Pas
+    /// d'animation de durée fixe — elle se battrait contre le mouvement au lieu de l'accompagner,
+    /// et sur un aller-retour rapide au bord de la zone elle traînerait derrière le curseur.
+    var opacite: CGFloat = 0 {
+        didSet {
+            leftButton.alphaValue = opacite
+            rightButton.alphaValue = opacite
         }
     }
 }
