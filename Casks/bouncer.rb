@@ -26,8 +26,15 @@ cask "bouncer" do
 
   uninstall quit: "io.github.donpaco13.bouncer"
 
-  # Bouncer n'écrit que dans UserDefaults, jamais sur disque en direct : deux clés,
-  # `bouncer.bundleIDsApprises` (CatalogueApps.swift) et `bouncer.accueilVu`
-  # (FenetreAccueil.swift). Elles vivent toutes les deux dans ce seul plist.
+  # Bouncer n'écrit que dans UserDefaults, jamais sur disque en direct. Huit clés actives, toutes
+  # préfixées `bouncer.` et toutes dans ce seul plist : `bundleIDsApprises.v3` (CatalogueApps.swift),
+  # `accueilVu` (FenetreAccueil.swift), `raccourciGlobal` (RaccourciGlobal.swift), et les cinq
+  # préférences de Reglages.swift — `modeActivation`, `porteeApproche`, `margeLaterale`,
+  # `intervalleRafraichissement`, `bundleIDsExclus`.
+  #
+  # Ne pas lister les clés purgées (`bundleIDsApprises`, `bundleIDsApprises.v2`) : elles sont
+  # effacées par `CatalogueApps.init()`, et de toute façon `zap` jette le plist entier.
+  # Inventaire à revérifier d'un `grep -rhoE '"bouncer\.[A-Za-z0-9._]+"' Sources/` avant chaque
+  # release — c'est ce qui manquait la fois où il annonçait deux clés sur sept.
   zap trash: "~/Library/Preferences/io.github.donpaco13.bouncer.plist"
 end

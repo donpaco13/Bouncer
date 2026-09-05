@@ -2,9 +2,6 @@
 // BasculeTests.swift — le double de `ControleurApps`, et la preuve qu'il se comporte comme
 // le vrai système sur les points dont la machine à états dépendra.
 //
-// Écrit avec Swift Testing (pas XCTest comme CycleTests/ModeleTests) : les deux frameworks
-// cohabitent dans la même cible sans rien changer à `Package.swift`.
-//
 
 import Foundation
 import Testing
@@ -111,7 +108,7 @@ final class ControleurAppsDouble: ControleurApps {
 @MainActor
 struct ControleurAppsDoubleTests {
     private let vibe = "app.vibeisland.macos"
-    private let boring = "com.thecoolbeans.boringnotch"
+    private let boring = "theboringteam.boringnotch"
 
     @Test("Une app lancée obtient un pid et sa fenêtre est visible dans l'encoche")
     func lancementRendLAppVisible() async throws {
@@ -202,7 +199,7 @@ struct ControleurAppsDoubleTests {
 @MainActor
 struct BasculeTests {
     private let vibe = "app.vibeisland.macos"       // régissable : se laisse masquer
-    private let boring = "com.thecoolbeans.boringnotch" // résistante : Space privé, seul le cycle de vie l'atteint
+    private let boring = "theboringteam.boringnotch" // résistante : Space privé, seul le cycle de vie l'atteint
     private let notchy = "dev.notchy.notchy"        // seconde régissable, pour les bascules AX pures
 
     private func app(_ bundleID: String, _ support: SupportStatus, pid: pid_t? = nil) -> NotchAppInfo {

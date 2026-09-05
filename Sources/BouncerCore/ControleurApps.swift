@@ -106,6 +106,21 @@ public func zoneEncoche() -> (rect: CGRect, ecran: String, cadre: CGRect)? {
     return (rect, ecranNotch.localizedName, frame)
 }
 
+/// Le boîtier caméra tel qu'on le DESSINE, quand on ne peut pas dessiner le vrai.
+///
+/// Les aperçus (`ApercuGeste` dans les réglages, `SimulateurNotchInteractif` dans le guide) figurent
+/// une encoche à une échelle qui n'est pas celle de l'écran : ils ont besoin de ses PROPORTIONS, pas
+/// de ses points. Interroger l'écran plutôt que réécrire un chiffre, c'est la règle « zéro
+/// hardcoding d'encoche » du CLAUDE.md — deux vues l'avaient enfreinte chacune de son côté, l'une
+/// avec 166 pt et l'autre avec 130, pour le même objet.
+///
+/// Le repli n'est pas une devinette : c'est le relevé de la machine de référence (166×29, cf.
+/// `ZoneSurvolTests`). Il ne sert que sur un Mac sans encoche, où il n'y a rien à interroger et où
+/// l'aperçu doit tout de même montrer quelque chose de juste.
+public var boitierEncocheReference: CGSize {
+    zoneEncoche()?.rect.size ?? CGSize(width: 166, height: 29)
+}
+
 /// Cadre de l'overlay de survol : le boîtier caméra, plus une marge VISIBLE de chaque côté.
 ///
 /// `zoneEncoche()` décrit le boîtier lui-même — tout ce qui sépare `auxiliaryTopLeftArea.maxX` de
@@ -151,23 +166,32 @@ private let partEcranMaxFenetreEncoche: CGFloat = 0.8
 /// et Munder Difflin, et son cycle de bascule l'emmenait sur le Finder. Les trois conditions
 /// ci-dessous viennent chacune d'un relevé `CGWindowList` réel, jamais d'une intuition :
 ///
-/// 1. **Collée au bord haut.** Les deux vraies ont leur sommet exactement à `cadre.maxY`
-///    (écart 0 pt, mesuré sur les deux). Une fenêtre que l'utilisateur déplace, elle, est plafonnée
-///    par la barre de menus : Discord et une fenêtre Finder posées le plus haut possible sur
-///    l'écran interne s'arrêtent à 35 pt du bord, quand la zone n'en fait que 29. Cette condition
-///    à elle seule écarte toute fenêtre de document, plein écran compris.
+/// 1. **Sommet AU bord haut de l'écran porteur**, à 1 pt près des deux côtés. Les deux vraies ont
+///    leur sommet exactement à `cadre.maxY` (écart 0 pt, mesuré sur les deux). Une fenêtre que
+///    l'utilisateur déplace, elle, est plafonnée par la barre de menus : Discord et une fenêtre
+///    Finder posées le plus haut possible sur l'écran interne s'arrêtent à 35 pt du bord, quand la
+///    zone n'en fait que 29. Cette condition à elle seule écarte toute fenêtre de document, plein
+///    écran compris — et, depuis qu'elle est bornée des deux côtés, tout ce qui vit sur un autre
+///    écran (cf. le paragraphe suivant).
 /// 2. **Elle recouvre le boîtier en entier.** Vibe Island va de 925 à 1665 et boringNotch de 975 à
 ///    1615, pour un boîtier de 1212 à 1378 : les deux le débordent largement des deux côtés. Ce
 ///    que ça écarte, ce sont les icônes de barre de menus (`layer` 25, collées au bord haut elles
 ///    aussi) : relevées entre 26 et 146 pt de large, aucune ne peut contenir un boîtier de 166 pt.
 /// 3. **Elle n'occupe pas tout l'écran.** Cf. `partEcranMaxFenetreEncoche`.
 ///
-/// **Ce que ce filtre ne prouve pas.** Aucun des cinq intrus n'a pu être reproduit dans la zone au
-/// moment du relevé : leurs fenêtres actuelles sont soit au `layer` 0 (Finder, Arc, Munder
-/// Difflin), soit plafonnées à 35 pt du bord (Discord, `layer` 3), soit des icônes de barre de
-/// menus (iScreen Shoter). On sait donc que ces trois conditions laissent passer les deux vraies
-/// et recalent toutes les fenêtres mesurables sur cette machine ; on ne sait pas laquelle des
-/// trois attrapait chacun des cinq intrus le jour où il est entré au catalogue.
+/// **La fuite inter-écrans, mesurée le 5 septembre 2026.** L'auteur du filtre avait écrit qu'il
+/// n'avait pas pu le confronter à de vrais intrus. C'est arrivé : `com.pais.handy` et
+/// `com.apple.UserNotificationCenter` sont entrés au catalogue. Relevé sur la machine de référence
+/// (interne 1352×878 à `y ∈ [-878, 0]`, externe 2560×1415 à `y ∈ [0, 1415]`) : la pastille de
+/// Handy, posée en haut de l'écran EXTERNE, mesure `X:1152→1408, maxY = 61`. Elle passait les trois
+/// conditions — `maxY = 61 ≥ cadre.maxY - 1 = -1`, elle englobe le boîtier `1212→1378` par simple
+/// recouvrement d'abscisses entre deux écrans, et 256 pt tiennent sous le plafond de largeur.
+///
+/// Aucune des trois ne disait « sur l'écran qui porte l'encoche » : la condition 1, en `≥` seul,
+/// était satisfaite d'office par tout écran situé plus haut dans le repère AppKit. La borner des
+/// deux côtés suffit, et c'est la formulation exacte de ce qui avait été mesuré dès le départ
+/// (sommet À `cadre.maxY`, pas au-dessus). Les alertes de `UserNotificationCenter`, centrées sur
+/// l'écran externe donc à cheval sur les abscisses du boîtier, relevaient de la même fuite.
 func estFenetreEncoche(
     _ zone: CGRect, cadreEcran: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat
 ) -> Bool {
@@ -181,9 +205,12 @@ func estFenetreEncoche(
         width: repereCGWindow.width, height: repereCGWindow.height
     )
 
-    // 1 pt de tolérance : le WindowServer rend des bornes déjà entières, mais un facteur d'échelle
-    // non entier pourrait en décaler une, et un widget d'encoche à 1 pt du bord reste un widget.
-    guard fenetre.maxY >= cadreEcran.maxY - 1 else { return false }
+    // Encadrée des DEUX côtés, et c'est le tout du correctif de la fuite inter-écrans : en `≥`
+    // seul, la condition ne disait rien qu'une fenêtre d'un écran plus haut ne satisfasse
+    // gratuitement. 1 pt de tolérance : le WindowServer rend des bornes déjà entières, mais un
+    // facteur d'échelle non entier pourrait en décaler une, et un widget d'encoche à 1 pt du bord
+    // reste un widget.
+    guard abs(fenetre.maxY - cadreEcran.maxY) <= 1 else { return false }
     guard fenetre.minX <= zone.minX, fenetre.maxX >= zone.maxX else { return false }
     guard fenetre.width <= cadreEcran.width * partEcranMaxFenetreEncoche else { return false }
     return true

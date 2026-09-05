@@ -31,8 +31,13 @@ import SwiftUI
 
 // MARK: - Contrôleur de fenêtre
 
-/// Sous-classe de NSWindow qui intercepte Escape (cancelOperation) pour fermer la fenêtre
+/// Sous-classe de NSWindow qui intercepte Escape (`cancelOperation`) pour fermer la fenêtre
 /// proprement, indispensable dans une application d'arrière-plan (LSUIElement) sans menu Fichier.
+///
+/// SEUL point d'interception d'Échap pour cette fenêtre. La chaîne des répondeurs y aboutit quel
+/// que soit l'endroit où le focus se trouve dans le contenu SwiftUI, ce qu'un bouton invisible
+/// portant `.keyboardShortcut(.cancelAction)` ne garantit pas — il en existait un, qui appelait le
+/// même `performClose`.
 private final class FenetreAccueilWindow: NSWindow {
     override func cancelOperation(_ sender: Any?) {
         performClose(sender)
@@ -367,13 +372,10 @@ struct VueAccueil: View {
                 .buttonStyle(.borderedProminent)
                 .accessibilityHint("Ferme ce guide et commence à utiliser Bouncer")
 
-            // Raccourcis clavier pour fermer la fenêtre (Escape et ⌘W) dans une app LSUIElement
-            Button("Fermer le guide", action: fermer)
-                .keyboardShortcut(.cancelAction)
-                .opacity(0)
-                .frame(width: 0, height: 0)
-                .accessibilityHidden(true)
-
+            // ⌘W n'a pas d'équivalent AppKit ici : une app LSUIElement n'a pas de menu Fichier
+            // d'où le raccourci viendrait. Échap, lui, n'est PAS ici — `FenetreAccueilWindow`
+            // l'intercepte au niveau de la fenêtre, et deux interceptions du même `performClose`
+            // au même endroit ne font que se doubler.
             Button("Fermer le guide avec commande W", action: fermer)
                 .keyboardShortcut("w", modifiers: .command)
                 .opacity(0)
@@ -529,6 +531,21 @@ private struct SimulateurNotchInteractif: View {
         AppSimulee(id: 2, nom: "Vibe Island", sousTitre: "2 notifications en attente", icone: "bell.badge.fill", couleur: .orange),
     ]
 
+    /// L'encoche dessinée ici l'est à l'échelle du simulateur, pas à celle de l'écran : seule sa
+    /// HAUTEUR est choisie pour la maquette (25 pt dans un écran figuré de 122), la largeur suit
+    /// les proportions du vrai boîtier. Sans ça, deux vues finissent avec deux encoches de formes
+    /// différentes — c'est arrivé, 130 pt ici contre 166 dans les réglages — et la règle « zéro
+    /// hardcoding d'encoche » du CLAUDE.md tombe (cf. `boitierEncocheReference`, BouncerCore).
+    private let hauteurBoitierDessine: CGFloat = 25
+    private var largeurBoitierDessine: CGFloat {
+        let boitier = boitierEncocheReference
+        return (hauteurBoitierDessine * boitier.width / boitier.height).rounded()
+    }
+
+    /// De combien chaque flèche déborde du boîtier. C'est l'équivalent maquette de `margeLaterale` :
+    /// les flèches vivent à CÔTÉ du boîtier, jamais dessous, sinon le matériel les cache.
+    private let debordementFleches: CGFloat = 6
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var indexActif: Int = 0
@@ -561,7 +578,7 @@ private struct SimulateurNotchInteractif: View {
                 ZStack(alignment: .top) {
                     EncochePhysiqueShape()
                         .fill(Color.black)
-                        .frame(width: 130, height: 25)
+                        .frame(width: largeurBoitierDessine, height: hauteurBoitierDessine)
                         .shadow(color: Color.black.opacity(0.5), radius: 3, x: 0, y: 2)
 
                     // Capteur caméra discret
@@ -573,7 +590,7 @@ private struct SimulateurNotchInteractif: View {
                 .accessibilityHidden(true)
 
                 // Flèches latérales ‹ et › (cliquables)
-                HStack(spacing: 142) {
+                HStack(spacing: largeurBoitierDessine + 2 * debordementFleches) {
                     // Les flèches portent un SENS, contrairement au swipe : c'est toute la
                     // distinction que ce simulateur doit enseigner (cf. Swipe.swift, « une flèche
                     // qui pointe à gauche et envoie à droite mentirait »). ‹ recule, › avance,

@@ -12,7 +12,11 @@ import Testing
 struct ZoneSurvolTests {
     private let boitier = CGRect(x: 593, y: 849, width: 166, height: 29)
     private let marge: CGFloat = 44
-    private let taille: CGFloat = 14
+    /// La taille RÉELLE des flèches, pas une valeur d'illustration : `NotchOverlay.layoutArrows`
+    /// pose `min(bounds.height - 4, 22)`, soit 22 pt dans une bande de 29. Le test perdrait tout
+    /// son intérêt s'il validait une dimension que la production n'utilise plus — il a verrouillé
+    /// 14 pt pendant le temps où le chevron en faisait déjà 22.
+    private let taille: CGFloat = 22
 
     @Test func laZoneDeSurvolDebordeLeBoitierDesDeuxCotes() {
         let zone = zoneSurvol(encoche: boitier, marge: marge)

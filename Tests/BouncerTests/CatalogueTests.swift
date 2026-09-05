@@ -2,9 +2,6 @@ import Foundation
 import Testing
 @testable import BouncerCore
 
-// Swift Testing, alors que CycleTests et ModeleTests (tasks 0 et 1) sont en XCTest : les deux
-// cohabitent dans une même cible sans friction, et c'est le sens de migration voulu — le nouveau
-// s'écrit en Swift Testing, l'ancien se convertit quand on y retouche.
 struct CatalogueTests {
     /// Un `UserDefaults` jetable et nettoyé pour la durée du test : sans ça les apprentissages
     /// fuiraient d'un test à l'autre — ils tournent en parallèle — et pollueraient les
@@ -19,17 +16,24 @@ struct CatalogueTests {
 
     private func url(_ nom: String) -> URL { URL(fileURLWithPath: "/Applications/\(nom).app") }
 
-    /// Ce que l'ancien filtre avait appris a été appris à tort : le catalogue de la machine de
-    /// référence contenait Finder, Discord, Arc, iScreen Shoter et Munder Difflin. Le changement
-    /// de clé est la seule façon de jeter ça, un apprentissage étant définitif par construction.
-    @Test func lApprentissageDeLAncienFiltreEstJeteEtSaCleEffacee() {
+    /// Ce que les filtres précédents avaient appris a été appris à tort, et un apprentissage est
+    /// définitif par construction : le changement de clé est la seule façon de le jeter.
+    /// v1 → v2 jetait Finder, Discord, Arc, iScreen Shoter et Munder Difflin (filtre « la fenêtre
+    /// effleure l'encoche »). v2 → v3 jette Bouncer elle-même, `UserNotificationCenter` et Handy
+    /// (exclusion par pid, et fuite inter-écrans de `estFenetreEncoche`).
+    @Test func lApprentissageDesAnciensFiltresEstJeteEtLeursClesEffacees() {
         avecDefaultsJetables { defaults in
             defaults.set(["com.apple.finder", "com.hnc.Discord"], forKey: "bouncer.bundleIDsApprises")
+            defaults.set(
+                ["io.github.donpaco13.bouncer", "com.apple.UserNotificationCenter", "com.pais.handy"],
+                forKey: "bouncer.bundleIDsApprises.v2"
+            )
 
             let catalogue = CatalogueApps(defaults: defaults, amorcage: [], resolveur: { url($0) })
 
             #expect(catalogue.apprises.isEmpty)
             #expect(defaults.stringArray(forKey: "bouncer.bundleIDsApprises") == nil)
+            #expect(defaults.stringArray(forKey: "bouncer.bundleIDsApprises.v2") == nil)
         }
     }
 
