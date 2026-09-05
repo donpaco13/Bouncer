@@ -15,3 +15,6 @@ Bouncer.app/
 .DS_Store
 :memory:*
 .claude/
+
+# Artefacts de release
+dist/
