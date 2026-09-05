@@ -210,8 +210,16 @@ struct BasculeTests {
     }
 
     /// Sondages rapides : la logique testée est l'ordre des actions, pas la durée réelle.
+    ///
+    /// `trustAccorde: { true }` parce que ces tests-là portent sur la machine à états, pas sur son
+    /// garde d'entrée : sans cette injection ils dépendraient du droit Accessibilité réel du
+    /// binaire de test, donc de la machine qui les exécute. Le garde a son propre test, dans
+    /// `RobustesseTests`.
     private func bascule(_ double: ControleurAppsDouble, delaiMax: Duration = .seconds(2)) -> Bascule {
-        Bascule(controleur: double, intervalleSondage: .milliseconds(1), delaiMax: delaiMax)
+        Bascule(
+            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: delaiMax,
+            trustAccorde: { true }
+        )
     }
 
     @Test("La cible apparaît au 3e sondage : l'actuelle est tuée, et pas avant")

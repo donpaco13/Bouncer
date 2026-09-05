@@ -432,6 +432,11 @@ public final class WindowManager: ObservableObject {
             appliquerReussite(cible: cible.bundleID, actuelle: actuelle?.bundleID)
         case .lancementImpossible:
             echecBascule = "\(cible.name) n'a pas pu être lancée."
+        case .accessibiliteJamaisAccordee:
+            // Le menu affiche déjà sa ligne « ⚠️ Autoriser dans les Réglages… » — `accessibilityTrusted`
+            // est faux par définition dans ce cas. Ce message-ci porte ce qu'elle ne dit pas : que
+            // le geste qu'on vient de faire n'a rien produit, et pourquoi.
+            echecBascule = "Bouncer n'a pas encore l'accès à l'Accessibilité : sans lui, basculer quitterait \(cible.name) au lieu de la masquer. Autorisez Bouncer dans les Réglages Système, puis réessayez."
         case .cibleJamaisApparue:
             let repli = actuelle.map { "\($0.name) reste en place." } ?? "L'encoche est inchangée."
             // Une bascule qui traverse un changement d'écrans sonde une encoche qui n'existe
