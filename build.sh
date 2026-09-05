@@ -4,13 +4,13 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 BUNDLE_ID="io.github.donpaco13.bouncer"
-# Ce certificat auto-signé doit être TRUSTÉ dans le trousseau, sinon rien ne marche :
-#   security add-trusted-cert -r trustRoot -p codeSign \
-#     -k ~/Library/Keychains/login.keychain-db <cert.pem>
-# Sans le trust, TCC ne peut pas valider la designated requirement, retombe sur le CDHash du
-# binaire — qui change à chaque build — et l'autorisation Accessibilité ne s'applique JAMAIS,
-# tout en restant cochée dans les Réglages. Symptôme piège : visuellement autorisé,
-# fonctionnellement refusé. Renommer ce CN oblige à refaire le trust ET un
+# Certificat auto-signé, persistant dans le trousseau. Il n'a PAS besoin d'être trusté.
+# Mesuré le 2026-09-03 : aucun réglage de confiance dans les trois domaines (user, admin,
+# system), et l'Accessibilité fonctionne quand même. La designated requirement embarquée est
+#   identifier "io.github.donpaco13.bouncer" and certificate leaf = H"30b31538..."
+# soit une comparaison du hash de la feuille, pas une validation de chaîne de confiance :
+# add-trusted-cert ne change rien à ce test. Ce qui compte est que le CN reste stable, car
+# le renommer regénère la clé, donc le hash de feuille, donc la DR, et impose un
 # `tccutil reset Accessibility io.github.donpaco13.bouncer`.
 CERT_CN="Bouncer Local Signing"
 
@@ -52,9 +52,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 # --- Signature stable (identité locale auto-signée persistante en trousseau) ---
-# But : que TCC/Accessibilité reconnaisse LA MÊME app entre deux builds. Sans certificat
-# stable, la signature ad-hoc du linker change de designated requirement à chaque build
-# (basé sur le hash du binaire), forçant à ré-autoriser l'app à chaque itération.
+# But : que TCC/Accessibilité reconnaisse LA MÊME app entre deux builds. Mesuré le
+# 2026-09-03 : une modification du code change le CDHash (49a13c29 -> 2f03f9d2) et laisse la
+# DR strictement intacte. TCC s'ancre sur la DR, l'autorisation survit donc aux rebuilds.
+# Sans ce certificat, la signature ad-hoc du linker dérive à chaque build et force à
+# ré-autoriser l'app à chaque itération.
 if ! security find-certificate -c "$CERT_CN" >/dev/null 2>&1; then
     echo "🔑 Certificat de signature local absent, création (une seule fois)..."
     TMP_CERT_DIR="$(mktemp -d)"
@@ -79,9 +81,23 @@ codesign --force --identifier "$BUNDLE_ID" --sign "$CERT_CN" "$APP"
 
 echo "✅ Bundle construit : $APP"
 
-# Relance : sans ça, chaque itération coûte deux gestes manuels (quitter, rouvrir). Le pkill vise
-# le binaire par son chemin complet pour ne pas toucher un homonyme.
-pkill -f "$APP/Contents/MacOS/" 2>/dev/null || true
+# Installation dans /Applications. Sans ça le bundle reste au fond du dossier du repo, que
+# Spotlight n'indexe pas : l'app est alors introuvable autrement qu'en tapant un chemin dans un
+# terminal. TCC identifie une app par sa signature et son bundle id, jamais par son chemin — la
+# copie garde donc l'autorisation d'Accessibilité.
+DEST="/Applications/$APP"
+if [ ! -w /Applications ]; then
+    mkdir -p "$HOME/Applications"
+    DEST="$HOME/Applications/$APP"
+fi
+
+# Le pkill vise le binaire par son chemin pour ne pas toucher un homonyme, et couvre les deux
+# emplacements : on a pu lancer aussi bien la copie installée que le bundle du repo.
+pkill -f "/$APP/Contents/MacOS/" 2>/dev/null || true
 sleep 0.3
-open "$APP"
-echo "🔄 Bouncer relancée"
+
+rm -rf "$DEST"
+cp -R "$APP" "$DEST"
+
+open "$DEST"
+echo "🔄 Bouncer installée dans $(dirname "$DEST") et relancée"
