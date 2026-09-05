@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit de cohérence — Bouncer après dix agents</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1d1d1f;
+    --text-sec: #6e6e73;
+    --border: #d2d2d7;
+    --card-bg: #f5f5f7;
+    --accent: #0071e3;
+    --red: #d70015;
+    --green: #28cd41;
+    --orange: #ff9500;
+    --code-bg: #e8e8ed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1e;
+      --text: #f5f5f7;
+      --text-sec: #a1a1a6;
+      --border: #424245;
+      --card-bg: #2c2c2e;
+      --accent: #2997ff;
+      --code-bg: #3a3a3c;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .meta {
+    color: var(--text-sec);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-top: 24px;
+    margin-bottom: 8px;
+  }
+  p, li {
+    font-size: 15px;
+  }
+  ul {
+    padding-left: 20px;
+  }
+  code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  blockquote {
+    margin: 12px 0;
+    padding: 10px 16px;
+    background: var(--card-bg);
+    border-left: 4px solid var(--orange);
+    border-radius: 0 6px 6px 0;
+    color: var(--text-sec);
+    font-size: 14px;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    margin: 20px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    text-align: left;
+  }
+  th, td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--card-bg);
+    font-weight: 600;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-green { background: rgba(40,205,65,0.15); color: var(--green); }
+  .badge-orange { background: rgba(255,149,0,0.15); color: var(--orange); }
+  .badge-red { background: rgba(215,0,21,0.15); color: var(--red); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Audit de cohérence — Bouncer après dix agents</h1>
+  <div class="meta">5 septembre 2026 · Examen après parallélisme de dix agents (~3 000 lignes de Swift, 70 tests verts)</div>
+
+  <h2>1. Verdict d'ensemble</h2>
+  <p>Le moteur fonctionne et tient ses invariants fondamentaux. La bascule « allumer la suivante avant d'éteindre l'actuelle » est respectée, le filtrage géométrique est strict, l'overlay ne vole pas le focus et les 70 tests passent en 33 ms.</p>
+  <p>En revanche, l'absence de synchronisation directe entre dix agents a laissé des anomalies concrètes dans le dépôt :</p>
+  <ul>
+    <li>Quatre commentaires mentent directement sur le code en production.</li>
+    <li>Le guide d'accueil contient un bouton de simulateur dont le comportement contredit la commande réelle de l'overlay (flèche gauche inversée).</li>
+    <li>Deux représentations graphiques de l'encoche utilisent des largeurs matérielles divergentes (130 pt contre 166 pt).</li>
+    <li>Le Cask Homebrew est désynchronisé : son inventaire UserDefaults ne recense que 2 clés sur 7 et mentionne une clé supprimée, tandis que son sha256 correspond à un commit antérieur.</li>
+    <li>L'orchestrateur central <code>WindowManager</code> a 0 test unitaire direct malgré son découpage injectable.</li>
+  </ul>
+
+  <h2>2. Commentaires devenus faux</h2>
+
+  <h3>2.1 Ouverture de la fenêtre de réglages</h3>
+  <p>Dans <code>Sources/Bouncer/FenetreReglages.swift</code> (l. 9-10) :</p>
+  <blockquote>SettingsLink (macOS 14) est la seule façon de l'ouvrir depuis un MenuBarExtra : un NSApp.sendAction(showSettingsWindow:) marche par accident et casse d'une version à l'autre.</blockquote>
+  <p><strong>Réalité :</strong> <code>MenuBarContentView.swift</code> (l. 60-91) a démontré empiriquement que <code>SettingsLink</code> disparaissait du menu après le premier lancement. L'entrée utilise désormais un simple bouton qui déclenche l'action associée au raccourci clavier <code>⌘,</code>. Le commentaire de <code>FenetreReglages.swift</code> contredit frontalement la solution retenue dans <code>MenuBarContentView.swift</code>.</p>
+
+  <h3>2.2 Migration des tests XCTest</h3>
+  <p>Dans <code>Tests/BouncerTests/CatalogueTests.swift</code> (l. 5-7) et <code>Tests/BouncerTests/BasculeTests.swift</code> (l. 5-7) :</p>
+  <blockquote>Swift Testing, alors que CycleTests et ModeleTests (tasks 0 et 1) sont en XCTest : les deux cohabitent dans une même cible sans friction...</blockquote>
+  <p><strong>Réalité :</strong> <code>CycleTests.swift</code> et <code>ModeleTests.swift</code> ont été convertis à Swift Testing au commit <code>f8896be</code>. La suite de tests ne contient plus aucune ligne de code XCTest.</p>
+
+  <h3>2.3 Inventaire UserDefaults dans le Cask Homebrew</h3>
+  <p>Dans <code>Casks/bouncer.rb</code> (l. 29-32) :</p>
+  <blockquote>Bouncer n'écrit que dans UserDefaults, jamais sur disque en direct : deux clés, bouncer.bundleIDsApprises (CatalogueApps.swift) et bouncer.accueilVu (FenetreAccueil.swift). Elles vivent toutes les deux dans ce seul plist.</blockquote>
+  <p><strong>Réalité :</strong></p>
+  <ul>
+    <li>La clé <code>bouncer.bundleIDsApprises</code> est obsolète et purgée au démarrage par <code>CatalogueApps.init()</code>. La clé active est <code>bouncer.bundleIDsApprises.v2</code>.</li>
+    <li>Le chantier des préférences (T130) a introduit cinq nouvelles clés : <code>bouncer.modeActivation</code>, <code>bouncer.porteeApproche</code>, <code>bouncer.margeLaterale</code>, <code>bouncer.intervalleRafraichissement</code>, <code>bouncer.bundleIDsExclus</code>. Bouncer écrit 7 clés actives, pas 2.</li>
+  </ul>
+
+  <h3>2.4 Ancien nom du projet dans l'overlay</h3>
+  <p>Dans <code>Sources/Bouncer/NotchOverlay.swift</code> (l. 16-17) :</p>
+  <blockquote>Hors survol, aucune fenêtre d'Island Switch ne recouvre l'encoche...</blockquote>
+  <p><strong>Réalité :</strong> Le projet s'appelle Bouncer. « Island Switch » était le nom de travail initial conservé par le dossier parent.</p>
+
+  <h3>2.5 Fréquence d'évaluation du catalogue</h3>
+  <p>Dans <code>Sources/BouncerCore/WindowManager.swift</code> (l. 496-499) :</p>
+  <blockquote>ses deux appelants sont rares : le corps du menu n'est évalué que menu ouvert, et cyclableApps à chaque cran de swipe...</blockquote>
+  <p><strong>Réalité :</strong> <code>entreesMenu</code> est aussi interrogé à chaque rafraîchissement de <code>VueAccueil</code> (<code>FenetreAccueil.swift:101</code>) et dans l'onglet des applications des réglages (<code>FenetreReglages.swift:296</code>).</p>
+
+  <h2>3. Duplications et contradictions de parallélisme</h2>
+
+  <h3>3.1 Inversion de la flèche gauche dans le guide d'accueil</h3>
+  <ul>
+    <li><strong>Comportement produit (<code>NotchOverlay.swift:278-294</code>, <code>Swipe.swift:47-48</code>) :</strong> La flèche gauche (<code>chevron.left</code>) passe <code>forward: false</code> et recule dans le cycle d'applications. La règle explicite du projet est que les flèches physiques conservent leur direction visuelle.</li>
+    <li><strong>Simulateur du guide (<code>FenetreAccueil.swift:540-555</code>, l. 693-709) :</strong> Le bouton gauche porte l'accessibilité <code>Flèche gauche : faire avancer le cycle</code> et appelle <code>basculer(vers: "gauche")</code> qui incrémente <code>indexActif = (indexActif + 1) % apps.count</code>. Le guide d'accueil enseigne donc le contraire du fonctionnement de l'overlay.</li>
+  </ul>
+
+  <h3>3.2 Largeur de boîtier caméra divergente dans l'interface</h3>
+  <p><code>FenetreReglages.swift:228</code> fixe <code>largeurBoitier = 166</code> pt, valeur mesurée sur le matériel cible. <code>FenetreAccueil.swift:527, 539</code> dessine l'encoche avec <code>width: 130</code> pt et un espacement de flèches <code>spacing: 142</code> pt. Deux agents ont modélisé l'encoche sans partager la même constante de géométrie.</p>
+
+  <h3>3.3 Doublon de gestion de la touche Échap</h3>
+  <p>Dans <code>FenetreAccueil.swift</code>, <code>FenetreAccueilWindow:31-35</code> surcharge <code>cancelOperation:</code> pour appeler <code>performClose:</code>, tandis que <code>VueAccueil:332-336</code> installe un bouton invisible interceptant <code>.keyboardShortcut(.cancelAction)</code>. L'interception d'Échap est implémentée deux fois au même endroit.</p>
+
+  <h3>3.4 Divergence des bundleIDs de test pour boringNotch</h3>
+  <p>Dans le catalogue réel (<code>CatalogueApps.swift:31</code>) et les tests de réglages (<code>ReglagesTests.swift:102</code>) : <code>theboringteam.boringnotch</code>. Dans les tests de bascule (<code>BasculeTests.swift:114, 205</code>) et de robustesse (<code>RobustesseTests.swift:19</code>) : <code>com.thecoolbeans.boringnotch</code>. Les doubles de tests utilisent un identifiant temporaire issu des spécifications préparatoires au lieu du bundle ID réel.</p>
+
+  <h2>4. Code mort et constantes décalées</h2>
+  <ul>
+    <li><strong>Taille de flèche dans les tests géométriques :</strong> Dans <code>Tests/BouncerTests/ZoneSurvolTests.swift</code> (l. 15), le test utilise <code>taille: CGFloat = 14</code>. Dans <code>Sources/Bouncer/NotchOverlay.swift</code> (l. 335), la taille réelle a été portée à 22 pt pour des raisons de contraste. La formule reste valide, mais le test ne valide plus la dimension de production.</li>
+    <li><strong>Halo d'approche dans l'aperçu des réglages :</strong> <code>FenetreReglages.swift:246</code> dessine un gradient horizontal censé représenter la portée d'approche. L'overlay réel n'utilise aucun halo lumineux, mais une pastille sombre opaque sous le chevron.</li>
+  </ul>
+
+  <h2>5. Cohérence de nommage et vocabulaire</h2>
+  <p>La logique ajoutée dans <code>BouncerCore</code> est entièrement en français (<code>zoneSurvol</code>, <code>estFenetreEncoche</code>, <code>porteeApproche</code>, <code>prochaineCible</code>, <code>construireEntreesMenu</code>).</p>
+  <p>Des îlots d'anglais subsistent dans les structures historiques :</p>
+  <ul>
+    <li><code>NotchAppInfo</code> (<code>WindowManager.swift:30-39</code>) mélange <code>name</code>, <code>support</code> et <code>isHiddenByUs</code> avec <code>estLancee</code>. En comparaison, <code>AppInstallee</code> et <code>EntreeMenu</code> utilisent <code>nom</code>.</li>
+    <li><code>WindowManager</code> expose <code>notchZone()</code> alors que la fonction de calcul dans <code>ControleurApps</code> se nomme <code>zoneEncoche()</code>.</li>
+    <li><code>NotchOverlayController</code> conserve des méthodes d'action en anglais (<code>updateHover</code>, <code>handleScroll</code>, <code>buildPanel</code>, <code>teardownPanel</code>) à côté de méthodes en français (<code>curseurDansLaZone</code>, <code>majMoniteurScroll</code>).</li>
+    <li><code>FenetreAccueil</code> utilise <code>SimulateurNotchInteractif</code> et <code>EncochePhysiqueShape</code> (alternance entre « Notch » et « Encoche »).</li>
+  </ul>
+
+  <h2>6. Respect des conventions du projet</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Convention</th><th>Statut</th><th>Constat</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Logique dans BouncerCore, pas dans la vue</strong></td>
+          <td><span class="badge badge-green">Conforme</span></td>
+          <td>Calculs, persistance, machines à états et filtrages sont tous isolés dans BouncerCore. Les vues ne font que lier l'état.</td>
+        </tr>
+        <tr>
+          <td><strong>Tests en Swift Testing</strong></td>
+          <td><span class="badge badge-green">Conforme</span></td>
+          <td>70 tests répartis sur 11 fichiers, tous sous Swift Testing (@Test, #expect).</td>
+        </tr>
+        <tr>
+          <td><strong>Clés UserDefaults préfixées bouncer.</strong></td>
+          <td><span class="badge badge-green">Conforme</span></td>
+          <td>Les 8 clés existantes (actives et nettoyées) utilisent le préfixe.</td>
+        </tr>
+        <tr>
+          <td><strong>Zéro hardcoding d'encoche</strong></td>
+          <td><span class="badge badge-orange">Partiellement conforme</span></td>
+          <td>Respecté dans le moteur (zoneEncoche() interroge les écrans). Enfreint dans les vues pour les simulateurs statiques (166 pt dans Réglages, 130 pt dans Accueil).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>7. Couverture de tests : les angles morts</h2>
+  <ul>
+    <li><strong>WindowManager n'est testé dans aucune suite :</strong> Bien que conçu pour l'injection de dépendances (startTimer: false, catalogue, controleur, reglages), aucun test n'instancie WindowManager. Le verrou d'exclusion mutuelle bundleIDEnCoursDeBascule, l'algorithme de choix de bundleIDActive, le maintien des applications masquées dans apps lors des rafraîchissements, la replanification du timer et le message de révocation ne sont jamais vérifiés unitairement.</li>
+    <li><strong>CycleTests.swift ne comporte qu'un seul test :</strong> Le fichier ne teste que le cas nominal a -> b en avant. Aucun test ne vérifie le cycle arrière (forward: false, flèche gauche ‹), le rebouclage aux bornes (c -> a et a -> c), ni un élément de départ absent ou nil.</li>
+    <li><strong>Événements Combine de Reglages :</strong> Le publisher changementsIntervalle (qui transmet la nouvelle période de timer à WindowManager) n'a aucun test de transmission ou de déduplication.</li>
+    <li><strong>Porte d'entrée du premier lancement :</strong> La condition d'affichage unique FenetreAccueilController.afficherSiPremierLancement() reposant sur bouncer.accueilVu n'est couverte par aucun test unitaire.</li>
+  </ul>
+</div>
+</body>
+</html>
