@@ -1,179 +1,147 @@
 # Bouncer
 
-Sur un MacBook à encoche, deux apps d'encoche ouvertes en même temps dessinent au même
-endroit et se superposent. macOS ne coordonne rien : il n'existe aucune notion d'« app
-d'encoche active », donc la seule sortie est de quitter l'une pour utiliser l'autre.
+Sur un MacBook équipé d'une encoche matérielle, deux applications de notch ouvertes en même temps dessinent au même endroit et se superposent. macOS ne coordonne rien : aucune notion d'« app d'encoche active » n'existe au niveau du système. La seule issue manuelle consiste à quitter l'une pour voir l'autre.
 
-Bouncer régit la visibilité de ces apps : il masque et réaffiche celles qui se
-disputent l'encoche, pour qu'une seule y soit visible à la fois. Le contrôle se fait
-depuis la barre des menus, par un swipe deux doigts sur l'encoche, ou par deux flèches
-qui apparaissent au survol.
+Bouncer résout ce conflit en régissant la visibilité des applications d'encoche : une seule application occupe le notch à la fois. Vous passez de l'une à l'autre d'un geste sur le trackpad, d'un clic sur des flèches au survol, ou depuis la barre des menus.
 
-Les apps concernées : Vibe Island, boringNotch, Alcove, Notchy, et toutes celles qui
-dessinent leur propre pilule sous le hardware notch.
+L'utilitaire s'adresse aux utilisateurs de MacBook à encoche (M1 Pro/Max, M2, M3, M4) combinant plusieurs outils dédiés (monitoring d'agents, widgets audio, calendrier ou système comme Vibe Island et boringNotch).
 
-## Ce que ça fait vraiment, aujourd'hui
+---
 
-**Bouncer régit l'app d'encoche que vous avez.** Il ne fait pas encore basculer
-entre deux apps, parce que ça n'a jamais pu être démontré : sur les quatre apps
-testées, une seule se laisse régir. Faute d'un second candidat, le cycle « app 1 → app
-2 → app 1 » est écrit et fonctionnel dans le code, mais jamais vérifié en conditions
-réelles.
+## 1. Ce que fait Bouncer
 
-**Toutes les apps d'encoche ne sont pas régissables**, et ça ne dépend pas de Bouncer.
-Autant le savoir avant d'installer.
+Bouncer maintient un catalogue des applications de notch installées sur votre Mac. Quand vous demandez une bascule, elle orchestre le passage de l'application active vers l'application suivante selon deux méthodes, choisies automatiquement selon ce que chaque binaire accepte :
 
-## Pourquoi certaines apps résistent
+1. **La voie rapide (masquage instantané, ~31 ms)** : pour les applications qui laissent leurs fenêtres dans le Space utilisateur standard (comme Vibe Island). Bouncer applique l'attribut d'Accessibilité `kAXHiddenAttribute`. L'application reste active en mémoire, conserve son état et se réaffiche en 5 ms sans redémarrer.
+2. **La voie par cycle de vie (relance, ~1 s)** : pour les applications qui créent leur propre Space privé auprès du WindowServer (`CGSSpaceCreate` + `CGSAddWindowsToSpaces`, comme boringNotch) et ignorent l'ordre de masquage. Bouncer démarre la cible, attend que sa fenêtre apparaisse sous l'encoche, puis ferme l'ancienne.
 
-Une app d'encoche est régissable si elle laisse ses fenêtres dans le Space de
-l'utilisateur. Elle ne l'est pas si elle les épingle dans un Space privé qu'elle crée
-elle-même auprès du WindowServer. Ces fenêtres sortent alors du circuit standard de
-macOS : l'ordre de masquage (`kAXHiddenAttribute`) est accepté, il ne renvoie aucune
-erreur, et il ne change rien à l'écran.
+### Les garanties du moteur
 
-Le critère n'est pas une opinion, il se lit dans le binaire. La ligne de partage est le
-**pattern d'écriture de Space** : `CGSSpaceCreate` + `CGSAddWindowsToSpaces` +
-`CGSShowSpaces`. Une app qui ne lie que des appels CGS de lecture (interroger les Spaces
-existants) reste dans le circuit standard et répond au masquage. Une app qui lie le
-pattern d'écriture complet crée son propre Space et s'y épingle : rien ne la déloge sans
-API privée.
+- **Allumer avant d'éteindre** : Bouncer ne masque ou ne ferme l'application précédente qu'une fois la nouvelle fenêtre confirmée à l'écran par recomptage `CGWindowList`. Si l'application cible ne démarre pas ou tarde plus de 5 secondes, l'application actuelle reste intacte. Vous ne vous retrouvez jamais avec une encoche vide ou deux processus tués.
+- **Filtre géométrique strict** : pour ne pas confondre une vraie app d'encoche avec une fenêtre haute (navigateur, Discord ou Finder), Bouncer impose trois critères physiques réels : fenêtre flottante (`layer > 0`), sommet collé au bord supérieur de l'écran, et largeur recouvrant le boîtier caméra matériel sans déborder sur l'écran entier (< 80 % de la largeur).
+- **Survie aux redémarrages** : le catalogue mémorise les applications déjà vues sous l'encoche. Une application fermée reste listée dans le menu et peut être relancée d'un clic ou par le geste de bascule.
 
-Vérifier une app vous-même :
+### État de prise en charge des applications
+
+| Application | Méthode de bascule | Comportement mesuré |
+|---|---|---|
+| **Vibe Island** | Masquage Accessibilité (voie rapide) | Masquage en 31,7 ms, réaffichage en 5,1 ms. L'application reste en mémoire. |
+| **boringNotch** | Cycle de vie (relance) | Relance en ~1 s. L'ancienne instance est fermée dès que la nouvelle fenêtre est visible. |
+
+Les rapports d'analyse statique et de mesure détaillés sont conservés dans [`docs/archive/SPIKE_RESULTS.md`](docs/archive/SPIKE_RESULTS.md).
+
+---
+
+## 2. Comment l'installer
+
+### Via Homebrew (recommandé)
 
 ```bash
-nm -u "/Applications/VotreApp.app/Contents/MacOS/VotreApp" | grep -i CGS
+brew install --cask donpaco13/tap/bouncer
 ```
 
-Si `CGSSpaceCreate` et `CGSAddWindowsToSpaces` sortent tous les deux, l'app est
-vraisemblablement non régissable.
+Le Cask Homebrew installe Bouncer dans votre dossier `/Applications` et retire automatiquement l'attribut de quarantaine au premier déploiement.
 
-## Compatibilité des apps d'encoche
+### Téléchargement manuel (.zip)
 
-| Application | Version testée | Régissable | Preuve |
-|---|---|:---:|---|
-| **Vibe Island** | 1.0.48 | Oui | Mesuré en direct : hide 31,7 ms / show 5,1 ms, confirmé par recomptage `CGWindowList`. Le binaire ne lie que des appels CGS de lecture. |
-| **boringNotch** | 2.7.3 | Non | Mesuré en direct : le masquage ne change rien au nombre de fenêtres. Le binaire lie le pattern d'écriture complet, confirmé par lecture de son code source. |
-| **Alcove** | 1.7.7 | Non — **prédit**, non confirmé en direct | L'app est restée bloquée à son lancement sur la machine de test (figée à `_dyld_start`), aucune fenêtre à masquer. Le binaire lie le même pattern d'écriture que boringNotch, symbole pour symbole. |
-| **Notchy** | 1.0.135 | Non — **prédit**, non confirmé en direct | L'app se lance mais n'affiche aucune fenêtre sans contenu contextuel actif (musique, appel, AirPods, calendrier), donc rien à masquer pendant le test. Le binaire lie le même pattern d'écriture, plus `CGSSetWindowAlpha`. |
+1. Téléchargez la dernière archive `Bouncer-x.x.x.zip` depuis la [page des Releases](https://github.com/donpaco13/Bouncer/releases).
+2. Décompressez l'archive.
+3. Glissez `Bouncer.app` dans votre dossier `/Applications`.
+4. Consultez la section [Honnêtement, ce qu'elle n'est pas](#5-honnêtement-ce-quelle-nest-pas) pour le premier lancement.
 
-**Prédit** veut dire ce que ça dit : Alcove et Notchy n'ont pas été testées de bout en
-bout. Leur verdict repose sur l'analyse statique du binaire, pas sur le recomptage
-`CGWindowList` avant/après masquage qui a tranché pour les deux autres. Le signal est
-net et identique à celui de boringNotch, mais ce n'est pas la même preuve.
+### Compilation depuis les sources
 
-Le détail complet des mesures, des commandes et des impasses est dans
-[`SPIKE_RESULTS.md`](SPIKE_RESULTS.md), section « Compatibilité des applications
-d'encoche ».
-
-Une app d'encoche testée qui manque au tableau ? Le résultat de la commande `nm -u`
-ci-dessus suffit à l'ajouter.
-
-## Comportement face à une app non régissable
-
-Bouncer détecte toutes les fenêtres de la zone d'encoche, teste chaque app une
-fois à sa découverte, puis marque celles qui ne répondent pas comme « Non supportée ».
-Elles restent listées dans le menu mais sortent du cycle de switch, et ne sont plus
-jamais retestées : pas de clignotement en boucle, pas de fenêtre laissée masquée après
-le test.
-
-Le seul juge de vérité pour un masquage est le recomptage `CGWindowList` sur le pid
-ciblé. Ni le code retour de l'API Accessibility ni la relecture de l'attribut ne
-signalent l'échec sur boringNotch : ils rapportent un succès qui n'a pas eu lieu.
-
-## Installation
-
-Pas encore de DMG signé ni de release. Compilation depuis les sources :
+Prérequis : macOS 14.0+, Xcode Command Line Tools (Swift 5.9+).
 
 ```bash
-git clone <ce-dépôt>
-cd "Island Switch"
+git clone https://github.com/donpaco13/Bouncer.git
+cd Bouncer
 ./build.sh
 ```
 
-`build.sh` compile en release, fabrique le bundle `.app`, le signe avec un certificat
-local persistant et relance l'app. Le certificat est créé au premier run et réutilisé
-ensuite : sans lui, la signature ad-hoc change à chaque build et macOS redemande
-l'autorisation Accessibilité à chaque itération.
+Le script `build.sh` compile le binaire en configuration release via SwiftPM, génère le bundle `Bouncer.app`, crée une identité de signature locale persistante dans votre trousseau (pour conserver l'autorisation Accessibilité d'une compilation à l'autre sans dérive de signature ad-hoc), installe le bundle dans `/Applications` et lance l'application.
 
-Prérequis : macOS 14 (Sonoma) ou plus récent, un MacBook à encoche, et les Command Line
-Tools Xcode (Swift 5.9+).
-
-### Autorisation Accessibilité
-
-Bouncer a besoin de l'autorisation Accessibilité pour masquer les fenêtres
-tierces. L'app la demande au premier lancement ; le menu propose aussi « Autoriser dans
-les Réglages… » qui ouvre directement le bon volet.
-
-L'autorisation se donne **par binaire**, pas par app ni par processus parent. Si vous
-recompilez ailleurs ou lancez le binaire depuis un terminal, il faut réautoriser.
-
-### Vérifier sans interface
+Pour vérifier l'état du système sans interface graphique :
 
 ```bash
-"Bouncer.app/Contents/MacOS/Bouncer" --self-test
+"/Applications/Bouncer.app/Contents/MacOS/Bouncer" --self-test
 ```
 
-Imprime l'état de l'autorisation, la géométrie de l'encoche détectée, et la liste des
-apps trouvées avec leur statut de régissabilité. Un seul passage, pas de boucle.
+---
 
-## Réglages
+## 3. Comment on s'en sert
 
-Le menu de la barre des menus ouvre une fenêtre de préférences (⌘,), en trois onglets.
+Bouncer est un utilitaire d'arrière-plan sans icône dans le Dock (`LSUIElement = true`). Il réside dans la barre des menus, en haut à droite de l'écran.
 
-- **Général** : lancement à l'ouverture de session, et période à laquelle Bouncer
-  resonde les apps de l'encoche. 2 s par défaut ; ce scan coûte 2,7 ms à chaque tour,
-  d'où le choix jusqu'à 30 s pour une machine qu'on veut laisser tranquille.
-- **Geste** : ce qui fait tourner le cycle, le swipe, les flèches ou les deux. Puis,
-  pour les flèches, la distance à laquelle elles s'allument (72 pt) et la largeur des
-  bandes où elles se logent de part et d'autre du boîtier caméra (44 pt).
-- **Applications** : décocher une app la retire du cycle sans la retirer du menu. Le
-  swipe l'ignore, un clic dans le menu la désigne toujours.
+### Le guide de démarrage
 
-Il n'y a pas de réglage de sensibilité du swipe, et c'est voulu. Le seuil a été mesuré
-comme n'étant pas un levier : 6, 8, 12 et 20 points donnent le même résultat, parce que
-ce qui découpe les gestes est la phase du geste physique et non la distance parcourue.
-Un curseur donnerait l'impression de régler une valeur qui ne change rien.
+Au tout premier lancement, Bouncer affiche automatiquement une fenêtre de bienvenue qui :
+- Vous indique son emplacement dans la barre des menus.
+- Vérifie l'état de l'autorisation Accessibilité (mise à jour réactive sans avoir à relancer l'app dès que vous l'accordez).
+- Présente le geste physique de commande.
 
-## Fonctionnement
+Vous pouvez rouvrir ce guide à tout moment via l'entrée « Guide de démarrage… » du menu.
 
-- **Détection** : `CGWindowListCopyWindowInfo` filtré sur les fenêtres qui intersectent
-  la zone d'encoche, elle-même dérivée de `NSScreen.safeAreaInsets.top` (aucune
-  coordonnée en dur). Les processus système sont écartés par bundleID, jamais par nom
-  d'affichage, qui suit la langue du système.
-- **Régie** : `kAXHiddenAttribute` au niveau application, vérifié par recomptage.
-- **Overlay** : un `NSPanel` non activant, transparent, qui porte les flèches et n'est
-  ordonné à l'écran que pendant le survol de l'encoche. Hors survol, aucune fenêtre
-  de Bouncer ne recouvre la zone.
-- **Swipe** : monitor global sur `.scrollWheel`, attaché seulement quand le curseur est
-  dans la zone d'encoche et que le swipe est activé. Hors de là, Bouncer n'écoute aucun
-  défilement. La décision « ce geste est-il un swipe » raisonne en gestes physiques
-  (phases `NSEvent`) et non en distance cumulée : un geste donne une bascule, et la
-  traîne d'inertie qui le suit n'en donne aucune. Le monitor doit être global : dès
-  qu'une app d'encoche déploie son panneau, sa fenêtre consomme le scroll avant nous.
+### Les gestes de commande
 
-L'encoche n'est pas forcément sur `NSScreen.main`. Sur la machine de test, l'écran
-principal est un moniteur externe sans encoche et le MacBook est l'écran secondaire.
+- **Le swipe sur l'encoche (aucun sens à retenir)** : placez le curseur dans la zone de l'encoche et effectuez un balayage horizontal à deux doigts sur le trackpad. Que votre geste aille vers la gauche ou vers la droite, il fait avancer d'un cran dans le cycle des applications. Répéter le geste fait tourner toutes vos applications en boucle continue.
+- **Les flèches au survol** : deux flèches discrètes (‹ et ›) apparaissent de part et d'autre du boîtier de la caméra lorsque le curseur approche de l'encoche. Cliquez sur la flèche gauche ou droite pour changer d'application.
+- **Le menu de la barre des menus** :
+  - `●` indique l'application qui occupe actuellement l'encoche.
+  - `○` indique une application en attente (cliquer dessus pour la basculer, qu'elle soit ouverte ou fermée).
+  - `◐` indique une bascule en cours.
+  - Une infobulle sur chaque entrée précise si la bascule sera instantanée ou par relance.
 
-## État du projet
+### Les Réglages (⌘,)
 
-Milestones 0 à 2 terminés : spike de faisabilité, app menu bar avec détection et régie,
-overlay avec flèches et swipe. Milestone 3 entamé : l'onboarding et les préférences sont
-faits ; restent la signature Developer ID, la notarisation et le DMG.
+Ouvrez les réglages depuis le menu de l'app ou avec le raccourci `⌘,` :
 
-Voir [`ROADMAP.md`](ROADMAP.md) pour le découpage, [`TECH_SPEC.md`](TECH_SPEC.md) pour
-l'architecture, [`PRD.md`](PRD.md) pour le cadrage produit.
+- **Général** : activation du lancement automatique à l'ouverture de session macOS, et fréquence de resondage des fenêtres (de 1 à 30 secondes, 2 secondes par défaut).
+- **Geste** : choix du mode d'activation (le swipe et les flèches, le swipe seul sans overlay visuel, ou les flèches seules pour un usage à la souris), portée d'apparition des flèches à l'approche (72 pt par défaut), et largeur de la marge cliquable (44 pt par défaut).
+- **Applications** : liste de toutes les applications reconnues. Décocher une application la retire du cycle de balayage au trackpad tout en la laissant sélectionnable au clic dans le menu.
 
-## Hors périmètre
+---
 
-Bouncer ne réimplémente aucune fonctionnalité des apps tierces, n'affiche pas deux
-apps côte à côte dans l'encoche, et ne capture pas leur contenu pour le redessiner. Il
-décide seulement qui est visible.
+## 4. Ce qu'elle exige
 
-Les apps qui épinglent leurs fenêtres dans un Space privé resteront hors périmètre tant
-qu'il n'existe pas de moyen public de les régir. Le seul repli identifié passe par
-`CGSSetWindowAlpha`, une API privée non documentée : elle expose à un rejet de
-notarisation et à une rupture sans préavis à la prochaine mise à jour de macOS. Ce
-n'est pas un compromis acceptable pour une app distribuée.
+1. **macOS 14.0 (Sonoma) ou version ultérieure** : requis pour les API modernes de gestion de cycle de vie et l'interface SwiftUI.
+2. **Un MacBook doté d'une encoche matérielle** : écran Liquid Retina avec `safeAreaInsets.top > 0` (MacBook Pro 14" et 16" Apple Silicon, MacBook Air 13" et 15" M2/M3/M4). Si vous utilisez un écran externe comme moniteur principal, Bouncer détecte automatiquement l'écran intégré portant l'encoche.
+3. **L'autorisation Accessibilité (`AXIsProcessTrusted`)** : indispensable pour interroger la liste des fenêtres du WindowServer (`CGWindowList`), capter les mouvements sur la zone d'encoche et piloter le masquage des applications tierces.
+4. **Au moins une application d'encoche tierce installée** : Bouncer est un régisseur, pas un widget d'encoche autonome. Sans application tierce (comme Vibe Island ou boringNotch), elle n'a aucun contenu à arbitrer. Le guide de démarrage vous signale explicitement si aucune application compatible n'est détectée.
 
-Pas de distribution Mac App Store : le sandboxing y interdit l'API Accessibility dont
-dépend tout le produit.
+---
+
+## 5. Honnêtement, ce qu'elle n'est pas
+
+### Absence de notarisation Apple
+
+Bouncer est un utilitaire open source gratuit développé de manière indépendante. L'obtention d'un certificat Developer ID et la notarisation automatisée imposent un abonnement payant au programme Apple Developer (99 €/an) que le projet ne souscrit pas. Le binaire est signé localement avec un certificat auto-signé (`Bouncer Local Signing`).
+
+### Message Gatekeeper au premier lancement (hors Homebrew)
+
+Si vous téléchargez l'archive `.zip` directement sans passer par Homebrew, macOS bloque l'exécution initiale avec l'alerte suivante :
+> *« macOS n'a pas pu vérifier que Bouncer ne contient pas de logiciel malveillant. »*
+
+L'application n'est ni corrompue ni endommagée : Gatekeeper signale simplement l'absence d'un compte développeur Apple payant.
+
+Pour autoriser l'ouverture (une seule fois) :
+1. Double-cliquez sur `Bouncer` dans votre dossier `/Applications` et laissez macOS afficher le refus.
+2. Ouvrez **Réglages Système** > **Confidentialité et sécurité**.
+3. Faites défiler la page jusqu'à la section Sécurité où apparaît la mention de Bouncer.
+4. Cliquez sur **Ouvrir quand même** et confirmez avec votre mot de passe administrateur.
+
+Les ouvertures suivantes s'effectueront directement sans nouvel avertissement.
+
+### Périmètre exclu
+
+- **Aucune API privée instable** : Bouncer n'utilise pas `CGSSetWindowAlpha` ni d'injections WindowServer non documentées qui risqueraient de casser à chaque mise à jour mineure de macOS.
+- **Pas de split-screen** : Bouncer ne dessine pas deux applications côte à côte dans la même encoche et ne tente pas de capturer leurs flux visuels.
+- **Pas de distribution Mac App Store** : le bac à sable (App Sandbox) obligatoire sur l'App Store interdit l'accès à l'API Accessibilité, rendant impossible le fonctionnement de l'application sur cette plateforme.
+
+---
+
+## Documentation interne et archives
+
+- [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md) : analyse technique de Gatekeeper, quarantaine Homebrew et signatures.
+- [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) : mesures de consommation CPU, coût du scan `CGWindowList` et optimisations.
+- [`docs/archive/`](docs/archive/) : scripts initiaux de validation technique (`Spike.swift`, `AXProbe.swift`), résultats de mesures d'accessibilité (`SPIKE_RESULTS.md`) et documents d'architecture d'origine (`PRD.md`, `TECH_SPEC.md`, `ROADMAP.md`).
