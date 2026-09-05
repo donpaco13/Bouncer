@@ -13,8 +13,13 @@
 //
 // Contraintes architecturales :
 //   - NSWindow classique (pas de NSPanel non-activating) pour accepter le focus et les clics.
-//   - NSHostingController avec .preferredContentSize : la fenêtre adapte sa hauteur au contenu.
-//     Aucun ScrollView à la racine : un VStack direct garantit une mesure intrinsèque exacte.
+//   - NSHostingController avec .preferredContentSize : la fenêtre adapte sa hauteur au contenu,
+//     PLAFONNÉE à ce que l'écran offre (`hauteurMax`). MESURÉ le 2026-09-05 : le contenu faisait
+//     888 pt de haut alors que l'écran interne d'un MacBook n'en offre que 780
+//     (`visibleFrame.height`) — le pied de page, donc le bouton « Commencer », tombait sous le
+//     Dock, et sans défilement il n'y avait aucun moyen de l'atteindre. Seules les cartes
+//     défilent : l'en-tête et le pied de page restent ancrés, sinon le bouton pourrait à nouveau
+//     se retrouver hors de vue, cette fois par le défilement.
 //   - Aucun appel d'API AX direct : on lit uniquement l'état publié par WindowManager / EtatAccueil.
 //   - Réactivité native : détection automatique de l'octroi d'Accessibilité sans relancer l'app.
 //
@@ -62,15 +67,21 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
             return
         }
 
+        let hauteurMax = Self.hauteurMaxContenu()
+
         let hote = NSHostingController(
-            rootView: VueAccueil(windowManager: windowManager, fermer: { [weak self] in
-                self?.fenetre?.performClose(nil)
-            })
+            rootView: VueAccueil(
+                windowManager: windowManager,
+                hauteurMax: hauteurMax,
+                fermer: { [weak self] in
+                    self?.fenetre?.performClose(nil)
+                }
+            )
         )
         hote.sizingOptions = .preferredContentSize
 
         let fenetre = FenetreAccueilWindow(contentViewController: hote)
-        fenetre.styleMask = [.titled, .closable, .fullSizeContentView]
+        fenetre.styleMask = Self.styleMask
         fenetre.title = "Bienvenue dans Bouncer"
         fenetre.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         fenetre.titlebarAppearsTransparent = true
@@ -83,6 +94,24 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    private static let styleMask: NSWindow.StyleMask = [.titled, .closable, .fullSizeContentView]
+
+    /// Hauteur maximale du CONTENU, pour que la fenêtre entière tienne sur l'écran où elle va
+    /// s'ouvrir — `center()` la pose sur l'écran principal, c'est donc celui-là qu'on mesure.
+    ///
+    /// La barre de titre se déduit du style plutôt que de s'estimer, mais SANS
+    /// `.fullSizeContentView` : ce drapeau-là annule la différence entre cadre et contenu dans le
+    /// calcul d'AppKit, alors que la fenêtre, elle, est construite AVANT qu'on le pose (c'est
+    /// `contentViewController` qui la dimensionne). MESURÉ le 2026-09-05 : la fenêtre fait bien
+    /// 28 pt de plus que son contenu, et l'oublier la laissait dépasser de l'écran de ces 28 pt —
+    /// exactement le bug qu'on corrige, en plus discret.
+    private static func hauteurMaxContenu() -> CGFloat {
+        let visible = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame.height ?? 780
+        let barreDeTitre = NSWindow.frameRect(forContentRect: .zero, styleMask: [.titled, .closable]).height
+        // 24 pt de respiration : une fenêtre qui affleure pile le Dock se lit comme tronquée.
+        return max(320, visible - barreDeTitre - 24)
+    }
+
     func windowWillClose(_ notification: Notification) {
         defaults.set(true, forKey: Self.cleVue)
         fenetre = nil
@@ -93,6 +122,8 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
 
 struct VueAccueil: View {
     @ObservedObject var windowManager: WindowManager
+    /// Hauteur au-delà de laquelle le contenu se met à défiler au lieu de sortir de l'écran.
+    var hauteurMax: CGFloat = .infinity
     let fermer: () -> Void
 
     private var etat: EtatAccueil {
@@ -106,20 +137,28 @@ struct VueAccueil: View {
         VStack(alignment: .leading, spacing: 0) {
             entete
             Divider()
-            VStack(alignment: .leading, spacing: 18) {
-                blocBarreDesMenus
-                blocAccessibilite
-                blocGeste
-                if !etat.appsAInstaller.isEmpty {
-                    alerteAppsManquantes
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    blocBarreDesMenus
+                    blocAccessibilite
+                    blocGeste
+                    if !etat.appsAInstaller.isEmpty {
+                        alerteAppsManquantes
+                    }
                 }
+                .padding(.horizontal, 28)
+                .padding(.vertical, 20)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 20)
+            // Le contenu tient sur un grand écran : pas de rebond, pas de barre, la fenêtre reste
+            // exactement à la taille du guide. C'est seulement quand l'écran est trop court que le
+            // plafond mord et que le défilement apparaît.
+            .scrollBounceBehavior(.basedOnSize)
             Divider()
             piedDePage
         }
         .frame(width: 550)
+        .frame(maxHeight: hauteurMax)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -266,7 +305,7 @@ struct VueAccueil: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
-                    Text("Astuce : un clic sur les flèches ‹ ou › fait aussi tourner le cycle, et le raccourci ⌃⌥⌘B le fait depuis n'importe quelle app.")
+                    Text("Les flèches, elles, ont un sens : ‹ revient à l'app précédente, › passe à la suivante. Et ⌃⌥⌘B fait tourner le cycle depuis n'importe quelle app.")
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
                 }
@@ -424,27 +463,25 @@ private struct ApercuBarreDesMenus: View {
 
             // Côté droit : statut & Bouncer en vedette
             HStack(spacing: 9) {
-                // Icône Bouncer mise en valeur
-                HStack(spacing: 5) {
-                    Image(systemName: "rectangle.on.rectangle")
-                        .font(.system(size: 10.5, weight: .bold))
-                        .foregroundStyle(.white)
-
-                    Text("Bouncer")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 7.5)
-                .padding(.vertical, 3)
-                .background(
-                    LinearGradient(
-                        colors: [Color.accentColor, Color.accentColor.opacity(0.85)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 5.5, style: .continuous)
-                )
-                .shadow(color: Color.accentColor.opacity(0.35), radius: 3, x: 0, y: 1)
+                // Icône Bouncer mise en valeur. PAS de libellé « Bouncer » à côté : `MenuBarExtra`
+                // n'affiche qu'un symbole monochrome, son titre ne sert que de nom accessible.
+                // L'aperçu montrait le mot, et envoyait donc chercher dans la barre des menus
+                // quelque chose qui ne s'y trouve jamais.
+                Image(systemName: "rectangle.on.rectangle")
+                    .font(.system(size: 10.5, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 15, height: 15)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 3)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.85)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        in: RoundedRectangle(cornerRadius: 5.5, style: .continuous)
+                    )
+                    .shadow(color: Color.accentColor.opacity(0.35), radius: 3, x: 0, y: 1)
 
                 Image(systemName: "wifi")
                     .font(.system(size: 10))
@@ -537,21 +574,27 @@ private struct SimulateurNotchInteractif: View {
 
                 // Flèches latérales ‹ et › (cliquables)
                 HStack(spacing: 142) {
+                    // Les flèches portent un SENS, contrairement au swipe : c'est toute la
+                    // distinction que ce simulateur doit enseigner (cf. Swipe.swift, « une flèche
+                    // qui pointe à gauche et envoie à droite mentirait »). ‹ recule, › avance,
+                    // exactement comme `NotchArrowsView` dans l'app réelle.
                     BoutonFlecheEncoche(
                         symbole: "chevron.left",
-                        libelleAccessible: "Flèche gauche : faire avancer le cycle"
+                        libelleAccessible: "Flèche gauche : app précédente",
+                        indication: "Revient à l'application précédente du cycle"
                     ) {
-                        basculer(vers: "gauche")
+                        parFleche(avance: false)
                     }
-                    .help("Cliquez pour faire avancer le cycle")
+                    .help("Cliquez pour revenir à l'app précédente")
 
                     BoutonFlecheEncoche(
                         symbole: "chevron.right",
-                        libelleAccessible: "Flèche droite : faire avancer le cycle"
+                        libelleAccessible: "Flèche droite : app suivante",
+                        indication: "Passe à l'application suivante du cycle"
                     ) {
-                        basculer(vers: "droite")
+                        parFleche(avance: true)
                     }
-                    .help("Cliquez pour faire avancer le cycle")
+                    .help("Cliquez pour passer à l'app suivante")
                 }
                 .padding(.top, 2.5)
 
@@ -690,15 +733,29 @@ private struct SimulateurNotchInteractif: View {
         }
     }
 
+    /// Un clic sur une flèche : le sens compte, et il ne touche pas à l'indicateur de swipe —
+    /// « swipe gauche ➔ avance » resterait vrai, mais l'afficher après un clic sur ‹ laisserait
+    /// croire que la flèche et le geste font la même chose. Ils font justement le contraire.
+    private func parFleche(avance: Bool) {
+        deplacer(de: avance ? 1 : -1, decalageDoigts: 0)
+    }
+
+    /// Un swipe : quel que soit son sens, il AVANCE d'un cran. C'est la dynamique réelle de
+    /// l'app (cf. `NotchOverlay.handleScroll`, toujours `forward: true`).
     private func basculer(vers sens: String) {
         sensDernierGeste = sens
+        deplacer(de: 1, decalageDoigts: sens == "droite" ? 16 : -16)
+    }
+
+    private func deplacer(de pas: Int, decalageDoigts: CGFloat) {
+        let cible = (indexActif + pas + apps.count) % apps.count
         if reduceMotion {
-            indexActif = (indexActif + 1) % apps.count
+            indexActif = cible
             positionDoigtsX = 0
         } else {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                indexActif = (indexActif + 1) % apps.count
-                positionDoigtsX = sens == "droite" ? 16 : -16
+                indexActif = cible
+                positionDoigtsX = decalageDoigts
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
                 withAnimation(.easeOut(duration: 0.18)) {
@@ -738,6 +795,8 @@ private struct EncochePhysiqueShape: Shape {
 private struct BoutonFlecheEncoche: View {
     let symbole: String
     let libelleAccessible: String
+    /// Ce que fait CE bouton-là. Figée sur « fait avancer le cycle », elle mentait sur ‹.
+    let indication: String
     let action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -766,7 +825,7 @@ private struct BoutonFlecheEncoche: View {
         .buttonStyle(.plain)
         .focused($estFocus)
         .accessibilityLabel(libelleAccessible)
-        .accessibilityHint("Fait avancer le cycle d'applications")
+        .accessibilityHint(indication)
         .onHover { s in
             if reduceMotion {
                 survol = s
