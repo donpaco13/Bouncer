@@ -116,6 +116,24 @@ recompilez ailleurs ou lancez le binaire depuis un terminal, il faut réautorise
 Imprime l'état de l'autorisation, la géométrie de l'encoche détectée, et la liste des
 apps trouvées avec leur statut de régissabilité. Un seul passage, pas de boucle.
 
+## Réglages
+
+Le menu de la barre des menus ouvre une fenêtre de préférences (⌘,), en trois onglets.
+
+- **Général** : lancement à l'ouverture de session, et période à laquelle Bouncer
+  resonde les apps de l'encoche. 2 s par défaut ; ce scan coûte 2,7 ms à chaque tour,
+  d'où le choix jusqu'à 30 s pour une machine qu'on veut laisser tranquille.
+- **Geste** : ce qui fait tourner le cycle, le swipe, les flèches ou les deux. Puis,
+  pour les flèches, la distance à laquelle elles s'allument (72 pt) et la largeur des
+  bandes où elles se logent de part et d'autre du boîtier caméra (44 pt).
+- **Applications** : décocher une app la retire du cycle sans la retirer du menu. Le
+  swipe l'ignore, un clic dans le menu la désigne toujours.
+
+Il n'y a pas de réglage de sensibilité du swipe, et c'est voulu. Le seuil a été mesuré
+comme n'étant pas un levier : 6, 8, 12 et 20 points donnent le même résultat, parce que
+ce qui découpe les gestes est la phase du geste physique et non la distance parcourue.
+Un curseur donnerait l'impression de régler une valeur qui ne change rien.
+
 ## Fonctionnement
 
 - **Détection** : `CGWindowListCopyWindowInfo` filtré sur les fenêtres qui intersectent
@@ -126,9 +144,12 @@ apps trouvées avec leur statut de régissabilité. Un seul passage, pas de bouc
 - **Overlay** : un `NSPanel` non activant, transparent, qui porte les flèches et n'est
   ordonné à l'écran que pendant le survol de l'encoche. Hors survol, aucune fenêtre
   de Bouncer ne recouvre la zone.
-- **Swipe** : monitor global sur `.scrollWheel`, avec accumulateur et cooldown pour
-  qu'une rafale de scroll ne produise qu'une bascule. Le monitor doit être global :
-  dès qu'une app d'encoche déploie son panneau, sa fenêtre consomme le scroll avant nous.
+- **Swipe** : monitor global sur `.scrollWheel`, attaché seulement quand le curseur est
+  dans la zone d'encoche et que le swipe est activé. Hors de là, Bouncer n'écoute aucun
+  défilement. La décision « ce geste est-il un swipe » raisonne en gestes physiques
+  (phases `NSEvent`) et non en distance cumulée : un geste donne une bascule, et la
+  traîne d'inertie qui le suit n'en donne aucune. Le monitor doit être global : dès
+  qu'une app d'encoche déploie son panneau, sa fenêtre consomme le scroll avant nous.
 
 L'encoche n'est pas forcément sur `NSScreen.main`. Sur la machine de test, l'écran
 principal est un moniteur externe sans encoche et le MacBook est l'écran secondaire.
@@ -136,8 +157,8 @@ principal est un moniteur externe sans encoche et le MacBook est l'écran second
 ## État du projet
 
 Milestones 0 à 2 terminés : spike de faisabilité, app menu bar avec détection et régie,
-overlay avec flèches et swipe. Le Milestone 3 reste à faire : onboarding, préférences,
-signature Developer ID, notarisation et DMG.
+overlay avec flèches et swipe. Milestone 3 entamé : l'onboarding et les préférences sont
+faits ; restent la signature Developer ID, la notarisation et le DMG.
 
 Voir [`ROADMAP.md`](ROADMAP.md) pour le découpage, [`TECH_SPEC.md`](TECH_SPEC.md) pour
 l'architecture, [`PRD.md`](PRD.md) pour le cadrage produit.

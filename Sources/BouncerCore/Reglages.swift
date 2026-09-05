@@ -80,7 +80,12 @@ public final class Reglages: ObservableObject {
 
         /// Pas un intervalle continu : un curseur suggérerait qu'une valeur intermédiaire a un
         /// sens, alors que le seul arbitrage est « réactivité contre travail à vide ».
-        public static let intervalles: [TimeInterval] = [1, 2, 5, 10]
+        ///
+        /// 30 s est là parce que l'audit de fluidité l'a chiffré (`docs/PERFORMANCE.md`) : à 2 s,
+        /// le scan coûte 2,68 ms toutes les deux secondes, soit 116 s de CPU par tranche de 24 h
+        /// sur une machine au repos. Le défaut reste 2 s — c'est cette période qui fait avancer
+        /// l'accueil tout seul au moment où l'utilisateur accorde l'Accessibilité.
+        public static let intervalles: [TimeInterval] = [1, 2, 5, 10, 30]
         public static let intervalleDefaut: TimeInterval = 2
     }
 
