@@ -50,6 +50,18 @@ public struct EvenementDefilement {
 public struct DetecteurSwipe {
     public enum Decision: Equatable { case rien, bascule }
 
+    /// Par quel garde l'événement est tombé. Sans ça, un geste qui ne déclenche rien ne laisse
+    /// aucune trace : on ne voit que les événements acceptés, donc rien de ce qu'on cherche.
+    /// C'est la moitié utile du journal (`TraceSwipe`), et c'est aussi ce que les tests lisent
+    /// pour vérifier qu'un rejet vient bien de la règle qu'on croit.
+    public enum Raison: String, Equatable {
+        case inertie, debutDeGeste, finDeGeste, reposMolette, nonArme, horsZone, sousLeSeuil
+        case dominanceVerticale, bascule
+    }
+
+    /// Raison du dernier verdict. `.bascule` quand il n'y a rien eu à écarter.
+    public private(set) var raison: Raison = .bascule
+
     /// Distance horizontale au-delà de laquelle l'intention est acquise. Bas de plafond assumé :
     /// ce qui empêchait de le baisser était la rafale d'événements d'un même geste, que la
     /// détente par geste (`arme`) supprime. La dominance horizontale, elle, écarte le vrai
@@ -71,29 +83,30 @@ public struct DetecteurSwipe {
 
     public mutating func recoit(_ e: EvenementDefilement) -> Decision {
         // L'inertie n'est pas un geste. C'est la cause mesurée du double déclenchement.
-        guard !e.inertie else { return .rien }
+        guard !e.inertie else { return rejet(.inertie) }
 
         switch e.phase {
         case .debut:
             accX = 0
             accY = 0
             arme = true
-            return .rien
+            return rejet(.debutDeGeste)
         case .fin:
             // Fin de geste : ce qui n'a pas atteint le seuil ne s'ajoute pas au geste suivant.
             accX = 0
             accY = 0
-            return .rien
+            return rejet(.finDeGeste)
         case .aucune:
-            guard e.instant >= reposJusqua else { return .rien }
+            guard e.instant >= reposJusqua else { return rejet(.reposMolette) }
         case .encours:
-            guard arme else { return .rien }
+            guard arme else { return rejet(.nonArme) }
         }
 
-        guard e.dansLaZone else { return .rien }
+        guard e.dansLaZone else { return rejet(.horsZone) }
         accX += e.deltaX
         accY += e.deltaY
-        guard abs(accX) >= seuil, abs(accX) > abs(accY) else { return .rien }
+        guard abs(accX) >= seuil else { return rejet(.sousLeSeuil) }
+        guard abs(accX) > abs(accY) else { return rejet(.dominanceVerticale) }
 
         accX = 0
         accY = 0
@@ -102,14 +115,26 @@ public struct DetecteurSwipe {
         } else {
             arme = false
         }
+        raison = .bascule
         return .bascule
     }
+
+    private mutating func rejet(_ r: Raison) -> Decision {
+        raison = r
+        return .rien
+    }
+
+    /// Ce que le détecteur a accumulé, pour le journal : un geste qui reste sous le seuil se lit
+    /// à ce chiffre, pas au verdict.
+    public var accumule: (x: CGFloat, y: CGFloat) { (accX, accY) }
 }
 
 /// Opacité des flèches en fonction de la distance du curseur à la zone : pleine dedans, nulle
 /// au-delà de `portee`, rampe linéaire entre les deux — les flèches se révèlent À L'APPROCHE,
 /// avant que le curseur soit dans la bande. La rampe suit la main, elle n'est pas minutée : une
 /// animation de durée fixe se battrait contre le mouvement au lieu de l'accompagner.
+///
+/// C'est la PROGRESSION brute. Ce qu'on en fait à l'écran passe par `revelationFleches`.
 public func opaciteFleches(curseur: CGPoint, zone: CGRect, portee: CGFloat) -> CGFloat {
     guard portee > 0 else { return zone.contains(curseur) ? 1 : 0 }
     let dx = max(zone.minX - curseur.x, 0, curseur.x - zone.maxX)
@@ -117,6 +142,48 @@ public func opaciteFleches(curseur: CGPoint, zone: CGRect, portee: CGFloat) -> C
     let distance = hypot(dx, dy)
     guard distance > 0 else { return 1 }
     return max(0, 1 - distance / portee)
+}
+
+/// Ce que la flèche montre d'elle-même à une progression donnée.
+///
+/// La rampe linéaire d'`opaciteFleches` EXISTAIT déjà, et elle ne suffisait pas — retour de test
+/// réel du 2026-09-05 : « là le rond et tout, c'est pas très fluide ». Ce qui manquait n'est pas
+/// la portée ni la courbe, c'est que SEULE L'OPACITÉ variait. Une flèche qui se contente de
+/// s'éclaircir n'a pas de mouvement : elle apparaît, elle ne se déploie pas. La demande était
+/// explicite — « si on se rapproche un peu elle sort un tout petit peu, sinon elle se déploie
+/// complètement » —, et « sortir » est une position, pas une opacité.
+///
+/// Trois grandeurs, une seule progression :
+///   - `opacite` monte VITE au début (`p^0,65`) : à un tiers de la portée la flèche est déjà à
+///     50 %, donc devinable de loin. C'est le « soupçon ».
+///   - `sortie` suit un `smoothstep` (démarrage et arrivée amortis, jamais de coin) : la flèche
+///     glisse de `retrait` points vers l'extérieur, de sous le bord de l'île vers sa place.
+///   - `echelle` va de 0,82 à 1 sur la même courbe amortie. Elle ne se remarque pas seule ; elle
+///     empêche l'arrivée de paraître plate.
+public struct RevelationFleches: Equatable {
+    public let opacite: CGFloat
+    /// Décalage vers l'EXTÉRIEUR, en points, à appliquer à la flèche. Négatif = encore rentrée.
+    public let decalage: CGFloat
+    public let echelle: CGFloat
+
+    public init(opacite: CGFloat, decalage: CGFloat, echelle: CGFloat) {
+        self.opacite = opacite
+        self.decalage = decalage
+        self.echelle = echelle
+    }
+}
+
+/// `retrait` : de combien de points la flèche sort. 0 = l'ancien comportement, fondu seul.
+public func revelationFleches(progression: CGFloat, retrait: CGFloat) -> RevelationFleches {
+    let p = min(max(progression, 0), 1)
+    // smoothstep : dérivée nulle aux deux bouts. C'est ce qui fait qu'un aller-retour au bord de
+    // la portée ne produit pas de saccade — le mouvement part de rien et arrive à rien.
+    let lisse = p * p * (3 - 2 * p)
+    return RevelationFleches(
+        opacite: pow(p, 0.65),
+        decalage: (lisse - 1) * retrait,
+        echelle: 0.82 + 0.18 * lisse
+    )
 }
 
 /// La DURÉE DE VIE du détecteur, séparée de sa décision.
@@ -156,6 +223,9 @@ public struct SessionSwipe {
         detecteur = DetecteurSwipe()
         gesteEnCours = false
     }
+
+    public var raison: DetecteurSwipe.Raison { detecteur.raison }
+    public var accumule: (x: CGFloat, y: CGFloat) { detecteur.accumule }
 
     public mutating func recoit(_ e: EvenementDefilement) -> DetecteurSwipe.Decision {
         switch e.phase {

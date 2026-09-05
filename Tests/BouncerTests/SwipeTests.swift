@@ -220,3 +220,98 @@ struct SwipeTests {
         #expect(opaciteFleches(curseur: CGPoint(x: 1160, y: -14), zone: zone, portee: 0) == 0)
     }
 }
+
+/// La révélation des flèches — ce que `opaciteFleches` ne disait pas.
+///
+/// La rampe linéaire existait déjà et ne suffisait pas : SEULE L'OPACITÉ variait, donc la flèche
+/// apparaissait sans se déployer. Ce que ces tests verrouillent, c'est la propriété demandée —
+/// « si on se rapproche un peu elle sort un tout petit peu, sinon elle se déploie complètement ».
+struct RevelationTests {
+    @Test func lesTroisGrandeursSontNullesEtPleinesAuxDeuxBouts() {
+        let loin = revelationFleches(progression: 0, retrait: 8)
+        #expect(loin.opacite == 0)
+        #expect(loin.decalage == -8)   // entièrement rentrée
+        #expect(loin.echelle == 0.82)
+
+        let pres = revelationFleches(progression: 1, retrait: 8)
+        #expect(pres.opacite == 1)
+        #expect(pres.decalage == 0)    // à sa place
+        #expect(pres.echelle == 1)
+    }
+
+    @Test func laProgressionEstBorneeAuxDeuxBouts() {
+        #expect(revelationFleches(progression: -3, retrait: 8) == revelationFleches(progression: 0, retrait: 8))
+        #expect(revelationFleches(progression: 12, retrait: 8) == revelationFleches(progression: 1, retrait: 8))
+    }
+
+    @Test func laFlecheSortEtSeVoitDejaAMiChemin() {
+        let mi = revelationFleches(progression: 0.5, retrait: 8)
+        // L'opacité monte plus vite que la progression : à mi-portée la flèche est franchement là.
+        #expect(mi.opacite > 0.5)
+        // Le déploiement, lui, est amorti : à mi-chemin la flèche est à mi-course exactement.
+        #expect(abs(mi.decalage - (-4)) < 0.001)
+    }
+
+    @Test func deLoinLaFlecheEstUnSoupconEtNonRien() {
+        // « si on se rapproche un peu elle sort un tout petit peu » : au tiers de la portée,
+        // visible mais encore largement rentrée.
+        let tiers = revelationFleches(progression: 1.0 / 3, retrait: 8)
+        #expect(tiers.opacite > 0.4)
+        #expect(tiers.decalage < -4)
+    }
+
+    @Test func aRetraitNulSeuleLOpaciteVarie() {
+        // L'ancien comportement reste atteignable : c'est ce que promet le curseur à zéro.
+        for p in stride(from: CGFloat(0), through: 1, by: 0.25) {
+            #expect(revelationFleches(progression: p, retrait: 0).decalage == 0)
+        }
+    }
+}
+
+/// Le garde qui a écarté l'événement — la moitié utile du journal.
+///
+/// Sans elle, un swipe raté ne laisse aucune trace : on ne voit que les événements acceptés, donc
+/// rien de ce qu'on cherche. C'est ce point aveugle qui a laissé passer la vraie cause (une zone
+/// écoutée de 254 pt sous une île visible de 740) pendant que deux correctifs au jugé échouaient.
+struct RaisonTests {
+    private func evt(_ phase: EvenementDefilement.Phase, dx: CGFloat = 20, dy: CGFloat = 0,
+                     inertie: Bool = false, zone: Bool = true, t: TimeInterval = 0) -> EvenementDefilement {
+        EvenementDefilement(phase: phase, inertie: inertie, deltaX: dx, deltaY: dy, instant: t, dansLaZone: zone)
+    }
+
+    @Test func chaqueRejetNommeSonGarde() {
+        var d = DetecteurSwipe()
+
+        _ = d.recoit(evt(.encours, inertie: true))
+        #expect(d.raison == .inertie)
+
+        _ = d.recoit(evt(.debut))
+        #expect(d.raison == .debutDeGeste)
+
+        // Le cas qui expliquait les swipes ratés : le geste est bon, il est juste posé ailleurs.
+        _ = d.recoit(evt(.encours, zone: false))
+        #expect(d.raison == .horsZone)
+
+        _ = d.recoit(evt(.encours, dx: 2))
+        #expect(d.raison == .sousLeSeuil)
+
+        // Deux gardes distincts et non un seul : « trop court » et « c'était un défilement
+        // vertical » demandent deux correctifs opposés, et les confondre les rend illisibles.
+        _ = d.recoit(evt(.encours, dx: 4, dy: 40))
+        #expect(d.raison == .dominanceVerticale)
+
+        _ = d.recoit(evt(.fin))
+        #expect(d.raison == .finDeGeste)
+    }
+
+    @Test func apresLaBasculeLeResteDuGesteEstNomme() {
+        var d = DetecteurSwipe()
+        _ = d.recoit(evt(.debut))
+        #expect(d.recoit(evt(.encours)) == .bascule)
+        #expect(d.raison == .bascule)
+        // Une seule détente par geste : le reste du mouvement n'est pas « trop court », il est
+        // désarmé — et le journal doit le dire, sinon on cherche un seuil qui n'y est pour rien.
+        _ = d.recoit(evt(.encours))
+        #expect(d.raison == .nonArme)
+    }
+}

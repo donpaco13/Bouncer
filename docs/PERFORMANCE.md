@@ -180,3 +180,38 @@ En appliquant ces 4 correctifs :
 3. **Les réveils de runloop inutiles chutent drastiquement**, tant sur le scroll que sur les redessins SwiftUI.
 
 Ce rapport fournit la cartographie exacte, mesurée et vérifiée sur le matériel de référence pour permettre à François d'arbitrer les chantiers à engager.
+
+---
+
+## Addendum du 5 septembre 2026 — la zone écoutée était 37 fois plus petite que la cible visée
+
+Le point 4 ci-dessus a réduit le monitor `.scrollWheel` à la stricte zone utile. Il n'a pas
+touché à la définition de cette zone, et c'est là qu'était le défaut remonté en test réel
+(« pas mal de bugs au swipe, ça ne le détecte pas tout le temps »).
+
+**Relevé.** Boîtier caméra : 166 × 29 pt. Zone écoutée : 254 × 41 pt (boîtier + 2 × 44 de marge).
+Fenêtre réellement posée sur l'encoche : 640 × 210 pt (boringNotch), 740 × 520 pt (Vibe Island).
+La zone écoutée couvrait donc **2,7 % de la surface que l'utilisateur voit et vise**.
+
+**Rejoué à travers le pipeline de production**, trois gestes identiques posés sur l'île :
+
+| Position du geste | Avant | Après |
+|---|---|---|
+| Dans la bande de 254 pt | 1 bascule | 1 bascule |
+| Sur l'île, 180 pt à droite de la bande | 0 bascule — 13 rejets `horsZone` | 1 bascule |
+| Sur l'île, 80 pt sous la barre des menus | 0 bascule — **aucune trace**, monitor non attaché | 1 bascule |
+
+Le troisième cas est le plus instructif : il ne produisait aucune ligne de journal, donc aucune
+prise pour le débogage. C'est ce que corrige `TraceSwipe`, qui note désormais **par quel garde**
+chaque événement est tombé (`horsZone`, `sousLeSeuil`, `nonArme`, `inertie`…), plus l'attache et
+le détachement du monitor.
+
+**Ce qui a été écarté par la mesure, et pas par le raisonnement.** L'hypothèse de départ était que
+le monitor global `.mouseMoved` cesse d'être alimenté dès que notre propre panel passe sous le
+curseur — ce qui aurait figé `majMoniteurScroll`. Mesuré sur les trois configurations (panel
+retiré, panel à l'écran, panel avec `ignoresMouseEvents`) : **11 événements reçus sur 11 dans les
+trois cas**. Le panel n'y était pour rien.
+
+**Coût du correctif.** Aucun sur le chemin chaud : la zone reste calculée une fois par `rebuild()`,
+et le cadre des fenêtres d'encoche est dédupliqué avant publication (`publierCadre`) pour ne pas
+reconstruire l'overlay à chaque tour du timer de 2 s.
