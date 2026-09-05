@@ -19,6 +19,20 @@ struct CatalogueTests {
 
     private func url(_ nom: String) -> URL { URL(fileURLWithPath: "/Applications/\(nom).app") }
 
+    /// Ce que l'ancien filtre avait appris a été appris à tort : le catalogue de la machine de
+    /// référence contenait Finder, Discord, Arc, iScreen Shoter et Munder Difflin. Le changement
+    /// de clé est la seule façon de jeter ça, un apprentissage étant définitif par construction.
+    @Test func lApprentissageDeLAncienFiltreEstJeteEtSaCleEffacee() {
+        avecDefaultsJetables { defaults in
+            defaults.set(["com.apple.finder", "com.hnc.Discord"], forKey: "bouncer.bundleIDsApprises")
+
+            let catalogue = CatalogueApps(defaults: defaults, amorcage: [], resolveur: { url($0) })
+
+            #expect(catalogue.apprises.isEmpty)
+            #expect(defaults.stringArray(forKey: "bouncer.bundleIDsApprises") == nil)
+        }
+    }
+
     /// Le cœur de la task : le catalogue est une intersection avec le disque. Un bundleID
     /// d'amorçage qui ne correspond à rien d'installé ne doit pas apparaître.
     @Test func seulesLesAppsPresentesSurLeDisqueSontCataloguees() {

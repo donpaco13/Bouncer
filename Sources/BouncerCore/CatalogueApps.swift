@@ -46,7 +46,17 @@ public final class CatalogueApps {
     /// contenu du catalogue dépend des apps installées sur la machine qui lance les tests.
     public typealias Resolveur = (String) -> URL?
 
-    private static let cleApprises = "bouncer.bundleIDsApprises"
+    /// La clé porte la version du filtre de détection qui a rempli le catalogue.
+    ///
+    /// Le `v2` n'est pas décoratif : ce qui a été appris sous l'ancien filtre — « la fenêtre
+    /// effleure l'encoche » — l'a été à tort. Sur la machine de référence, ce catalogue-là
+    /// contenait sept bundleIDs dont cinq intrus (Finder, Discord, Arc, iScreen Shoter, Munder
+    /// Difflin), et le cycle de bascule emmenait l'utilisateur sur le Finder. Un apprentissage
+    /// est définitif par construction, donc la seule façon honnête de jeter celui-là est de ne
+    /// plus lire la clé qui le contient. L'ancienne est effacée au passage : la garder ne
+    /// servirait qu'à faire grossir les préférences.
+    private static let cleApprises = "bouncer.bundleIDsApprises.v2"
+    private static let cleApprisesObsolete = "bouncer.bundleIDsApprises"
 
     private let defaults: UserDefaults
     private let amorcage: Set<String>
@@ -60,6 +70,7 @@ public final class CatalogueApps {
         self.defaults = defaults
         self.amorcage = amorcage
         self.resolveur = resolveur
+        defaults.removeObject(forKey: Self.cleApprisesObsolete)
     }
 
     /// Les bundleIDs déjà vus dans le notch, toutes sessions confondues.

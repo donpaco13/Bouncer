@@ -54,7 +54,7 @@ public struct Bascule {
     public func basculer(vers cible: NotchAppInfo, depuis actuelle: NotchAppInfo?) async -> ResultatBascule {
         if actuelle?.bundleID == cible.bundleID {
             if let pid = controleur.pid(pour: cible.bundleID), controleur.fenetreVisibleDansNotch(pid: pid) {
-                eteindre(cible)
+                await eteindre(cible)
                 return .reussie
             }
             return await allumer(cible)
@@ -62,7 +62,7 @@ public struct Bascule {
 
         let resultat = await allumer(cible)
         guard resultat == .reussie else { return resultat } // l'actuelle n'a pas été touchée
-        if let actuelle { eteindre(actuelle) }
+        if let actuelle { await eteindre(actuelle) }
         return .reussie
     }
 
@@ -73,7 +73,7 @@ public struct Bascule {
     private func allumer(_ cible: NotchAppInfo) async -> ResultatBascule {
         // Voie rapide (~31 ms) : l'app est déjà chaude et se laisse démasquer.
         if cible.support == .supported, let pid = controleur.pid(pour: cible.bundleID) {
-            _ = controleur.masquer(false, pid: pid)
+            _ = await controleur.masquer(false, pid: pid)
             return controleur.fenetreVisibleDansNotch(pid: pid) ? .reussie : .cibleJamaisApparue
         }
 
@@ -99,9 +99,9 @@ public struct Bascule {
     /// coûterait sa temporisation WindowServer pour rien. Pour les autres, l'échec mesuré du
     /// masquage sert de dernier filet — un verdict peut avoir vieilli, une mise à jour de l'app
     /// peut l'avoir changé, et laisser deux apps dans l'encoche serait pire que la quitter.
-    private func eteindre(_ actuelle: NotchAppInfo) {
+    private func eteindre(_ actuelle: NotchAppInfo) async {
         guard let pid = controleur.pid(pour: actuelle.bundleID) else { return }
-        if actuelle.support != .unsupported, controleur.masquer(true, pid: pid) { return }
+        if actuelle.support != .unsupported, await controleur.masquer(true, pid: pid) { return }
         _ = controleur.tuer(pid: pid)
     }
 }

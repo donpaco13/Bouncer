@@ -38,7 +38,10 @@ public protocol ControleurApps {
     /// Masque (ou réaffiche) l'app via `kAXHiddenAttribute`. Le booléen retourné est un constat
     /// mesuré, pas un code retour d'API : une app qui épingle ses fenêtres dans un Space privé
     /// accepte l'ordre sans rien changer à l'écran, et rend ici `false`.
-    func masquer(_ masquee: Bool, pid: pid_t) -> Bool
+    ///
+    /// `async` parce que le WindowServer ne propage pas l'ordre instantanément et qu'il faut donc
+    /// l'attendre : l'attente est une suspension, jamais un blocage du thread principal.
+    func masquer(_ masquee: Bool, pid: pid_t) async -> Bool
     /// Vraie mesure : recomptage `CGWindowList` des fenêtres du pid dans la zone de l'encoche.
     /// Ni le code retour de l'API Accessibility ni la relecture de l'attribut ne disent la vérité
     /// (les deux mentent sur boringNotch, cf. SPIKE_RESULTS.md §Étape D) — ne pas les substituer.
@@ -55,7 +58,7 @@ public protocol ControleurApps {
 ///
 /// Balaye `NSScreen.screens` et non `NSScreen.main` : `main` est l'écran qui a le focus clavier,
 /// pas celui qui porte l'encoche (cf. Spike.swift, cas de l'écran secondaire).
-public func zoneEncoche() -> (rect: CGRect, ecran: String)? {
+public func zoneEncoche() -> (rect: CGRect, ecran: String, cadre: CGRect)? {
     guard let ecranNotch = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) else { return nil }
     let frame = ecranNotch.frame
     let topInset = ecranNotch.safeAreaInsets.top
@@ -65,7 +68,10 @@ public func zoneEncoche() -> (rect: CGRect, ecran: String)? {
     let notchMaxX = rightArea != .zero ? rightArea.minX : frame.midX + 100
     let notchWidth = max(notchMaxX - notchMinX, 1)
     let rect = CGRect(x: notchMinX, y: frame.maxY - topInset, width: notchWidth, height: topInset)
-    return (rect, ecranNotch.localizedName)
+    // Le cadre de l'écran porteur voyage avec la zone : `estFenetreEncoche` en a besoin pour
+    // distinguer un widget d'encoche d'un overlay plein écran, et le redériver ailleurs
+    // rouvrirait la porte au hardcoding que CLAUDE.md interdit.
+    return (rect, ecranNotch.localizedName, frame)
 }
 
 /// Cadre de l'overlay de survol : le boîtier caméra, plus une marge VISIBLE de chaque côté.
@@ -89,23 +95,66 @@ public func abscissesFleches(largeurOverlay: CGFloat, marge: CGFloat, taille: CG
     return (decalage, largeurOverlay - marge + decalage)
 }
 
-/// Une entrée `CGWindowList` croise-t-elle la zone de l'encoche ?
+/// Part de l'écran qu'une fenêtre d'encoche ne dépasse pas. Au-delà, c'est un overlay plein écran.
+///
+/// Relevé sur le MacBook de référence (écran interne 1352 pt de large, boîtier caméra 166 pt) :
+/// Vibe Island fait 740 pt (55 % de l'écran) et boringNotch 640 pt (47 %) ; le Dock, la barre de
+/// menus du Window Server et l'overlay de capture d'iScreen Shoter font 1352 pt (100 %). Le seuil
+/// est posé au milieu de cet écart, et il garde de la marge des deux côtés.
+///
+/// ponytail: seule constante ajustée du filtre. Une app d'encoche plus large que 80 % de l'écran
+/// serait rejetée à tort — si le cas se présente, la mesure à relever est sa largeur réelle.
+private let partEcranMaxFenetreEncoche: CGFloat = 0.8
+
+/// Une entrée `CGWindowList` est-elle la fenêtre d'une app d'encoche ?
 ///
 /// Point unique de la conversion de repère : `CGWindowList` a son origine en haut à gauche,
 /// AppKit en bas à gauche, et le pivot est la hauteur de `screens[0]` (jamais celle de l'écran
 /// courant). Deux appelants s'en servent — le scan de découverte et le recomptage par pid — et
 /// ils doivent mesurer exactement la même chose.
-func croiseZoneEncoche(_ zone: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat) -> Bool {
+///
+/// **Pourquoi trois conditions et pas un simple `intersects`.** L'ancien test se contentait de
+/// « la fenêtre touche la zone », ce qui laissait entrer n'importe quoi d'assez haut sur l'écran :
+/// le catalogue de François avait appris `com.apple.finder`, `com.hnc.Discord`, Arc, iScreen Shoter
+/// et Munder Difflin, et son cycle de bascule l'emmenait sur le Finder. Les trois conditions
+/// ci-dessous viennent chacune d'un relevé `CGWindowList` réel, jamais d'une intuition :
+///
+/// 1. **Collée au bord haut.** Les deux vraies ont leur sommet exactement à `cadre.maxY`
+///    (écart 0 pt, mesuré sur les deux). Une fenêtre que l'utilisateur déplace, elle, est plafonnée
+///    par la barre de menus : Discord et une fenêtre Finder posées le plus haut possible sur
+///    l'écran interne s'arrêtent à 35 pt du bord, quand la zone n'en fait que 29. Cette condition
+///    à elle seule écarte toute fenêtre de document, plein écran compris.
+/// 2. **Elle recouvre le boîtier en entier.** Vibe Island va de 925 à 1665 et boringNotch de 975 à
+///    1615, pour un boîtier de 1212 à 1378 : les deux le débordent largement des deux côtés. Ce
+///    que ça écarte, ce sont les icônes de barre de menus (`layer` 25, collées au bord haut elles
+///    aussi) : relevées entre 26 et 146 pt de large, aucune ne peut contenir un boîtier de 166 pt.
+/// 3. **Elle n'occupe pas tout l'écran.** Cf. `partEcranMaxFenetreEncoche`.
+///
+/// **Ce que ce filtre ne prouve pas.** Aucun des cinq intrus n'a pu être reproduit dans la zone au
+/// moment du relevé : leurs fenêtres actuelles sont soit au `layer` 0 (Finder, Arc, Munder
+/// Difflin), soit plafonnées à 35 pt du bord (Discord, `layer` 3), soit des icônes de barre de
+/// menus (iScreen Shoter). On sait donc que ces trois conditions laissent passer les deux vraies
+/// et recalent toutes les fenêtres mesurables sur cette machine ; on ne sait pas laquelle des
+/// trois attrapait chacun des cinq intrus le jour où il est entré au catalogue.
+func estFenetreEncoche(
+    _ zone: CGRect, cadreEcran: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat
+) -> Bool {
     let repereCGWindow = CGRect(
         x: bounds["X"] ?? 0, y: bounds["Y"] ?? 0,
         width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0
     )
-    let repereAppKit = CGRect(
+    let fenetre = CGRect(
         x: repereCGWindow.origin.x,
         y: hauteurEcranPrincipal - repereCGWindow.origin.y - repereCGWindow.height,
         width: repereCGWindow.width, height: repereCGWindow.height
     )
-    return repereAppKit.intersects(zone)
+
+    // 1 pt de tolérance : le WindowServer rend des bornes déjà entières, mais un facteur d'échelle
+    // non entier pourrait en décaler une, et un widget d'encoche à 1 pt du bord reste un widget.
+    guard fenetre.maxY >= cadreEcran.maxY - 1 else { return false }
+    guard fenetre.minX <= zone.minX, fenetre.maxX >= zone.maxX else { return false }
+    guard fenetre.width <= cadreEcran.width * partEcranMaxFenetreEncoche else { return false }
+    return true
 }
 
 // MARK: - L'implémentation système
@@ -139,20 +188,43 @@ public final class ControleurAppsSysteme: ControleurApps {
     /// Déplacé depuis `WindowManager.setHidden` sans changement de logique : le verdict vient du
     /// recomptage des fenêtres du pid avant/après, jamais du retour de
     /// `AXUIElementSetAttributeValue`.
-    public func masquer(_ masquee: Bool, pid: pid_t) -> Bool {
+    /// L'attente de propagation du WindowServer : on la sonde au lieu de la subir.
+    ///
+    /// L'ancien `usleep(300_000)` bloquait le thread principal 300 ms par appel, soit 600 ms de gel
+    /// par bascule (deux appels), pour une propagation réelle mesurée entre 1,5 et 31,7 ms
+    /// (docs/PERFORMANCE.md §Point 5, et SPIKE_RESULTS.md sur Vibe Island). Le sondage sort dès que
+    /// le recomptage constate le changement, et suspend au lieu de bloquer entre deux mesures.
+    ///
+    /// ponytail: plafond à 100 ms, soit trois fois le pire cas mesuré (31,7 ms sur un `hide`).
+    /// Une app plus lente que ça rendra un faux « non régissable » — si ça se produit, la mesure à
+    /// relever est le délai réel de propagation sur cette app, pas ce plafond à tâtons.
+    private static let plafondPropagation = Duration.milliseconds(100)
+    private static let intervalleSondagePropagation = Duration.milliseconds(15)
+
+    public func masquer(_ masquee: Bool, pid: pid_t) async -> Bool {
         let appElement = AXUIElementCreateApplication(pid)
         let countBefore = compteFenetres(pid: pid)
         AXUIElementSetAttributeValue(
             appElement, kAXHiddenAttribute as CFString, masquee ? kCFBooleanTrue : kCFBooleanFalse
         )
-        usleep(300_000) // laisser le WindowServer propager, cf. Spike.swift
+
+        // Le sondage attend un changement STRICT du décompte — c'est le seul signe observable que
+        // le WindowServer a propagé. Le verdict rendu, lui, reste exactement celui d'avant
+        // (`<` au masquage, `>=` à l'affichage) : on remplace l'attente, pas la vérification.
+        let echeance = ContinuousClock.now + Self.plafondPropagation
+        while ContinuousClock.now < echeance {
+            let compte = compteFenetres(pid: pid)
+            if masquee ? compte < countBefore : compte > countBefore { break }
+            try? await Task.sleep(for: Self.intervalleSondagePropagation)
+        }
+
         let countAfter = compteFenetres(pid: pid)
         return masquee ? countAfter < countBefore : countAfter >= countBefore
     }
 
     public func fenetreVisibleDansNotch(pid: pid_t) -> Bool {
-        guard let zone = zoneEncoche()?.rect else { return false }
-        return compteFenetresDansEncoche(pid: pid, zone: zone) > 0
+        guard let (zone, _, cadre) = zoneEncoche() else { return false }
+        return compteFenetresDansEncoche(pid: pid, zone: zone, cadreEcran: cadre) > 0
     }
 
     public func pid(pour bundleID: String) -> pid_t? {
@@ -170,14 +242,16 @@ public final class ControleurAppsSysteme: ControleurApps {
     /// Les seules fenêtres du pid qui croisent l'encoche, et qui sont des overlays
     /// (`kCGWindowLayer > 0`) : une fenêtre de document normale est au layer 0, y compris en
     /// plein écran, et ne doit pas compter comme une présence dans l'encoche.
-    private func compteFenetresDansEncoche(pid: pid_t, zone: CGRect) -> Int {
+    private func compteFenetresDansEncoche(pid: pid_t, zone: CGRect, cadreEcran: CGRect) -> Int {
         guard let hauteurEcran = NSScreen.screens.first?.frame.height else { return 0 }
         return fenetres().filter { entree in
             guard (entree[kCGWindowOwnerPID as String] as? pid_t) == pid,
                   let layer = entree[kCGWindowLayer as String] as? Int, layer > 0,
                   let bounds = entree[kCGWindowBounds as String] as? [String: CGFloat]
             else { return false }
-            return croiseZoneEncoche(zone, bounds: bounds, hauteurEcranPrincipal: hauteurEcran)
+            return estFenetreEncoche(
+                zone, cadreEcran: cadreEcran, bounds: bounds, hauteurEcranPrincipal: hauteurEcran
+            )
         }.count
     }
 

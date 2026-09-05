@@ -195,17 +195,25 @@ public final class WindowManager: ObservableObject {
     /// mesure exactement la même zone que le scan de découverte. Ne reste ici que la description
     /// publiée vers l'UI.
     public func notchZone() -> CGRect? {
-        guard let (rect, ecran) = zoneEncoche() else {
-            lastNotchZoneDescription = "Aucune encoche détectée sur cette machine."
+        guard let (rect, ecran, _) = zoneEncoche() else {
+            publier(description: "Aucune encoche détectée sur cette machine.")
             return nil
         }
-        lastNotchZoneDescription = "\(ecran) — \(rect)"
+        publier(description: "\(ecran) — \(rect)")
         return rect
+    }
+
+    /// `@Published` ne déduplique pas : réassigner la même chaîne à chaque tour de timer réveille
+    /// SwiftUI toutes les deux secondes pour rien (docs/PERFORMANCE.md §Priorité 3). La géométrie
+    /// de l'encoche, elle, ne change qu'au branchement d'un écran.
+    private func publier(description: String) {
+        guard lastNotchZoneDescription != description else { return }
+        lastNotchZoneDescription = description
     }
 
     // MARK: - Scan (portée depuis Spike.swift, réduit à pid -> nom d'app)
 
-    private func scanNotchApps(zone: CGRect) -> [(pid: pid_t, bundleID: String, name: String)] {
+    private func scanNotchApps(zone: CGRect, cadreEcran: CGRect) -> [(pid: pid_t, bundleID: String, name: String)] {
         guard
             let list = CGWindowListCopyWindowInfo(
                 [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
@@ -239,8 +247,13 @@ public final class WindowManager: ObservableObject {
             // plein écran (Discord, Arc) qui toucheraient le haut de l'écran.
             guard layer > 0 else { continue }
 
-            guard croiseZoneEncoche(zone, bounds: boundsDict, hauteurEcranPrincipal: screenHeight)
-            else { continue }
+            // Une fenêtre d'encoche, et pas seulement une fenêtre qui effleure l'encoche : le
+            // détail des trois conditions et les mesures qui les fondent sont dans
+            // `estFenetreEncoche` (ControleurApps.swift). Même prédicat que le recomptage par pid,
+            // sinon le scan et la vérification ne mesureraient plus la même chose.
+            guard estFenetreEncoche(
+                zone, cadreEcran: cadreEcran, bounds: boundsDict, hauteurEcranPrincipal: screenHeight
+            ) else { continue }
 
             seenPids.insert(pidNum)
             results.append((pidNum, bundleID, appName))
@@ -251,11 +264,13 @@ public final class WindowManager: ObservableObject {
     // MARK: - Rafraîchissement : découverte + suivi par identité (pas seulement géométrie)
 
     public func refresh() {
-        guard let zone = notchZone() else {
+        guard let (zone, ecran, cadreEcran) = zoneEncoche() else {
+            publier(description: "Aucune encoche détectée sur cette machine.")
             apps = []
             return
         }
-        let discovered = scanNotchApps(zone: zone)
+        publier(description: "\(ecran) — \(zone)")
+        let discovered = scanNotchApps(zone: zone, cadreEcran: cadreEcran)
         let vuesParBundleID = Dictionary(discovered.map { ($0.bundleID, $0) }, uniquingKeysWith: { premiere, _ in premiere })
 
         // Une entrée sort de la liste dès que son process est mort OU qu'il ne croise plus
@@ -299,7 +314,11 @@ public final class WindowManager: ObservableObject {
             // relancer l'app). On ne touche donc jamais l'API AX sans trust : les apps restent en
             // "Test en cours…" jusqu'au prochain retest déclenché par refreshTrustState().
             if accessibilityTrusted {
-                testSupport(bundleID: bundleID, pid: pid)
+                // `testSupport` est asynchrone depuis que le masquage attend la propagation du
+                // WindowServer par sondage plutôt qu'en bloquant. Le `Task` hérite du main actor —
+                // l'app vient d'être ajoutée à `apps` avec le statut « Test en cours… », donc le
+                // refresh suivant la voit déjà listée et ne relance pas un second test.
+                Task { await testSupport(bundleID: bundleID, pid: pid) }
             }
         }
     }
@@ -309,9 +328,9 @@ public final class WindowManager: ObservableObject {
     /// Teste une app à sa découverte : masque, vérifie par recomptage, réaffiche, vérifie à nouveau.
     /// Ne laisse jamais l'app masquée à l'issue du test, que le test réussisse ou non.
     /// Le pid sert à agir (l'API AX ne connaît que lui), le bundleID à mémoriser le verdict.
-    private func testSupport(bundleID: String, pid: pid_t) {
-        let hideOK = controleur.masquer(true, pid: pid)
-        let showOK = controleur.masquer(false, pid: pid)
+    private func testSupport(bundleID: String, pid: pid_t) async {
+        let hideOK = await controleur.masquer(true, pid: pid)
+        let showOK = await controleur.masquer(false, pid: pid)
         let supported = hideOK && showOK
         let verdict: SupportStatus = supported ? .supported : .unsupported
         supportVerdictCache[bundleID] = verdict
