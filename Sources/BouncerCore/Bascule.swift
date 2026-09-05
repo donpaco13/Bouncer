@@ -26,6 +26,9 @@ public enum ResultatBascule: Equatable {
     case lancementImpossible
     /// La cible s'est lancée mais sa fenêtre n'est jamais apparue dans le délai imparti.
     case cibleJamaisApparue
+    /// Rien n'a été tenté : ce process n'a jamais eu le droit Accessibilité, et sans lui la
+    /// bascule n'aurait eu que le meurtre du process à offrir. Cf. le garde de `basculer`.
+    case accessibiliteJamaisAccordee
 }
 
 /// La séquence de bascule, indépendante de toute vraie app : tout passe par `ControleurApps`.
@@ -37,13 +40,18 @@ public struct Bascule {
     private let controleur: any ControleurApps
     private let intervalleSondage: Duration
     private let delaiMax: Duration
+    /// Injectable au même titre que le contrôleur, et pour la même raison : la machine à états
+    /// doit pouvoir être jouée sans droits système réels.
+    private let trustAccorde: @MainActor () -> Bool
 
     public init(controleur: any ControleurApps,
                 intervalleSondage: Duration = .milliseconds(50),
-                delaiMax: Duration = .seconds(5)) {
+                delaiMax: Duration = .seconds(5),
+                trustAccorde: @escaping @MainActor () -> Bool = accessibiliteDejaAccordee) {
         self.controleur = controleur
         self.intervalleSondage = intervalleSondage
         self.delaiMax = delaiMax
+        self.trustAccorde = trustAccorde
     }
 
     /// Fait passer l'encoche de `actuelle` à `cible`.
@@ -52,6 +60,25 @@ public struct Bascule {
     /// app : visible → on l'éteint, éteinte → on l'allume. C'est le comportement historique du
     /// clic, préservé.
     public func basculer(vers cible: NotchAppInfo, depuis actuelle: NotchAppInfo?) async -> ResultatBascule {
+        // LE garde du chemin AX, posé ici et à un seul endroit.
+        //
+        // **Pourquoi cette couche.** `allumer` et `eteindre` touchent tous deux l'API AX, et ils
+        // ne sont atteignables que par ici : un garde sur `basculer` les couvre par construction,
+        // là où un garde recopié dans chacun serait un oubli en attente. Plus haut, dans
+        // `WindowManager.basculer`, il protégerait les gestes d'aujourd'hui mais pas un futur
+        // appelant de cette machine à états. Plus bas, dans `ControleurAppsSysteme.masquer`, il ne
+        // pourrait que rendre `false` — ce qui déclencherait le repli `tuer(pid:)`, c'est-à-dire
+        // très exactement le bug qu'on corrige.
+        //
+        // **Pourquoi bloquer au lieu de dégrader.** Sans octroi, aucune app n'a pu passer
+        // `testSupport` : toutes valent `.testing`, donc `eteindre` tenterait le masquage, il
+        // échouerait, et le dernier filet quitterait l'app d'encoche de l'utilisateur — tout en
+        // condamnant la connexion Accessibility de Bouncer jusqu'à son prochain lancement. La
+        // seule bascule possible sans le droit est destructrice ; on la refuse et on le dit.
+        // C'est `WindowManager` qui traduit ce verdict en message, sur le canal `echecBascule`
+        // qui fait déjà passer l'icône de la barre des menus en alerte.
+        guard trustAccorde() else { return .accessibiliteJamaisAccordee }
+
         if actuelle?.bundleID == cible.bundleID {
             if let pid = controleur.pid(pour: cible.bundleID), controleur.fenetreVisibleDansNotch(pid: pid) {
                 await eteindre(cible)

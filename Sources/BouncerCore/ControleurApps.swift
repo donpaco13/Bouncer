@@ -58,6 +58,30 @@ public protocol ControleurApps {
     func reafficherSansAttendre(pid: pid_t)
 }
 
+// MARK: - Le trust Accessibilité, et pourquoi c'est une latche
+
+/// Vrai dès que ce process a obtenu le droit Accessibilité au moins une fois depuis son lancement.
+///
+/// **Ce n'est pas `AXIsProcessTrusted()`, et la nuance commande tout le garde-fou de la bascule.**
+/// Constaté en test réel (cf. le commentaire de `WindowManager.refresh`) : un appel
+/// `AXUIElementSetAttributeValue` fait par ce process AVANT le premier octroi laisse sa connexion
+/// Accessibility hors service pour le reste de sa vie — même après que `AXIsProcessTrusted()`
+/// repasse à true, il faut relancer Bouncer. Les appels faits APRÈS un octroi puis un retrait,
+/// eux, échouent sans rien condamner : la connexion a été établie une fois pour toutes. C'est ce
+/// qui autorise le repli par cycle de vie à ramener une app restée masquée quand l'utilisateur
+/// décoche Bouncer en cours de route (`RobustesseTests`) — comportement qu'un garde posé sur
+/// `AXIsProcessTrusted()` seul supprimerait, en laissant l'app introuvable.
+///
+/// La latche n'est jamais remise à false : le droit peut être retiré, le fait qu'il ait été
+/// accordé une fois, non — et c'est ce fait-là, pas l'état courant, qui dit si l'API AX est sûre
+/// à toucher.
+@MainActor private var trustDejaAccorde = false
+
+@MainActor public func accessibiliteDejaAccordee() -> Bool {
+    if !trustDejaAccorde, AXIsProcessTrusted() { trustDejaAccorde = true }
+    return trustDejaAccorde
+}
+
 // MARK: - Géométrie de l'encoche, partagée
 
 /// Zone de l'encoche en coordonnées AppKit globales (repère de `NSPanel.setFrame` et de

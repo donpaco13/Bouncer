@@ -30,7 +30,10 @@ struct RobustesseTests {
         #expect(await double.masquer(true, pid: 100))          // Bouncer l'a masquée quand il pouvait
         double.accessibiliteRevoquee = true                    // l'utilisateur décoche Bouncer
 
-        let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50))
+        let bascule = Bascule(
+            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
+            trustAccorde: { true }   // le droit a été accordé, puis retiré : la connexion AX existe
+        )
         #expect(await bascule.basculer(vers: info(vibe, .supported, pid: 100), depuis: nil) == .reussie)
 
         // Le démasquage part dans le vide, alors on quitte et on relance : c'est le seul chemin
@@ -47,13 +50,39 @@ struct RobustesseTests {
         #expect(await double.masquer(true, pid: 100))
         double.accessibiliteRevoquee = true
 
-        let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50))
+        let bascule = Bascule(
+            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
+            trustAccorde: { true }   // le droit a été accordé, puis retiré : la connexion AX existe
+        )
         let resultat = await bascule.basculer(
             vers: info(vibe, .supported, pid: 100), depuis: info(boring, .supported, pid: 200)
         )
 
         #expect(resultat == .lancementImpossible)
         // L'encoche n'est jamais vide : boringNotch n'a même pas été touchée.
+        #expect(double.pid(pour: boring) == 200)
+        #expect(double.fenetreVisibleDansNotch(pid: 200))
+    }
+
+    @Test("Droit jamais accordé : la bascule ne touche RIEN — ni l'API AX, ni le process de l'app")
+    func trustJamaisAccordeNeToucheALRien() async throws {
+        let double = ControleurAppsDouble(lancees: [vibe: 100, boring: 200])
+        // Le cas de l'utilisateur qui installe Bouncer et ferme le dialogue d'autorisation : aucune
+        // app n'a pu passer `testSupport`, donc toutes valent `.testing`.
+        let bascule = Bascule(
+            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
+            trustAccorde: { false }
+        )
+
+        let resultat = await bascule.basculer(
+            vers: info(vibe, .testing, pid: 100), depuis: info(boring, .testing, pid: 200)
+        )
+
+        #expect(resultat == .accessibiliteJamaisAccordee)
+        // Le journal vide est TOUT le test : un seul `.masque` ici et la connexion Accessibility de
+        // Bouncer serait condamnée jusqu'à son prochain lancement, un seul `.tue` et l'app
+        // d'encoche de l'utilisateur serait quittée sans qu'il l'ait demandé.
+        #expect(double.journal.isEmpty)
         #expect(double.pid(pour: boring) == 200)
         #expect(double.fenetreVisibleDansNotch(pid: 200))
     }
@@ -94,7 +123,10 @@ struct RobustesseTests {
         #expect(prochaineCible(dans: ["a"], depuis: nil, forward: true) == "a")
 
         let double = ControleurAppsDouble(lancees: [vibe: 100])
-        let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50))
+        let bascule = Bascule(
+            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
+            trustAccorde: { true }
+        )
         let seule = info(vibe, .supported, pid: 100)
 
         // Visible -> éteinte
