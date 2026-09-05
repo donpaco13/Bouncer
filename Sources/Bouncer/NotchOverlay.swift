@@ -7,18 +7,26 @@
 // sensible. Rejoué à travers ce pipeline : un geste posé sur l'île à 180 pt à droite de la bande
 // est rejeté 13 fois par le garde `horsZone` ; un geste posé 80 pt sous la barre des menus ne
 // laisse AUCUNE trace, le monitor de scroll n'étant même pas attaché. La géométrie se cale
-// désormais sur la fenêtre réellement présente (`cadreFleches` / `zoneSwipe`, BouncerCore), et le
-// journal `TraceSwipe` note par quel garde chaque événement est tombé — sans quoi un swipe raté
-// est un silence, et un silence ne se débogue pas.
+// désormais sur la fenêtre réellement présente (`zoneSwipe`, BouncerCore), et le journal
+// `TraceSwipe` note par quel garde chaque événement est tombé — sans quoi un swipe raté est un
+// silence, et un silence ne se débogue pas.
+//
+// ET CE N'EST PAS LA MÊME ZONE QUE CELLE DES FLÈCHES, depuis que les avoir confondues a coûté deux
+// régressions (QA du 2026-09-05, `docs/rapport-qa-round-2.html`). Elles n'ont pas les mêmes
+// contraintes : un CLIC doit être précis et il se pose sur une fenêtre qui recouvre la barre des
+// menus, donc la bande des flèches reste collée au boîtier, là où la mesure montre du dégagement ;
+// un GESTE ne recouvre rien, donc sa zone peut suivre l'île en largeur — bornée en hauteur, sans
+// quoi elle avale les défilements horizontaux ordinaires. Les deux calculs vivent côte à côte dans
+// BouncerCore (`zoneSurvol` / `zoneSwipe`), chacun avec le relevé qui le fonde.
 //
 // Géométrie dérivée de `WindowManager.notchZone()` (source unique, cf. CLAUDE.md "zéro
 // hardcoding d'encoche"), MAIS élargie : `notchZone()` décrit le boîtier caméra, c'est-à-dire la
 // bande NON AFFICHABLE de la barre des menus. Y dessiner les flèches revenait à les cacher
 // derrière le matériel, et y attendre le curseur revenait à demander de viser une cible
 // invisible — mesuré : sur deux minutes d'usage réel, 342 événements de scroll et pas un seul
-// avec le curseur dans cette bande. La zone sensible et le panel couvrent donc le boîtier PLUS
-// `margeLaterale` points de chaque côté, pris sur les aires auxiliaires (les parties visibles de la
-// barre des menus), et les flèches se logent dans ces marges. Calcul dans `zoneSurvol` /
+// avec le curseur dans cette bande. Le panel couvre donc le boîtier PLUS `margeLaterale` points
+// de chaque côté, pris sur les aires auxiliaires (les parties visibles de la barre des menus), et
+// les flèches se logent dans ces marges — mesurées libres d'icônes de statut, cf. `zoneSurvol`. Calcul dans `zoneSurvol` /
 // `abscissesFleches` (BouncerCore), verrouillé par `ZoneSurvolTests`.
 //
 // Le panel (NSPanel transparent) n'existe que pour porter ces flèches et leur donner une cible de
@@ -141,14 +149,18 @@ final class NotchOverlayController: NSObject {
         reglages.ancrageZone == .fenetreEncoche ? windowManager.cadreFenetresEncoche : nil
     }
 
-    /// Cadre du panel : de quoi loger une flèche de part et d'autre de ce qui couvre l'encoche —
-    /// la fenêtre de l'app si elle est là, le boîtier caméra sinon. La zone ÉCOUTÉE, elle, prend
-    /// en plus toute la hauteur de cette fenêtre (`zoneSwipe`) : c'est un test géométrique, pas
-    /// une fenêtre, donc l'agrandir ne recouvre rien.
+    /// Cadre du panel : de quoi loger une flèche de part et d'autre du BOÎTIER, et rien de plus.
+    ///
+    /// Le panel est une vraie fenêtre posée sur la barre des menus, au niveau `statusBar + 10` :
+    /// tout ce qu'il couvre, il peut le voler. Il se cale donc sur la seule portion de barre que
+    /// la mesure montre libre — les marges du boîtier (cf. `zoneSurvol`) —, jamais sur les bornes
+    /// de la fenêtre de l'app d'encoche, qui l'emmenaient dans le bandeau des icônes de statut.
+    ///
+    /// La zone ÉCOUTÉE, elle, suit toujours la fenêtre en largeur (`zoneSwipe`) : c'est un test
+    /// géométrique, pas une fenêtre, donc l'agrandir ne recouvre rien et ne vole rien.
     private func cadrePanel() -> CGRect? {
-        guard let (encoche, _, ecran) = zoneEncoche() else { return nil }
-        return cadreFleches(encoche: encoche, marge: reglages.margeLaterale,
-                            fenetre: fenetreDeReference(), ecran: ecran)
+        guard let (encoche, _, _) = zoneEncoche() else { return nil }
+        return zoneSurvol(encoche: encoche, marge: reglages.margeLaterale)
     }
 
     /// (Re)positionne le panel sur la zone actuelle. Pas d'encoche détectée -> pas de
@@ -159,7 +171,7 @@ final class NotchOverlayController: NSObject {
             teardownPanel()
             return
         }
-        zoneSensible = zoneSwipe(cadreFleches: zone, fenetre: fenetreDeReference())
+        zoneSensible = zoneSwipe(bande: zone, fenetre: fenetreDeReference())
         if let panel {
             panel.setFrame(zone, display: true)
             arrowsView?.frame = NSRect(origin: .zero, size: zone.size)
@@ -171,8 +183,10 @@ final class NotchOverlayController: NSObject {
         // La pastille sombre n'est pas un parti pris graphique, c'est un correctif de contraste :
         // elle n'a de raison d'être que si la flèche est dessinée PAR-DESSUS la fenêtre d'une app
         // tierce, dont on ne sait rien (noir de l'île, pochette d'album, visualiseur). Calées sur
-        // la fenêtre, les flèches se posent à côté d'elle, sur la barre des menus — et la pastille
-        // disparaît d'elle-même, sans qu'on ait troqué la lisibilité contre l'esthétique.
+        // le boîtier, les flèches retombent dessus dès que l'île est plus large que le boîtier,
+        // c'est-à-dire presque toujours — la pastille est donc la règle, pas l'exception. Elle
+        // reste conditionnée à la géométrie et non au réglage : c'est le recouvrement réel qui
+        // décide.
         arrowsView?.pastilleNecessaire = flechesPoseesSurUneAppTierce(cadre: zone)
         // Force le recalcul : `updateHover` sort tôt quand l'opacité n'a pas bougé, or ici c'est
         // la géométrie, le mode d'activation ou la liste des apps cochées qui vient de changer,
@@ -237,8 +251,11 @@ final class NotchOverlayController: NSObject {
         p.hidesOnDeactivate = false
         p.becomesKeyOnlyIfNeeded = true
         // Pas de `ignoresMouseEvents` : le panel n'est à l'écran que pendant le survol, et sa vue
-        // ne retient que les clics sur les flèches (`hitTest`) — le reste de la bande, menus et
-        // icônes de statut compris, reste cliquable normalement.
+        // ne retient que les clics sur les flèches (`hitTest`) — le reste de la bande reste
+        // cliquable normalement. Cette promesse a été cassée une fois, quand le panel s'est mis à
+        // faire 768 pt et à poser ses chevrons sur les icônes de statut : ce n'est pas `hitTest`
+        // qui l'a rompue, c'est la géométrie. Elle tient maintenant parce que le panel ne couvre
+        // que les marges du boîtier, mesurées libres (cf. `zoneSurvol`, BouncerCore).
         p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
 
         let arrows = NotchArrowsView(frame: NSRect(origin: .zero, size: zone.size), margeLaterale: reglages.margeLaterale)
@@ -463,11 +480,12 @@ private final class NotchArrowsView: NSView {
     /// de l'île déployée, pochette d'album, visualiseur. Un glyphe monochrome y disparaît quelle
     /// que soit la couleur choisie — d'où cette pastille.
     ///
-    /// Elle n'est plus posée par défaut, et c'est la GÉOMÉTRIE qui l'a rendue inutile, pas un
-    /// changement de goût : calées sur la fenêtre (`cadreFleches`), les flèches se posent À CÔTÉ
-    /// d'elle, sur la barre des menus, dont le contraste est celui du système. Elle revient dès
-    /// que ce n'est plus vrai — ancrage « boîtier caméra », ou fenêtre si large que les flèches
-    /// retombent dessus. Un chevron invisible reste pire qu'un chevron entouré.
+    /// Déplacer les flèches HORS de cette surface a été essayé, en les calant sur les bornes de la
+    /// fenêtre : ça réglait le contraste et ça posait les chevrons au milieu des icônes de statut,
+    /// à qui ils volaient le clic (QA du 2026-09-05, défaut N1). Le contraste ne vaut pas ça. Les
+    /// flèches sont donc revenues contre le boîtier, et la pastille avec elles — mais seulement
+    /// quand le recouvrement est réel, ce que `flechesPoseesSurUneAppTierce` mesure à chaque
+    /// reconstruction. Un chevron invisible reste pire qu'un chevron entouré.
     private static let fondPastille = NSColor.black.withAlphaComponent(0.55).cgColor
 
     /// Sans pastille, le contraste repose sur la barre des menus — qui suit l'apparence système,

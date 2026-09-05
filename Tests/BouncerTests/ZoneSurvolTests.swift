@@ -44,11 +44,50 @@ struct ZoneSurvolTests {
         #expect(zone.width - (x.droite + taille) == (marge - taille) / 2)
     }
 
-    // MARK: - Calage sur la fenêtre réellement posée sur l'encoche
+    // MARK: - Bandeau des icônes de statut
+    //
+    // Relevé CGWindowList du 2026-09-05 (`layer` 25, écran 2560×1440 de la machine) : Hidden Bar,
+    // CopyClip, Bouncer, Vorssaint, One Thing et le Centre de contrôle occupent 2112→2560, soit
+    // les 448 pt les plus à DROITE de la barre des menus. Ramené sur l'écran interne 1352 du
+    // repère de test, le bord gauche du bandeau tombe donc à 904.
+    //
+    // Ce que ces deux tests interdisent de revenir : les flèches calées sur les bornes de la
+    // fenêtre d'encoche se logeaient à 1025→1047, soit 118 pt DEDANS, et volaient le clic de
+    // Vorssaint (le panel vit au niveau `statusBar + 10`, au-dessus des icônes).
+
+    /// Le bandeau des icônes de statut, mesuré. Aligné à droite de l'écran.
+    private var bandeauStatut: CGRect {
+        CGRect(x: ecran.maxX - 448, y: boitier.minY, width: 448, height: boitier.height)
+    }
+
+    @Test func lesFlechesTombentHorsDuBandeauDesIconesDeStatut() {
+        // Sur tout le domaine réglable de la marge : c'est un curseur dans les réglages, pas une
+        // constante, et le dégagement doit tenir à ses deux bouts.
+        for marge in stride(from: CGFloat(24), through: 96, by: 4) {
+            let bande = zoneSurvol(encoche: boitier, marge: marge)
+            let x = abscissesFleches(largeurOverlay: bande.width, marge: marge, taille: taille)
+            let droite = CGRect(x: bande.minX + x.droite, y: bande.minY,
+                                width: taille, height: bande.height)
+            #expect(!droite.intersects(bandeauStatut), "marge \(marge) : flèche droite \(droite)")
+        }
+    }
+
+    @Test func laBandeDesFlechesNeSuitPasLaFenetreDEncoche() {
+        // La régression tenait entièrement là : la bande passait de 254 à 768 pt de barre des
+        // menus, et c'est ce qui emmenait les chevrons dans le bandeau. Elle ne dépend plus que
+        // du boîtier et de la marge.
+        let bande = zoneSurvol(encoche: boitier, marge: marge)
+        #expect(bande.width == boitier.width + 2 * marge)
+        #expect(bande.maxX + taille <= bandeauStatut.minX)
+    }
+
+    // MARK: - Zone écoutée : large en X, bornée en Y
     //
     // Relevé du 2026-09-05 sur la machine de référence : boringNotch pose un conteneur de
     // 640×210 pt et Vibe Island un de 740×520, quand le boîtier caméra en fait 166×29. C'est
-    // l'écart que ces tests verrouillent — il est la cause mesurée des swipes ratés.
+    // l'écart qui rendait le geste introuvable. Mais la fenêtre n'est pas l'île : capture de la
+    // région exacte du canevas de boringNotch (640×210) — pas un pixel dessiné. Écouter toute sa
+    // hauteur portait la zone à 38,5 % de l'écran, où un défilement horizontal ordinaire bascule.
 
     /// Vibe Island ramené dans le repère de test (boîtier à 593→759) : 740 pt centrés sur le
     /// boîtier, descendant 520 pt sous le bord haut de l'écran.
@@ -56,48 +95,68 @@ struct ZoneSurvolTests {
     private var ecran: CGRect { CGRect(x: 0, y: 0, width: 1352, height: 878) }
 
     @Test func sansFenetreDEncocheLaGeometrieNeBougePas() {
-        let cadre = cadreFleches(encoche: boitier, marge: marge, fenetre: nil, ecran: ecran)
-        #expect(cadre == zoneSurvol(encoche: boitier, marge: marge))
-        #expect(zoneSwipe(cadreFleches: cadre, fenetre: nil) == cadre.insetBy(dx: 0, dy: -6))
+        let bande = zoneSurvol(encoche: boitier, marge: marge)
+        #expect(zoneSwipe(bande: bande, fenetre: nil) == bande.insetBy(dx: 0, dy: -6))
     }
 
-    @Test func leCadreDesFlechesEncadreLaFenetreDEncoche() {
-        let cadre = cadreFleches(encoche: boitier, marge: marge, fenetre: ile, ecran: ecran)
-        #expect(cadre.minX == ile.minX - marge)
-        #expect(cadre.maxX == ile.maxX + marge)
-        // La HAUTEUR reste celle de la barre des menus : le panel est une vraie fenêtre, lui
-        // donner les 520 pt de l'île la ferait recouvrir un tiers de l'écran pour deux chevrons.
-        #expect(cadre.minY == boitier.minY)
-        #expect(cadre.height == boitier.height)
-    }
-
-    @Test func lesFlechesNeSontJamaisPoseesSurLaFenetreDEncoche() {
-        // C'est ce qui rend la pastille sombre inutile : le contraste redevient celui de la barre
-        // des menus, parce qu'il n'y a plus de surface tierce sous le chevron.
-        let cadre = cadreFleches(encoche: boitier, marge: marge, fenetre: ile, ecran: ecran)
-        let x = abscissesFleches(largeurOverlay: cadre.width, marge: marge, taille: taille)
-        #expect(cadre.minX + x.gauche + taille <= ile.minX)
-        #expect(cadre.minX + x.droite >= ile.maxX)
-    }
-
-    @Test func laZoneEcouteeCouvreTouteLIleVisible() {
-        // Le geste que François posait sur l'île — 180 pt à droite de l'ancienne bande, ou 80 pt
-        // sous la barre des menus — tombait par le garde `horsZone`, quand il tombait quelque part.
-        let cadre = cadreFleches(encoche: boitier, marge: marge, fenetre: ile, ecran: ecran)
-        let zone = zoneSwipe(cadreFleches: cadre, fenetre: ile)
-        #expect(zone.contains(CGPoint(x: ile.maxX - 10, y: boitier.midY)))
+    @Test func laZoneEcouteeCouvreLesDeuxGestesMesures() {
+        // Les deux gestes que François posait et que Bouncer ratait, relevés le 2026-09-05.
+        let zone = zoneSwipe(bande: zoneSurvol(encoche: boitier, marge: marge), fenetre: ile)
+        // 180 pt à droite de l'ancienne bande de 254 pt.
+        #expect(zone.contains(CGPoint(x: boitier.maxX + marge + 180, y: boitier.midY)))
+        // 80 pt sous la barre des menus.
         #expect(zone.contains(CGPoint(x: boitier.midX, y: boitier.minY - 80)))
-        #expect(zone.contains(CGPoint(x: boitier.midX, y: ile.minY + 1)))
-        // Et elle ne déborde pas au-delà : la marge des flèches de chaque côté, rien de plus.
-        #expect(zone.minX == cadre.minX)
-        #expect(!zone.contains(CGPoint(x: cadre.minX - 1, y: boitier.midY)))
+        // Et toute la largeur de l'île, qui est ce que l'utilisateur voit et vise.
+        #expect(zone.contains(CGPoint(x: ile.maxX - 10, y: boitier.midY)))
+        #expect(zone.contains(CGPoint(x: ile.minX + 10, y: boitier.midY)))
     }
 
-    @Test func leCadreNeSortJamaisDeLEcran() {
-        // Une app d'encoche large sur un écran étroit pousserait les flèches hors champ.
-        let large = CGRect(x: 10, y: 358, width: 1330, height: 200)
-        let cadre = cadreFleches(encoche: boitier, marge: marge, fenetre: large, ecran: ecran)
-        #expect(cadre.minX >= ecran.minX)
-        #expect(cadre.maxX <= ecran.maxX)
+    @Test func laZoneEcouteeNeDescendPasJusquEnBasDeLIleDeployee() {
+        // La régression : 868×526 = 38,5 % de l'écran interne. Un défilement horizontal ORDINAIRE
+        // y suffisait — rejeu mesuré, 40 événements de −12 pt en X, une bascule.
+        let zone = zoneSwipe(bande: zoneSurvol(encoche: boitier, marge: marge), fenetre: ile)
+        let part = (zone.width * zone.height) / (ecran.width * ecran.height)
+        #expect(part < 0.12, "la zone occupe \(Int(part * 100)) % de l'écran")
+        // Le bas de l'île déployée n'est plus écouté : c'est là que vivent les contenus qui
+        // défilent horizontalement, pas le geste d'encoche.
+        #expect(!zone.contains(CGPoint(x: boitier.midX, y: ile.minY + 1)))
+        #expect(!zone.contains(CGPoint(x: boitier.midX, y: ecran.maxY - 300)))
+    }
+
+    @Test func unDefilementHorizontalOrdinaireDansLeTiersHautNeBasculePlus() {
+        // Rejeu du flux exact du rapport de QA : 40 événements de −12 pt en X et −2 en Y, curseur
+        // à 300 pt du haut de l'écran, là où l'utilisateur fait défiler un tableau ou un carrousel.
+        let zone = zoneSwipe(bande: zoneSurvol(encoche: boitier, marge: marge), fenetre: ile)
+        #expect(basculesDuDefilement(curseur: CGPoint(x: boitier.midX, y: ecran.maxY - 300),
+                                     zone: zone) == 0)
+        // Le même flux posé là où le geste d'encoche se fait, lui, bascule toujours une fois.
+        #expect(basculesDuDefilement(curseur: CGPoint(x: boitier.midX, y: boitier.minY - 80),
+                                     zone: zone) == 1)
+    }
+
+    /// Le flux mesuré du rapport de QA, rejoué à travers le détecteur de production.
+    private func basculesDuDefilement(curseur: CGPoint, zone: CGRect) -> Int {
+        var detecteur = DetecteurSwipe()
+        var n = 0
+        var t = 0.0
+        func envoie(_ phase: EvenementDefilement.Phase, _ dx: CGFloat, _ dy: CGFloat) {
+            let d = detecteur.recoit(EvenementDefilement(
+                phase: phase, inertie: false, deltaX: dx, deltaY: dy,
+                instant: t, dansLaZone: zone.contains(curseur)))
+            if d == .bascule { n += 1 }
+            t += 0.016
+        }
+        envoie(.debut, 0, 0)
+        for _ in 0..<40 { envoie(.encours, -12, -2) }
+        envoie(.fin, 0, 0)
+        return n
+    }
+
+    @Test func laZoneEcouteeNeDebordeJamaisLaFenetre() {
+        // Elle suit l'île en largeur, elle ne l'élargit pas : la bande des flèches est plus
+        // étroite que l'île, donc c'est l'île qui borne.
+        let zone = zoneSwipe(bande: zoneSurvol(encoche: boitier, marge: marge), fenetre: ile)
+        #expect(zone.minX == ile.minX)
+        #expect(zone.maxX == ile.maxX)
     }
 }
