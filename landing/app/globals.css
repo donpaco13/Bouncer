@@ -1,0 +1,396 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Jetons de design. Ce sont les mêmes valeurs que la page de référence
+   (docs/landing/index.html) ; passées dans @theme, Tailwind en fait des
+   utilitaires : bg-papier, text-gris, py-pas, text-titre, ease-courbe…
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-papier: #ffffff;
+  --color-encre: #1a1a1c;
+  --color-gris: #6b6b70;
+  --color-filet: #e6e6e8;
+  --color-noir: #000000;
+  --color-accent: #0f6e5c;
+  --color-marqueur: #b4b4ba;
+  --color-fond-carte: #fcfcfd;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+  /* le pas vertical entre deux sections */
+  --spacing-pas: clamp(92px, 13vh, 164px);
+  --spacing-haut-heros: clamp(72px, 11vh, 130px);
+
+  --text-heros: clamp(2.7rem, 6.6vw, 5.1rem);
+  --text-titre: clamp(2.1rem, 4.6vw, 3.3rem);
+  --text-chapo: clamp(1.1rem, 1.9vw, 1.35rem);
+  --tracking-heros: -0.04em;
+  --tracking-titre: -0.032em;
+
+  --ease-courbe: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-papier);
+    color: var(--color-encre);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  a {
+    color: var(--color-accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgb(15 110 92 / 0.28);
+  }
+  a:hover {
+    border-bottom-color: var(--color-accent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+  p {
+    margin: 0 0 1.1em;
+  }
+  @media (max-width: 640px) {
+    body {
+      font-size: 16px;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Le mécanisme de l'encoche.
+
+   Tout le reste de la page est écrit en utilitaires Tailwind dans le JSX. Ce
+   bloc-ci ne l'est pas, et volontairement : ces règles sont un système couplé,
+   piloté par une seule variable (--lg-encoche) qui décide à la fois de la
+   largeur du rectangle noir, des colonnes de la grille du panneau et de la
+   position des deux flèches. Éclaté en classes utilitaires, ce lien disparaît
+   et la géométrie se met à diverger d'une scène à l'autre. Une forme, un bloc.
+   --------------------------------------------------------------------------- */
+@layer components {
+  /* la scène : un haut d'écran de MacBook */
+  .ecran {
+    position: relative;
+    width: min(680px, 92vw);
+    aspect-ratio: 16 / 4;
+    border: 1px solid var(--color-filet);
+    border-bottom: 0;
+    border-radius: 16px 16px 0 0;
+    background: linear-gradient(#f2f2f4, #fafafb);
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(#000 58%, transparent);
+    mask-image: linear-gradient(#000 58%, transparent);
+  }
+  /* deux repères de barre des menus, loin de l'encoche */
+  .ecran::before,
+  .ecran::after {
+    content: "";
+    position: absolute;
+    top: 14px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgb(0 0 0 / 0.14);
+  }
+  .ecran::before {
+    left: 16px;
+    width: 34px;
+  }
+  .ecran::after {
+    right: 16px;
+    width: 52px;
+  }
+
+  .encoche {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: var(--lg-encoche, 170px);
+    height: 32px;
+    background: var(--color-noir);
+    border-radius: 0 0 13px 13px;
+    z-index: 3;
+  }
+
+  .panneau {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(var(--lg-encoche, 170px) * 2.75);
+    height: 32px;
+    background: var(--color-noir);
+    border-radius: 0 0 15px 15px;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr var(--lg-encoche, 170px) 1fr;
+    align-items: center;
+    color: #fff;
+    font-size: 11px;
+    line-height: 1;
+    transition:
+      opacity 0.5s var(--ease-courbe),
+      transform 0.5s var(--ease-courbe);
+  }
+  .panneau .g {
+    padding-left: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .panneau .d {
+    padding-right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  .pastille {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0.55;
+  }
+  .pastille.vive {
+    background: var(--color-accent);
+    opacity: 1;
+  }
+  .onde {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+  }
+  .onde i {
+    width: 2px;
+    background: #fff;
+    opacity: 0.75;
+    border-radius: 1px;
+  }
+  .valeur {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    opacity: 0.9;
+  }
+
+  /* la scène : l'écran, sa légende et l'espace qui les sépare */
+  .scene {
+    margin: 56px auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  /* héros : la superposition littérale, puis sa résolution */
+  .heros .panneau[data-i="1"] {
+    background: rgb(0 0 0 / 0.92);
+  }
+  .scene[data-etat="resolu"] .panneau[data-i="1"] {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.96);
+  }
+
+  .legende {
+    position: relative;
+    width: 100%;
+    min-height: 1.6em;
+    margin: 0;
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--color-gris);
+  }
+  .legende span {
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.45s var(--ease-courbe);
+  }
+  .legende .b {
+    opacity: 0;
+  }
+  .scene[data-etat="resolu"] .legende .a {
+    opacity: 0;
+  }
+  .scene[data-etat="resolu"] .legende .b {
+    opacity: 1;
+  }
+
+  /* le geste : la piste que le défilement de l'utilisateur parcourt */
+  .piste {
+    height: 280vh;
+    position: relative;
+  }
+  .collant {
+    position: sticky;
+    top: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    padding: 60px 0;
+  }
+  .doigts {
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 44px;
+    height: 14px;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .doigts i {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.5);
+  }
+  .jauge {
+    display: flex;
+    gap: 7px;
+  }
+  .jauge i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-filet);
+    transition: background 0.3s;
+  }
+  .jauge i.on {
+    background: var(--color-accent);
+  }
+  .geste .panneau {
+    opacity: 0;
+    transform: translateX(calc(-50% + 26px));
+  }
+  .geste .panneau.avant {
+    transform: translateX(calc(-50% - 26px));
+  }
+  .geste .panneau.actif {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+
+  /* les flèches : le même mécanisme, déclenché au clic ou au clavier */
+  .fleches .panneau {
+    opacity: 0;
+    transform: translateX(calc(-50% + 18px));
+  }
+  .fleches .panneau.actif {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+  .fleche {
+    position: absolute;
+    top: 0;
+    height: 32px;
+    width: 30px;
+    z-index: 4;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity 0.25s var(--ease-courbe);
+  }
+  .fleche.gauche {
+    left: calc(50% - var(--lg-encoche, 170px) / 2 - 34px);
+  }
+  .fleche.droite {
+    right: calc(50% - var(--lg-encoche, 170px) / 2 - 34px);
+  }
+  .ecran:hover .fleche,
+  .fleche:focus-visible {
+    opacity: 0.85;
+  }
+  @media (hover: none) {
+    .fleche {
+      opacity: 0.85;
+    }
+  }
+  .fleche svg {
+    width: 9px;
+    height: 14px;
+  }
+
+  @media (max-width: 640px) {
+    .ecran {
+      --lg-encoche: 116px;
+      aspect-ratio: 16 / 6;
+    }
+    .encoche,
+    .panneau,
+    .fleche {
+      height: 26px;
+    }
+    .panneau {
+      font-size: 9px;
+      border-radius: 0 0 12px 12px;
+    }
+    .fleche.gauche {
+      left: calc(50% - var(--lg-encoche) / 2 - 28px);
+    }
+    .fleche.droite {
+      right: calc(50% - var(--lg-encoche) / 2 - 28px);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Mouvement réduit : on DÉMONTE le mécanisme au lieu de le figer. La piste
+   retombe à sa hauteur naturelle, le collant redevient un bloc normal, et la
+   démo du geste garde une seule app à l'écran. Les flèches, elles, restent
+   pilotables au clic et au clavier — c'est le repli qui montre quand même la
+   bascule.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .piste {
+    height: auto;
+  }
+  .collant {
+    position: static;
+    min-height: auto;
+    padding: 0 0 var(--spacing-pas);
+  }
+  .doigts {
+    display: none;
+  }
+  .geste .panneau {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+  .geste .panneau[data-i="1"],
+  .geste .panneau[data-i="2"] {
+    display: none;
+  }
+  .fleches .panneau {
+    transform: translateX(-50%);
+  }
+  .fleche {
+    opacity: 0.85;
+  }
+}
