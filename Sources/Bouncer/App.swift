@@ -17,6 +17,13 @@ struct BouncerApp: App {
     @StateObject private var reglages: Reglages
     private let overlayController: NotchOverlayController
     private let accueilController: FenetreAccueilController
+    /// Un `let` comme l'overlay, et surtout PAS un `@StateObject` — MESURÉ le 2026-09-05 sur le
+    /// bundle installé : la valeur d'un `@StateObject` n'est construite que lorsque la scène qui
+    /// le lit est évaluée pour la première fois. Celui-ci n'est lu que par la scène `Settings`,
+    /// donc le raccourci global ne s'enregistrait qu'à la première ouverture des réglages, et
+    /// ⌃⌥⌘B ne faisait rien avant. Le contrôleur reste observable : c'est `VueReglages` qui le
+    /// prend en `@ObservedObject`, et sa durée de vie est celle de l'app.
+    private let raccourci: RaccourciGlobalController
 
     init() {
         let reglages = Reglages()
@@ -24,6 +31,14 @@ struct BouncerApp: App {
         let windowManager = WindowManager(reglages: reglages)
         _windowManager = StateObject(wrappedValue: windowManager)
         overlayController = NotchOverlayController(windowManager: windowManager, reglages: reglages)
+
+        // Le raccourci aboutit exactement là où aboutissent le swipe et les flèches — `cycle` est
+        // le point d'entrée unique, et un quatrième chemin vers la bascule serait un quatrième
+        // comportement à garder synchrone. Sens avant, comme le swipe : les flèches sont le seul
+        // geste qui remonte le cycle, parce qu'elles sont les seules à pouvoir le montrer.
+        raccourci = RaccourciGlobalController(reglages: reglages) {
+            windowManager.cycle(forward: true)
+        }
 
         // L'accueil s'affiche APRÈS le retour de cet init : ordonner une fenêtre à l'écran depuis
         // l'init d'un `App` la pose avant que l'app ait fini son lancement, et elle n'obtient
@@ -53,7 +68,7 @@ struct BouncerApp: App {
         // Scène `Settings` : macOS lui donne le titre localisé, ⌘, et la position mémorisée. Cf.
         // FenetreReglages.swift.
         Settings {
-            VueReglages(windowManager: windowManager, reglages: reglages)
+            VueReglages(windowManager: windowManager, reglages: reglages, raccourci: raccourci)
         }
     }
 }

@@ -266,7 +266,7 @@ struct VueAccueil: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
-                    Text("Astuce : un clic direct sur les flèches ‹ ou › fait aussi tourner le cycle.")
+                    Text("Astuce : un clic sur les flèches ‹ ou › fait aussi tourner le cycle, et le raccourci ⌃⌥⌘B le fait depuis n'importe quelle app.")
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
                 }

@@ -95,6 +95,7 @@ public final class Reglages: ObservableObject {
         static let marge = "bouncer.margeLaterale"
         static let intervalle = "bouncer.intervalleRafraichissement"
         static let exclus = "bouncer.bundleIDsExclus"
+        static let raccourci = "bouncer.raccourciGlobal"
     }
 
     private let defaults: UserDefaults
@@ -102,6 +103,12 @@ public final class Reglages: ObservableObject {
     /// Ce qui déclenche le cycle : swipe, flèches, ou les deux.
     @Published public var modeActivation: ModeActivation {
         didSet { defaults.set(modeActivation.rawValue, forKey: Cle.mode) }
+    }
+
+    /// La combinaison qui fait tourner le cycle depuis n'importe quelle app. `.aucun` n'enregistre
+    /// rien du tout — voir `RaccourciGlobal` pour pourquoi ce choix doit rester à l'utilisateur.
+    @Published public var raccourciGlobal: RaccourciGlobal {
+        didSet { defaults.set(raccourciGlobal.rawValue, forKey: Cle.raccourci) }
     }
 
     // Les trois réglages bornés ci-dessous sont des propriétés CALCULÉES au-dessus d'un stockage
@@ -188,6 +195,10 @@ public final class Reglages: ObservableObject {
         intervalleStocke = lu.flatMap { Domaine.intervalles.contains($0) ? $0 : nil }
             ?? Domaine.intervalleDefaut
         bundleIDsExclus = Set(defaults.stringArray(forKey: Cle.exclus) ?? [])
+        // Un rawValue inconnu (préférence écrite à la main, ou combinaison retirée d'une version
+        // à l'autre) retombe sur le défaut plutôt que de laisser l'app sans raccourci du tout.
+        raccourciGlobal = (defaults.string(forKey: Cle.raccourci).flatMap(RaccourciGlobal.init(rawValue:)))
+            ?? RaccourciGlobal.defaut
     }
 
     /// Remet les valeurs d'origine. Le bouton qui l'appelle existe parce qu'un réglage de
@@ -195,6 +206,7 @@ public final class Reglages: ObservableObject {
     /// avoir noté les chiffres.
     public func reinitialiser() {
         modeActivation = .lesDeux
+        raccourciGlobal = .defaut
         porteeApproche = Domaine.porteeDefaut
         margeLaterale = Domaine.margeDefaut
         intervalleRafraichissement = Domaine.intervalleDefaut

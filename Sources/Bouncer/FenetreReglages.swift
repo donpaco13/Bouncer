@@ -24,12 +24,13 @@ import SwiftUI
 struct VueReglages: View {
     @ObservedObject var windowManager: WindowManager
     @ObservedObject var reglages: Reglages
+    @ObservedObject var raccourci: RaccourciGlobalController
 
     var body: some View {
         TabView {
             OngletGeneral(reglages: reglages)
                 .tabItem { Label("Général", systemImage: "gearshape") }
-            OngletGeste(reglages: reglages)
+            OngletGeste(reglages: reglages, raccourci: raccourci)
                 .tabItem { Label("Geste", systemImage: "hand.draw") }
             OngletApplications(windowManager: windowManager, reglages: reglages)
                 .tabItem { Label("Applications", systemImage: "square.stack") }
@@ -144,6 +145,7 @@ private final class LancementAuDemarrage: ObservableObject {
 
 private struct OngletGeste: View {
     @ObservedObject var reglages: Reglages
+    @ObservedObject var raccourci: RaccourciGlobalController
 
     var body: some View {
         Form {
@@ -158,6 +160,32 @@ private struct OngletGeste: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section("Raccourci clavier") {
+                Picker("Raccourci", selection: $reglages.raccourciGlobal) {
+                    ForEach(RaccourciGlobal.allCases) { combinaison in
+                        Text(combinaison.libelle)
+                            .accessibilityLabel(combinaison.libelleAccessible)
+                            .tag(combinaison)
+                    }
+                }
+                // Le raccourci marche quelle que soit l'app au premier plan, et il PRÉEMPTE la
+                // combinaison : le dire est le minimum, puisque l'utilisateur ne peut pas le
+                // déduire de l'écran.
+                Text("Fonctionne depuis n'importe quelle app, y compris plein écran. Tant que Bouncer tourne, la combinaison choisie n'atteint plus les autres apps.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Un raccourci refusé par le système ne se voit nulle part ailleurs : le picker
+                // affiche fièrement la combinaison choisie, et rien ne se passe quand on l'utilise.
+                if let echec = raccourci.erreur {
+                    Label(echec, systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Section("Flèches") {

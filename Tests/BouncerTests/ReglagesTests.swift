@@ -143,3 +143,44 @@ struct CyclablesTests {
         #expect(bundleIDsCyclables(entrees: entrees, exclus: ["disparue"]) == ["a"])
     }
 }
+
+//
+// RaccourciGlobalTests — ce que la suite PEUT verrouiller sur le raccourci global.
+//
+// Elle ne peut pas prouver qu'une frappe fait tourner le cycle : ça demande une run loop Carbon
+// et une vraie touche enfoncée (cf. RaccourciGlobalController.swift). Ce qui se vérifie ici, ce
+// sont les deux façons dont la table peut mentir sans que rien ne plante : deux combinaisons qui
+// désignent la même frappe — la seconde serait alors refusée par le système, et le picker
+// afficherait un choix qui ne marche pas — et un réglage qui ne survit pas au relancement.
+//
+struct RaccourciGlobalTests {
+    @Test func chaqueCombinaisonEstDistincte() {
+        let frappes = RaccourciGlobal.allCases.compactMap { combinaison -> String? in
+            guard let code = combinaison.keyCode else { return nil }
+            return "\(code)-\(combinaison.modificateursCarbon)"
+        }
+        #expect(frappes.count == RaccourciGlobal.allCases.count - 1, "seul `.aucun` est sans frappe")
+        #expect(Set(frappes).count == frappes.count, "deux entrées du picker visent la même frappe")
+    }
+
+    @Test func aucunNEnregistreRien() {
+        #expect(RaccourciGlobal.aucun.keyCode == nil)
+        #expect(RaccourciGlobal.aucun.modificateursCarbon == 0)
+    }
+
+    @Test func persistanceEtDefaut() {
+        let nom = UUID().uuidString
+        let d = UserDefaults(suiteName: nom)!
+        defer { d.removePersistentDomain(forName: nom) }
+
+        #expect(Reglages(defaults: d).raccourciGlobal == .defaut)
+
+        Reglages(defaults: d).raccourciGlobal = .ctrlOptCmdEspace
+        #expect(Reglages(defaults: d).raccourciGlobal == .ctrlOptCmdEspace)
+
+        // Une valeur inconnue (préférence écrite à la main) ne doit pas laisser l'app sans
+        // raccourci du tout : elle retombe sur le défaut.
+        d.set("combinaisonDUneVersionFuture", forKey: "bouncer.raccourciGlobal")
+        #expect(Reglages(defaults: d).raccourciGlobal == .defaut)
+    }
+}
