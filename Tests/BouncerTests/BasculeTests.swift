@@ -66,7 +66,7 @@ final class ControleurAppsDouble: ControleurApps {
         return true
     }
 
-    func masquer(_ masquee: Bool, pid: pid_t) -> Bool {
+    func masquer(_ masquee: Bool, pid: pid_t) async -> Bool {
         journal.append(.masque(masquee, pid))
         guard let bundleID = bundleID(de: pid) else { return false }
         // Une app résistante accepte l'ordre et ne change rien : le constat est `false`, et
@@ -135,21 +135,21 @@ struct ControleurAppsDoubleTests {
     }
 
     @Test("Masquer retire la fenêtre de l'encoche, réafficher la ramène")
-    func masquagePuisReaffichage() {
+    func masquagePuisReaffichage() async {
         let double = ControleurAppsDouble(lancees: [vibe: 100])
 
-        #expect(double.masquer(true, pid: 100))
+        #expect(await double.masquer(true, pid: 100))
         #expect(double.fenetreVisibleDansNotch(pid: 100) == false)
-        #expect(double.masquer(false, pid: 100))
+        #expect(await double.masquer(false, pid: 100))
         #expect(double.fenetreVisibleDansNotch(pid: 100))
     }
 
     @Test("Une app résistante refuse le masquage et reste visible")
-    func appResistante() {
+    func appResistante() async {
         let double = ControleurAppsDouble(lancees: [boring: 200])
         double.resistantes = [boring]
 
-        #expect(double.masquer(true, pid: 200) == false)
+        #expect(await double.masquer(true, pid: 200) == false)
         #expect(double.fenetreVisibleDansNotch(pid: 200))
     }
 
@@ -169,7 +169,7 @@ struct ControleurAppsDoubleTests {
 
         _ = await double.lancer(bundleID: boring)
         let pidBoring = double.pid(pour: boring)
-        _ = double.masquer(true, pid: 100)
+        _ = await double.masquer(true, pid: 100)
         _ = double.tuer(pid: 100)
 
         let attendu: [ActionControleur] = [.lance(boring), .masque(true, 100), .tue(100)]

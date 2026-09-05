@@ -273,7 +273,11 @@ public final class WindowManager: ObservableObject {
             // relancer l'app). On ne touche donc jamais l'API AX sans trust : les apps restent en
             // "Test en cours…" jusqu'au prochain retest déclenché par refreshTrustState().
             if accessibilityTrusted {
-                testSupport(bundleID: bundleID, pid: pid)
+                // `testSupport` est asynchrone depuis que le masquage attend la propagation du
+                // WindowServer par sondage plutôt qu'en bloquant. Le `Task` hérite du main actor —
+                // l'app vient d'être ajoutée à `apps` avec le statut « Test en cours… », donc le
+                // refresh suivant la voit déjà listée et ne relance pas un second test.
+                Task { await testSupport(bundleID: bundleID, pid: pid) }
             }
         }
     }
@@ -283,9 +287,9 @@ public final class WindowManager: ObservableObject {
     /// Teste une app à sa découverte : masque, vérifie par recomptage, réaffiche, vérifie à nouveau.
     /// Ne laisse jamais l'app masquée à l'issue du test, que le test réussisse ou non.
     /// Le pid sert à agir (l'API AX ne connaît que lui), le bundleID à mémoriser le verdict.
-    private func testSupport(bundleID: String, pid: pid_t) {
-        let hideOK = controleur.masquer(true, pid: pid)
-        let showOK = controleur.masquer(false, pid: pid)
+    private func testSupport(bundleID: String, pid: pid_t) async {
+        let hideOK = await controleur.masquer(true, pid: pid)
+        let showOK = await controleur.masquer(false, pid: pid)
         let supported = hideOK && showOK
         let verdict: SupportStatus = supported ? .supported : .unsupported
         supportVerdictCache[bundleID] = verdict

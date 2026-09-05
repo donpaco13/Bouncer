@@ -38,7 +38,10 @@ public protocol ControleurApps {
     /// Masque (ou réaffiche) l'app via `kAXHiddenAttribute`. Le booléen retourné est un constat
     /// mesuré, pas un code retour d'API : une app qui épingle ses fenêtres dans un Space privé
     /// accepte l'ordre sans rien changer à l'écran, et rend ici `false`.
-    func masquer(_ masquee: Bool, pid: pid_t) -> Bool
+    ///
+    /// `async` parce que le WindowServer ne propage pas l'ordre instantanément et qu'il faut donc
+    /// l'attendre : l'attente est une suspension, jamais un blocage du thread principal.
+    func masquer(_ masquee: Bool, pid: pid_t) async -> Bool
     /// Vraie mesure : recomptage `CGWindowList` des fenêtres du pid dans la zone de l'encoche.
     /// Ni le code retour de l'API Accessibility ni la relecture de l'attribut ne disent la vérité
     /// (les deux mentent sur boringNotch, cf. SPIKE_RESULTS.md §Étape D) — ne pas les substituer.
@@ -139,13 +142,36 @@ public final class ControleurAppsSysteme: ControleurApps {
     /// Déplacé depuis `WindowManager.setHidden` sans changement de logique : le verdict vient du
     /// recomptage des fenêtres du pid avant/après, jamais du retour de
     /// `AXUIElementSetAttributeValue`.
-    public func masquer(_ masquee: Bool, pid: pid_t) -> Bool {
+    /// L'attente de propagation du WindowServer : on la sonde au lieu de la subir.
+    ///
+    /// L'ancien `usleep(300_000)` bloquait le thread principal 300 ms par appel, soit 600 ms de gel
+    /// par bascule (deux appels), pour une propagation réelle mesurée entre 1,5 et 31,7 ms
+    /// (docs/PERFORMANCE.md §Point 5, et SPIKE_RESULTS.md sur Vibe Island). Le sondage sort dès que
+    /// le recomptage constate le changement, et suspend au lieu de bloquer entre deux mesures.
+    ///
+    /// ponytail: plafond à 100 ms, soit trois fois le pire cas mesuré (31,7 ms sur un `hide`).
+    /// Une app plus lente que ça rendra un faux « non régissable » — si ça se produit, la mesure à
+    /// relever est le délai réel de propagation sur cette app, pas ce plafond à tâtons.
+    private static let plafondPropagation = Duration.milliseconds(100)
+    private static let intervalleSondagePropagation = Duration.milliseconds(15)
+
+    public func masquer(_ masquee: Bool, pid: pid_t) async -> Bool {
         let appElement = AXUIElementCreateApplication(pid)
         let countBefore = compteFenetres(pid: pid)
         AXUIElementSetAttributeValue(
             appElement, kAXHiddenAttribute as CFString, masquee ? kCFBooleanTrue : kCFBooleanFalse
         )
-        usleep(300_000) // laisser le WindowServer propager, cf. Spike.swift
+
+        // Le sondage attend un changement STRICT du décompte — c'est le seul signe observable que
+        // le WindowServer a propagé. Le verdict rendu, lui, reste exactement celui d'avant
+        // (`<` au masquage, `>=` à l'affichage) : on remplace l'attente, pas la vérification.
+        let echeance = ContinuousClock.now + Self.plafondPropagation
+        while ContinuousClock.now < echeance {
+            let compte = compteFenetres(pid: pid)
+            if masquee ? compte < countBefore : compte > countBefore { break }
+            try? await Task.sleep(for: Self.intervalleSondagePropagation)
+        }
+
         let countAfter = compteFenetres(pid: pid)
         return masquee ? countAfter < countBefore : countAfter >= countBefore
     }
