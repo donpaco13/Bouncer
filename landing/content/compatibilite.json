@@ -1,0 +1,91 @@
+{
+  "_source": "Dérivé de docs/COMPATIBILITE.md (campagne du 5 septembre 2026). C'EST CE FICHIER-LÀ QUI FAIT AUTORITÉ : toute correction se fait dans le .md d'abord, et se reporte ici ensuite. Ne jamais écrire une version, un verdict ou un bundleID directement dans le JSX — deux listes finissent toujours par diverger.",
+  "_champs": {
+    "bascule": "rapide = masquage Accessibilité ; relance = quitter puis relancer, la fenêtre d'encoche vit dans un Space CGS privé ; invisible = Bouncer ne voit pas la fenêtre aujourd'hui (filtre de largeur à 80 %), le masquage, lui, est mesuré.",
+    "preuve": "mesure = l'app a été installée, lancée, et Bouncer a agi dessus sur la machine de banc. predit = le verdict est lu dans la source, pas encore joué de bout en bout.",
+    "bundleID": "relevé dans l'Info.plist de l'app téléchargée, pas supposé."
+  },
+  "campagne": "2026-09-05",
+  "apps": [
+    {
+      "cle": "vibeIsland",
+      "app": "Vibe Island",
+      "version": "1.0.48",
+      "bundleID": "app.vibeisland.macos",
+      "bascule": "rapide",
+      "preuve": "mesure"
+    },
+    {
+      "cle": "cyclop",
+      "app": "Cyclop",
+      "version": "0.7.0",
+      "bundleID": "com.cyclop.app",
+      "bascule": "rapide",
+      "preuve": "mesure"
+    },
+    {
+      "cle": "ghNotch",
+      "app": "gh-notch",
+      "version": "0.4.0",
+      "bundleID": "company.gh.notch",
+      "bascule": "rapide",
+      "preuve": "mesure"
+    },
+    {
+      "cle": "boringNotch",
+      "app": "boringNotch",
+      "version": "2.7.3",
+      "bundleID": "theboringteam.boringnotch",
+      "bascule": "relance",
+      "preuve": "mesure"
+    },
+    {
+      "cle": "superIsland",
+      "app": "SuperIsland",
+      "version": "1.0.10",
+      "bundleID": "com.workview.SuperIsland",
+      "bascule": "rapide",
+      "preuve": "predit"
+    },
+    {
+      "cle": "atoll",
+      "app": "Atoll",
+      "version": "2.3.3",
+      "bundleID": "com.Ebullioscopic.Atoll",
+      "bascule": "rapide",
+      "preuve": "predit"
+    },
+    {
+      "cle": "dynamicNotch",
+      "app": "DynamicNotch",
+      "version": "1.6.1",
+      "bundleID": "com.Jackson.DynamicNotch",
+      "bascule": "relance",
+      "preuve": "predit"
+    },
+    {
+      "cle": "notchNook",
+      "app": "NotchNook",
+      "version": "1.6.2",
+      "bundleID": "lo.cafe.NotchNook",
+      "bascule": "invisible",
+      "preuve": "mesure"
+    },
+    {
+      "cle": "notchy",
+      "app": "Notchy",
+      "version": "1.0.151",
+      "bundleID": "dev.notchy.app",
+      "bascule": "invisible",
+      "preuve": "mesure"
+    },
+    {
+      "cle": "mewNotch",
+      "app": "Mew Notch",
+      "version": "2.2.2",
+      "bundleID": "com.monuk7735.mew.notch",
+      "bascule": "invisible",
+      "preuve": "mesure"
+    }
+  ]
+}

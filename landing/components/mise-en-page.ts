@@ -26,3 +26,7 @@ export const etapes =
 
 /** Le cadre clair qui isole une citation ou une commande. */
 export const carte = "rounded-xl border border-filet bg-fond-carte";
+
+/** Le titre d'un bloc à l'intérieur d'une section. */
+export const sousTitre =
+  "mb-[.8em] text-[1.25rem] font-semibold tracking-[-.02em] text-encre";
