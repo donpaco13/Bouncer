@@ -106,6 +106,31 @@ public final class WindowManager: ObservableObject {
     private var timer: Timer?
     private var observateurQuit: (any NSObjectProtocol)?
 
+    /// Nombre de tours de sondage consécutifs qui n'ont RIEN vu changer. C'est la seule mesure
+    /// qui décide de la cadence : tant qu'elle monte, le timer s'espace ; elle retombe à zéro
+    /// dès qu'un scan trouve autre chose ou qu'un réveil arrive.
+    private var toursImmobiles = 0
+
+    /// Empreinte du dernier scan. Comparer deux tours, c'est comparer ces deux chaînes.
+    private var derniereEmpreinte = ""
+
+    /// La période réellement posée sur le timer. Un `Timer` ne change pas de période : sans ce
+    /// souvenir, `replanifierTimer` en reposerait un neuf à chaque tour pour rien.
+    private var periodePosee: TimeInterval = 0
+
+    /// Les notifications qui remettent la cadence au plus rapide.
+    private var observateursReveil: [any NSObjectProtocol] = []
+
+    /// Plafond du ralentissement au repos. Un changement qu'aucune notification ne signale — une
+    /// app d'encoche qui détruit sa fenêtre sans quitter son process — n'est vu que par le
+    /// sondage : au-delà de cette période, le menu mettrait trop longtemps à se corriger.
+    private nonisolated static let periodeMaxAuRepos: TimeInterval = 30
+
+    /// Nombre de tours identiques tolérés avant de commencer à ralentir. Trois tours à la période
+    /// par défaut font six secondes de cadence pleine après le moindre mouvement : l'utilisateur
+    /// qui vient d'agir ne tombe jamais sur une app molle.
+    private nonisolated static let toursAvantRalentissement = 3
+
     /// Toutes les actions sur les apps tierces passent par là. Injectable : c'est ce qui rendra
     /// la bascule testable sans lancer ni tuer de vraies apps.
     private let controleur: ControleurApps
@@ -159,6 +184,7 @@ public final class WindowManager: ObservableObject {
         restaurerAppsMasquees()
         guard startTimer else { return }
         replanifierTimer()
+        observerReveils()
         // La contrepartie de la restauration au démarrage : ranger avant de partir, pour ne pas
         // laisser l'utilisateur sans encoche entre deux lancements de Bouncer.
         //
@@ -178,21 +204,121 @@ public final class WindowManager: ObservableObject {
             .removeDuplicates()
             .dropFirst()
             .sink { [weak self] intervalle in
-                MainActor.assumeIsolated { self?.replanifierTimer(intervalle) }
+                MainActor.assumeIsolated {
+                    // Bouger le réglage EST une interaction : on repart à cadence pleine, sinon
+                    // l'utilisateur qui passe de 30 s à 1 s attendrait encore trente secondes.
+                    self?.toursImmobiles = 0
+                    self?.replanifierTimer(base: intervalle)
+                }
             }
     }
 
+    /// Période à poser, compte tenu du repos observé : la période réglée tant que quelque chose
+    /// bouge, doublée à chaque tour immobile au-delà du seuil, plafonnée à `periodeMaxAuRepos`.
+    ///
+    /// MESURÉ (docs/PERFORMANCE.md, rejoué le 5 septembre 2026 sur la machine de référence) : un
+    /// tour de scan coûte 2,30 ms. À 2 s fixes, c'est 43 200 tours et 99 s de CPU par tranche de
+    /// 24 h sur une machine que personne ne touche.
+    ///
+    /// `base` n'est passée que par l'abonnement aux réglages : `@Published` publie AVANT que la
+    /// valeur soit écrite, donc relire `reglages` depuis son propre sink rendrait l'ANCIENNE
+    /// période — c'est déjà la raison pour laquelle ce paramètre existait.
+    ///
+    /// Sans droits d'Accessibilité, on ne ralentit jamais. Le passage refusé -> accordé se fait
+    /// dans les Réglages Système, aucune notification ne nous le dit, et c'est ce timer-là qui
+    /// fait avancer l'accueil tout seul sous les yeux de l'utilisateur.
+    private func periodeVoulue(base: TimeInterval? = nil) -> TimeInterval {
+        Self.periodeDeRepos(
+            base: base ?? reglages.intervalleRafraichissement,
+            toursImmobiles: toursImmobiles,
+            accessibiliteAccordee: accessibilityTrusted
+        )
+    }
+
+    /// L'échelle elle-même, isolée de tout état pour être vérifiable (cf. `CadenceTests`).
+    public nonisolated static func periodeDeRepos(
+        base: TimeInterval, toursImmobiles: Int, accessibiliteAccordee: Bool
+    ) -> TimeInterval {
+        guard accessibiliteAccordee else { return base }
+        let crans = max(0, toursImmobiles - toursAvantRalentissement)
+        return min(base * pow(2, Double(min(crans, 8))), periodeMaxAuRepos)
+    }
+
     /// (Re)pose le timer de resondage. Un `Timer` ne change pas de période : il faut l'invalider
-    /// et en reposer un.
-    private func replanifierTimer(_ intervalle: TimeInterval? = nil) {
+    /// et en reposer un. Appelé à chaque tour, il ne fait donc rien tant que la cadence voulue
+    /// n'a pas bougé.
+    private func replanifierTimer(base: TimeInterval? = nil) {
+        let periode = periodeVoulue(base: base)
+        guard periode != periodePosee || timer == nil else { return }
+        periodePosee = periode
         timer?.invalidate()
-        timer = Timer.scheduledTimer(
-            withTimeInterval: intervalle ?? reglages.intervalleRafraichissement, repeats: true
-        ) { [weak self] _ in
+        let nouveau = Timer.scheduledTimer(withTimeInterval: periode, repeats: true) { [weak self] _ in
             // Le timer est planifié sur la run loop principale : son callback s'exécute donc
             // déjà sur le main actor, `assumeIsolated` ne fait que le dire au compilateur.
-            MainActor.assumeIsolated { self?.refreshTrustState() }
+            MainActor.assumeIsolated {
+                self?.refreshTrustState()
+                self?.replanifierTimer()
+            }
         }
+        // Laisser macOS grouper notre réveil avec ceux des autres process. Un timer sans
+        // tolérance oblige le noyau à sortir le CPU de son état de repos rien que pour nous ;
+        // 20 % de marge sur une période de repos n'est observable par personne.
+        nouveau.tolerance = periode * 0.2
+        timer = nouveau
+    }
+
+    /// Remet la cadence au plus rapide et resonde tout de suite.
+    ///
+    /// Les notifications système ne REMPLACENT pas le sondage, et c'est le point qui a fait
+    /// rejeter la première version de ce correctif : `NSWorkspace.didLaunchApplication` dit qu'un
+    /// process a démarré, jamais que sa fenêtre d'encoche est à l'écran — or c'est exactement
+    /// l'écart que `scanNotchApps` mesure, et le cas NORMAL (la fenêtre arrive après le
+    /// lancement). Une notification est donc un RÉVEIL : elle dit qu'il vaut la peine de resonder
+    /// vite, et c'est le sondage qui constate.
+    public func reveiller() {
+        toursImmobiles = 0
+        replanifierTimer()
+        refresh()
+    }
+
+    /// Ce qui vaut la peine de resonder vite : une app apparaît ou disparaît, l'utilisateur change
+    /// d'espace ou d'écran. S'abonne au même endroit que le timer — le self-test CLI ne veut ni
+    /// l'un ni l'autre.
+    private func observerReveils() {
+        let reveil: @Sendable (Notification) -> Void = { [weak self] _ in
+            MainActor.assumeIsolated { self?.reveiller() }
+        }
+        let atelier = NSWorkspace.shared.notificationCenter
+        for nom in [
+            NSWorkspace.didLaunchApplicationNotification,
+            NSWorkspace.didTerminateApplicationNotification,
+            NSWorkspace.activeSpaceDidChangeNotification,
+        ] {
+            observateursReveil.append(
+                atelier.addObserver(forName: nom, object: nil, queue: .main, using: reveil))
+        }
+        // Brancher un écran change la géométrie de l'encoche, donc ce que le scan doit regarder.
+        observateursReveil.append(
+            NotificationCenter.default.addObserver(
+                forName: NSApplication.didChangeScreenParametersNotification,
+                object: nil, queue: .main, using: reveil))
+    }
+
+    /// Range le tour qui vient de finir : identique au précédent, ou pas.
+    ///
+    /// La trace n'est pas décorative : le gain de ce correctif se compte en TOURS par 24 h, et
+    /// cette ligne est le seul endroit qui les compte pour de vrai. Une session de mesure
+    /// s'ouvre comme celle du swipe (cf. `TraceSwipe`), et `awk` fait le reste.
+    private func noterEmpreinte(_ empreinte: String) {
+        TraceSwipe.note("sondage", "immobiles=\(toursImmobiles)",
+                        "periode=\(String(format: "%.0f", periodePosee))",
+                        "change=\(empreinte != derniereEmpreinte)")
+        guard empreinte == derniereEmpreinte else {
+            derniereEmpreinte = empreinte
+            toursImmobiles = 0
+            return
+        }
+        toursImmobiles += 1
     }
 
     /// Ouvre le volet Accessibilité des Réglages Système, pour que l'utilisateur y aille
@@ -211,6 +337,11 @@ public final class WindowManager: ObservableObject {
         let justGranted = nowTrusted && !accessibilityTrusted
         let justRevoked = !nowTrusted && accessibilityTrusted
         accessibilityTrusted = nowTrusted
+        // Le droit qui bascule change tout ce que le sondage peut voir. Sans cette remise à zéro,
+        // les tours immobiles accumulés PENDANT le refus (où l'on ne ralentit jamais) feraient
+        // sauter la cadence à son plafond à la seconde même où l'utilisateur accorde l'accès —
+        // c'est-à-dire au seul moment où il regarde l'app se débloquer.
+        if justGranted || justRevoked { toursImmobiles = 0 }
 
         guard justGranted else {
             // Le passage true -> false ne changeait RIEN d'observable : le menu affichait déjà sa
@@ -365,6 +496,7 @@ public final class WindowManager: ObservableObject {
             // qu'on a caché — c'est la même règle qu'en bas, appliquée au même endroit.
             apps.removeAll { !$0.isHiddenByUs }
             publierCadre(nil)
+            noterEmpreinte("aucune-encoche")
             return
         }
         publier(description: "\(ecran) — \(zone)")
@@ -420,6 +552,11 @@ public final class WindowManager: ObservableObject {
                 Task { await testSupport(bundleID: bundleID, pid: pid) }
             }
         }
+
+        // Tout ce qui, en changeant, doit ramener la cadence pleine : la liste des apps, leur
+        // process, leur verdict, ce qu'on a masqué, et l'emprise des fenêtres sur l'encoche.
+        noterEmpreinte(apps.map { "\($0.bundleID)/\($0.pid ?? -1)/\($0.support.rawValue)/\($0.isHiddenByUs)" }
+            .joined(separator: "|") + "#\(cadreFenetresEncoche.map(String.init(describing:)) ?? "-")")
     }
 
     // MARK: - Masquage / vérification — déléguées au contrôleur (recomptage CGWindowList, jamais le code retour AX)

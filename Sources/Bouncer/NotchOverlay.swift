@@ -293,6 +293,10 @@ final class NotchOverlayController: NSObject {
         }
     }
 
+    /// Bord montant de l'entrée dans la zone sensible, pour ne réveiller le sondage qu'une fois
+    /// par approche et non à chaque événement souris.
+    private var curseurEtaitDansLaZone = false
+
     private func curseurDansLaZone() -> Bool {
         zoneSensible?.contains(NSEvent.mouseLocation) ?? false
     }
@@ -305,6 +309,14 @@ final class NotchOverlayController: NSObject {
         // AVANT la garde d'opacité : en mode « swipe seul » l'opacité vaut zéro en permanence, et
         // une garde placée plus haut empêcherait le monitor d'être jamais attaché.
         majMoniteurScroll()
+
+        // Le curseur qui entre dans la zone est le signal le plus sûr que l'utilisateur va agir,
+        // et c'est le seul que le système ne poste nulle part : une app d'encoche qui détruit sa
+        // fenêtre sans quitter son process n'émet aucune notification, seul le sondage la voit.
+        // On resonde donc au bord montant — une fois par entrée, pas à chaque pixel parcouru.
+        let dansLaZone = curseurDansLaZone()
+        if dansLaZone, !curseurEtaitDansLaZone { windowManager.reveiller() }
+        curseurEtaitDansLaZone = dansLaZone
 
         // Flèches désactivées : le panel ne va JAMAIS à l'écran, donc rien de Bouncer ne recouvre
         // la barre des menus. C'est la différence entre « invisible » et « absent », et c'est ce
