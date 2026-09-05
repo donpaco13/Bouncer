@@ -254,7 +254,7 @@ struct VueAccueil: View {
                     Image(systemName: "cursorarrow.click")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
-                    Text("Astuce : un clic direct sur les flèches ‹ ou › fait aussi tourner le cycle.")
+                    Text("Astuce : un clic sur les flèches ‹ ou › fait aussi tourner le cycle, et le raccourci ⌃⌥⌘B le fait depuis n'importe quelle app.")
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
                 }

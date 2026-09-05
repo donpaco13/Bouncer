@@ -2,7 +2,7 @@
 
 Sur un MacBook équipé d'une encoche matérielle, deux applications de notch ouvertes en même temps dessinent au même endroit et se superposent. macOS ne coordonne rien : aucune notion d'« app d'encoche active » n'existe au niveau du système. La seule issue manuelle consiste à quitter l'une pour voir l'autre.
 
-Bouncer résout ce conflit en régissant la visibilité des applications d'encoche : une seule application occupe le notch à la fois. Vous passez de l'une à l'autre d'un geste sur le trackpad, d'un clic sur des flèches au survol, ou depuis la barre des menus.
+Bouncer résout ce conflit en régissant la visibilité des applications d'encoche : une seule application occupe le notch à la fois. Vous passez de l'une à l'autre d'un geste sur le trackpad, d'un clic sur des flèches au survol, d'un raccourci clavier global, ou depuis la barre des menus.
 
 L'utilitaire s'adresse aux utilisateurs de MacBook à encoche (M1 Pro/Max, M2, M3, M4) combinant plusieurs outils dédiés (monitoring d'agents, widgets audio, calendrier ou système comme Vibe Island et boringNotch).
 
@@ -86,6 +86,7 @@ Vous pouvez rouvrir ce guide à tout moment via l'entrée « Guide de démarrage
 
 - **Le swipe sur l'encoche (aucun sens à retenir)** : placez le curseur dans la zone de l'encoche et effectuez un balayage horizontal à deux doigts sur le trackpad. Que votre geste aille vers la gauche ou vers la droite, il fait avancer d'un cran dans le cycle des applications. Répéter le geste fait tourner toutes vos applications en boucle continue.
 - **Les flèches au survol** : deux flèches discrètes (‹ et ›) apparaissent de part et d'autre du boîtier de la caméra lorsque le curseur approche de l'encoche. Cliquez sur la flèche gauche ou droite pour changer d'application.
+- **Le raccourci clavier global** : `⌃⌥⌘B` avance d'un cran dans le cycle, exactement comme le swipe, depuis n'importe quelle application et y compris en plein écran. Sans trackpad, c'est la seule commande qui n'oblige ni à viser l'encoche ni à ouvrir un menu. La combinaison se change ou se désactive dans **Réglages > Geste** ; tant que Bouncer tourne, elle n'atteint plus les autres applications.
 - **Le menu de la barre des menus** :
   - `●` indique l'application qui occupe actuellement l'encoche.
   - `○` indique une application en attente (cliquer dessus pour la basculer, qu'elle soit ouverte ou fermée).
@@ -97,7 +98,7 @@ Vous pouvez rouvrir ce guide à tout moment via l'entrée « Guide de démarrage
 Ouvrez les réglages depuis le menu de l'app ou avec le raccourci `⌘,` :
 
 - **Général** : activation du lancement automatique à l'ouverture de session macOS, et fréquence de resondage des fenêtres (de 1 à 30 secondes, 2 secondes par défaut).
-- **Geste** : choix du mode d'activation (le swipe et les flèches, le swipe seul sans overlay visuel, ou les flèches seules pour un usage à la souris), portée d'apparition des flèches à l'approche (72 pt par défaut), et largeur de la marge cliquable (44 pt par défaut).
+- **Geste** : choix du mode d'activation (le swipe et les flèches, le swipe seul sans overlay visuel, ou les flèches seules pour un usage à la souris), raccourci clavier global (`⌃⌥⌘B`, `⌃⌥⌘N`, `⌃⌥⌘Espace` ou aucun), portée d'apparition des flèches à l'approche (72 pt par défaut), et largeur de la marge cliquable (44 pt par défaut).
 - **Applications** : liste de toutes les applications reconnues. Décocher une application la retire du cycle de balayage au trackpad tout en la laissant sélectionnable au clic dans le menu.
 
 ---
