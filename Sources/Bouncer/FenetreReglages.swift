@@ -64,10 +64,15 @@ private struct OngletGeneral: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let avertissement = demarrage.avertissement {
-                    Label(avertissement, systemImage: "exclamationmark.triangle.fill")
-                        .font(.callout)
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Label {
+                        Text(avertissement)
+                            .foregroundStyle(.primary)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -84,14 +89,13 @@ private struct OngletGeneral: View {
             }
         }
         .formStyle(.grouped)
-        .scrollDisabled(true)
         // Le réglage vit dans macOS, pas chez nous : il a pu changer dans Réglages Système
         // pendant que cette fenêtre était fermée.
         .onAppear { demarrage.relire() }
     }
 
     private func libelle(_ intervalle: TimeInterval) -> String {
-        intervalle == 1 ? "seconde" : "\(Int(intervalle)) secondes"
+        intervalle == 1 ? "1 seconde" : "\(Int(intervalle)) secondes"
     }
 }
 
@@ -167,6 +171,9 @@ private struct OngletGeste: View {
                 } maximumValueLabel: {
                     Text("De loin")
                 }
+                .accessibilityLabel("Distance d'apparition des flèches")
+                .accessibilityValue(reglages.porteeApproche == 0 ? "0 point, uniquement dans la bande de l'encoche" : "\(Int(reglages.porteeApproche)) points")
+
                 Text("L'opacité des flèches suit la distance du curseur à l'encoche. Ce réglage dit où la montée commence.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -179,6 +186,9 @@ private struct OngletGeste: View {
                 } maximumValueLabel: {
                     Text("Larges")
                 }
+                .accessibilityLabel("Largeur des bandes latérales des flèches")
+                .accessibilityValue("\(Int(reglages.margeLaterale)) points de chaque côté")
+
                 Text("Les flèches se logent de part et d'autre du boîtier caméra, jamais dessus. Élargir donne une cible de clic plus facile ; réduire laisse la barre des menus tranquille.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -193,6 +203,7 @@ private struct OngletGeste: View {
                 HStack {
                     Spacer()
                     Button("Rétablir les valeurs d'origine") { reglages.reinitialiser() }
+                        .accessibilityHint("Restaure la portée d'apparition et les marges à leurs valeurs d'origine")
                 }
             }
         }
@@ -238,7 +249,11 @@ private struct ApercuGeste: View {
                 HStack(spacing: 0) {
                     bande(largeur: marge, symbole: "chevron.left")
                     RoundedRectangle(cornerRadius: 5)
-                        .fill(Color.primary.opacity(0.85))
+                        .fill(Color.black)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
+                        )
                         .frame(width: largeurBoitier * echelle, height: 20)
                     bande(largeur: marge, symbole: "chevron.right")
                 }
@@ -308,10 +323,15 @@ private struct OngletApplications: View {
                 if entrees.isEmpty {
                     EmptyView()
                 } else if retenues.isEmpty {
-                    Label("Toutes les apps sont décochées : le geste n'a plus rien à parcourir. Le menu de la barre des menus, lui, continue de les lister.", systemImage: "exclamationmark.triangle.fill")
-                        .font(.callout)
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Label {
+                        Text("Toutes les apps sont décochées : le geste n'a plus rien à parcourir. Le menu de la barre des menus, lui, continue de les lister.")
+                            .foregroundStyle(.primary)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("Une app décochée reste dans le menu et reste cliquable — elle n'apparaît simplement plus dans le cycle. Utile pour une app d'encoche qu'on garde ouverte en permanence.")
                         .font(.callout)
