@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { COMMANDE_BREW } from "@/content/liens";
 import { useMouvementReduit } from "./mouvement";
 
 /** Le bouton plein du héros : il descend jusqu'à la section d'installation. */
@@ -29,12 +28,16 @@ export function BoutonAncre({
   );
 }
 
-/** La ligne Homebrew et son bouton de copie. */
+/** Une ligne de commande et son bouton de copie. La commande arrive en prop :
+    la page en affiche deux — l'installation et la vérification — et elles
+    n'ont aucune raison d'être deux composants. */
 export function LigneCommande({
+  commande,
   copier,
   copie,
   echec,
 }: {
+  commande: string;
   copier: string;
   copie: string;
   echec: string;
@@ -42,7 +45,7 @@ export function LigneCommande({
   const [libelle, setLibelle] = useState(copier);
 
   const surClic = () =>
-    navigator.clipboard.writeText(COMMANDE_BREW).then(
+    navigator.clipboard.writeText(commande).then(
       () => {
         setLibelle(copie);
         setTimeout(() => setLibelle(copier), 1800);
@@ -51,9 +54,9 @@ export function LigneCommande({
     );
 
   return (
-    <div className="mx-auto mt-7 flex max-w-[34rem] items-center justify-between gap-[14px] rounded-xl border border-filet bg-fond-carte py-[14px] pr-[14px] pl-[18px]">
+    <div className="mx-auto mt-7 flex max-w-[38rem] items-center justify-between gap-[14px] rounded-xl border border-filet bg-fond-carte py-[14px] pr-[14px] pl-[18px]">
       <code className="overflow-x-auto font-mono text-[.875rem] whitespace-nowrap">
-        {COMMANDE_BREW}
+        {commande}
       </code>
       <button
         type="button"
