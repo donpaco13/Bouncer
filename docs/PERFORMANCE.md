@@ -215,3 +215,98 @@ trois cas**. Le panel n'y était pour rien.
 **Coût du correctif.** Aucun sur le chemin chaud : la zone reste calculée une fois par `rebuild()`,
 et le cadre des fenêtres d'encoche est dédupliqué avant publication (`publierCadre`) pour ne pas
 reconstruire l'overlay à chaque tour du timer de 2 s.
+
+---
+
+## Addendum du 5 septembre 2026 — 9 tours de sondage en 95 s au lieu de 48
+
+Le point 2 recommandait de remplacer le sondage par des notifications `NSWorkspace`. Cette
+recommandation était fausse et n'a pas été appliquée telle quelle : **`NSWorkspace` n'émet aucune
+notification à la création d'une FENÊTRE**. `didLaunchApplication` dit qu'un process a démarré,
+pas que sa fenêtre d'encoche est à l'écran — et c'est exactement l'écart que le scan mesure. Une
+app d'encoche pose sa fenêtre APRÈS son lancement, ce qui est le cas normal et non le cas limite.
+Supprimer le sondage aurait cassé la découverte.
+
+Le sondage reste donc en place. C'est sa cadence qui s'adapte.
+
+### La règle
+
+Le timer garde la période réglée (2 s par défaut) tant que quelque chose bouge. Chaque tour qui
+retrouve exactement l'état du précédent incrémente un compteur ; au-delà de trois tours immobiles,
+la période double à chaque cran, plafond à 30 s. Les notifications `NSWorkspace`
+(`didLaunchApplication`, `didTerminateApplication`, `activeSpaceDidChange`), le branchement d'un
+écran et l'entrée du curseur dans la zone sensible servent de **réveil** : ils resondent tout de
+suite et remettent la cadence au plus rapide. Ils ne remplacent pas le sondage : ils lui disent
+quand il vaut la peine de tourner vite.
+
+Deux garde-fous :
+
+- **Jamais de ralentissement sans droits d'Accessibilité.** Le passage refusé → accordé se fait
+  dans les Réglages Système et aucune notification ne nous le dit : ce timer est la seule chose
+  qui fait avancer l'écran d'accueil sous les yeux de l'utilisateur.
+- **Plafond à 30 s, pas plus.** Une app d'encoche qui détruit sa fenêtre sans quitter son process
+  n'émet rien du tout ; seul le sondage la voit. Au-delà de 30 s le menu resterait faux trop
+  longtemps.
+
+### Mesures
+
+Coût d'un tour de scan, rejoué sur la machine de référence avec la méthode du point 2
+(`CGWindowListCopyWindowInfo` + résolution `NSRunningApplication` + filtrage géométrique,
+médiane sur 200 appels) : **2,30 ms sur 32 fenêtres à l'écran** — le rapport initial relevait
+2,68 ms sur 35 fenêtres, le coût suit le nombre de fenêtres. Ce coût **ne change pas** : c'est le
+même scan. Ce qui change, c'est le nombre de tours.
+
+| Régime | Tours / 24 h | CPU / 24 h à 2,30 ms le tour |
+|---|---|---|
+| Avant — timer à 2 s fixes | 43 200 | 99,4 s |
+| Après — machine jamais touchée | 2 886 | 6,6 s (**−93 %**) |
+| Après — journée réaliste, 650 réveils | 6 811 | 15,7 s (**−84 %**) |
+| Après — pire cas, un réveil toutes les 5 s pendant 16 h | 35 524 | 81,7 s (−18 %) |
+
+Le nombre de tours est obtenu en déroulant 24 h de planification sur l'échelle de PRODUCTION
+(`WindowManager.periodeDeRepos`, la même fonction que celle qui pose le timer), pas sur une copie.
+
+### Relevé sur le binaire
+
+Le compteur de tours est journalisé par `TraceSwipe` (éteint par défaut, cf. son en-tête). Relevé
+sur une exécution réelle de 95 s, un tour par ligne :
+
+```
+ 2,46 s  immobiles=0  periode=2      12,54 s  immobiles=4  periode=4
+ 4,46 s  immobiles=1  periode=2      21,67 s  immobiles=5  periode=8
+ 6,46 s  immobiles=2  periode=2      37,68 s  immobiles=6  periode=16
+ 8,46 s  immobiles=3  periode=2      69,68 s  immobiles=7  periode=30
+```
+
+**9 tours en 95 s, là où le timer fixe en aurait fait 48.** Les instants ne tombent pas rond (12,54 au lieu de
+12,46) : c'est la tolérance de 20 % posée sur le timer, qui laisse macOS grouper notre réveil
+avec ceux des autres process au lieu de sortir le CPU du repos rien que pour nous.
+
+Et le réveil, sur la même exécution : à 75 s, cadence à 30 s depuis longtemps, `open -a TextEdit`.
+La ligne suivante tombe à **75,16 s avec `immobiles=0 periode=2`** — cadence pleine restaurée dans
+la seconde. Idem à la fermeture de TextEdit, sur `didTerminateApplication`.
+
+### La réactivité ne bouge pas
+
+Une app d'encoche lancée après une heure de repos est découverte **aussi vite qu'avant** : son lancement poste `didLaunchApplication`, le
+réveil remet la période à 2 s avant même que la fenêtre existe, et le sondage la voit au premier
+tour suivant. Latence entre l'apparition de la fenêtre et sa découverte, selon le délai que met
+l'app à poser sa fenêtre :
+
+| Fenêtre posée à | Découverte | Timer fixe 2 s |
+|---|---|---|
+| +0,1 s du lancement | 1,90 s | ≤ 2,00 s |
+| +0,5 s | 1,50 s | ≤ 2,00 s |
+| +1,5 s | 0,50 s | ≤ 2,00 s |
+| +3,0 s | 1,00 s | ≤ 2,00 s |
+
+Le seul cas où l'utilisateur attend plus qu'avant est celui qu'aucune notification ne couvre : une
+app déjà lancée qui fait apparaître ou disparaître sa fenêtre d'encoche toute seule. Il est borné
+à 30 s dans le menu — et à zéro dès que le curseur approche de l'encoche, puisque l'approche est
+elle-même un réveil. Un geste sur l'encoche part donc toujours d'un état frais.
+
+### Ce qui reste en attente
+
+Le point 4 (mise en cache de `catalogue.installees()`, 50 µs par évaluation du menu) n'est pas
+traité ici. Il pesait 25 fois par minute par la faute du timer ; il en pèse maintenant deux, et
+seulement menu ouvert. Le chantier a perdu son intérêt.
