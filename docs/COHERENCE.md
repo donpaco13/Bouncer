@@ -3,6 +3,20 @@
 5 septembre 2026.
 Bilan de cohérence globale du dépôt Bouncer suite aux chantiers menés en parallèle par dix agents (~3 000 lignes de Swift ajoutées, 70 tests unitaires verts).
 
+> **Suivi — 5 septembre 2026, après correction (branche `agent/worker-t147-nettoyage`).**
+> Les sections 2, 3 et 4 sont traitées, sauf §3.1 (l'inversion de la flèche gauche dans le guide)
+> qui était déjà corrigée par le passage QA : le simulateur fait bien avancer le cycle dans les
+> deux sens, ce qui est le comportement réel du swipe, et les deux flèches gardent leur sens.
+> S'y ajoute un défaut que ce rapport ne nommait pas et qui était le plus grave : Bouncer
+> s'ajoutait elle-même à son catalogue d'apps d'encoche. Cause mesurée, `estFenetreEncoche` ne
+> vérifiait pas que la fenêtre était sur l'écran PORTEUR de l'encoche, et l'exclusion de Bouncer
+> portait sur le pid donc sur la seule instance courante. Détail dans `ControleurApps.swift` et
+> `WindowManager.swift`.
+>
+> Restent ouverts : §5 (îlots d'anglais), §7 (angles morts de tests, dont `WindowManager` non
+> instancié), et le sha256 désynchronisé du Cask.
+
+
 ---
 
 ## 1. Verdict d'ensemble

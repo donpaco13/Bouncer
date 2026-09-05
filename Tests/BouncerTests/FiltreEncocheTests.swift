@@ -4,9 +4,14 @@
 //
 // Tous les nombres ci-dessous sont des relevés `CGWindowListCopyWindowInfo` faits sur le MacBook de
 // référence (écran interne 1352×878 posé à droite d'un écran externe 2560×1440, `screens[0]` étant
-// l'externe). Boîtier caméra relevé de 1212 à 1378 en x, sur 29 pt de haut. Les deux dernières
-// entrées sont les intrus qu'on a pu reproduire : Discord et une fenêtre Finder poussées le plus
-// haut possible sur l'écran interne s'arrêtent à 35 pt du bord, plafonnées par la barre de menus.
+// l'externe). Boîtier caméra relevé de 1212 à 1378 en x, sur 29 pt de haut. Les intrus qu'on avait pu
+// reproduire au premier relevé : Discord et une fenêtre Finder poussées le plus haut possible sur
+// l'écran interne s'arrêtent à 35 pt du bord, plafonnées par la barre de menus.
+//
+// Handy et l'alerte centrée viennent du relevé du 5 septembre 2026, celui qui a expliqué pourquoi
+// `com.pais.handy` et `com.apple.UserNotificationCenter` étaient entrés au catalogue : une fenêtre
+// posée sur l'écran EXTERNE satisfaisait gratuitement une première condition qui n'était bornée
+// que par le bas. Ils gardent la borne haute.
 
 import CoreGraphics
 import Testing
@@ -65,6 +70,24 @@ struct FiltreEncocheTests {
     @Test("Une fenêtre Finder poussée le plus haut possible : recalée pour la même raison")
     func finderEnHautDeLEcran() {
         #expect(accepte(bounds(x: 900, y: 1475, w: 800, h: 360)) == false)
+    }
+
+    @Test("La pastille de Handy, en haut de l'écran EXTERNE, est recalée")
+    func handySurLEcranExterne() {
+        // Le faux positif qui a mis `com.pais.handy` au catalogue, relevé tel quel le 5 septembre
+        // 2026 : `X:1152→1408, Y CGWindow 1379, 256×46`, soit un sommet AppKit à +61 pt — 61 pt
+        // au-dessus du bord haut de l'écran à encoche, qui est à 0. Elle recouvre les abscisses du
+        // boîtier par pure coïncidence entre deux écrans, et tient sous le plafond de largeur :
+        // seule la borne HAUTE de la première condition la recale.
+        #expect(accepte(bounds(x: 1152, y: 1379, w: 256, h: 46)) == false)
+    }
+
+    @Test("Une alerte centrée sur l'écran externe est recalée pour la même raison")
+    func alerteCentreeSurLEcranExterne() {
+        // Le profil de `com.apple.UserNotificationCenter`, l'autre intrus du catalogue : 420 pt
+        // centrés sur l'écran externe (1070→1490) contiennent le boîtier 1212→1378, et son sommet
+        // est très au-dessus de celui de l'écran interne.
+        #expect(accepte(bounds(x: 1070, y: 1240, w: 420, h: 200)) == false)
     }
 
     @Test("Une fenêtre décalée qui n'effleure le boîtier que par un bord est recalée")

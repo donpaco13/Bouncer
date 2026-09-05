@@ -6,8 +6,10 @@
 // alors gratuitement le titre localisé « Réglages », la barre d'onglets d'un panneau de
 // préférences, le raccourci ⌘, et la position mémorisée d'une session à l'autre — quatre choses
 // qu'une fenêtre maison rate toujours un peu, et qui font la différence entre un panneau de debug
-// et un produit. `SettingsLink` (macOS 14) est la seule façon de l'ouvrir depuis un `MenuBarExtra` :
-// un `NSApp.sendAction(showSettingsWindow:)` marche par accident et casse d'une version à l'autre.
+// et un produit. Ce qui l'OUVRE depuis le `MenuBarExtra`, en revanche, n'est pas `SettingsLink` :
+// cette voie-là a été essayée et l'entrée disparaissait du menu après le premier lancement. Le
+// relevé et les deux autres voies écartées sont dans `MenuBarContentView.ouvrirReglages()`, qui
+// est le seul endroit d'où cette fenêtre s'ouvre.
 //
 // Trois onglets, dans l'ordre où on en a besoin : Général (ce qui concerne l'app), Geste (ce qui
 // concerne la sensation), Applications (ce que le cycle parcourt).
@@ -251,9 +253,10 @@ private struct OngletGeste: View {
 private struct ApercuGeste: View {
     @ObservedObject var reglages: Reglages
 
-    /// Largeur du boîtier caméra mesurée sur la machine de référence (cf. ZoneSurvolTests) :
-    /// l'aperçu garde les proportions réelles au lieu d'inventer une encoche décorative.
-    private let largeurBoitier: CGFloat = 166
+    /// Largeur du boîtier caméra de CETTE machine, ou le relevé de référence à défaut d'encoche :
+    /// l'aperçu garde les proportions réelles au lieu d'inventer une encoche décorative. Source
+    /// unique avec le simulateur du guide (`boitierEncocheReference`, BouncerCore).
+    private var largeurBoitier: CGFloat { boitierEncocheReference.width }
 
     var body: some View {
         GeometryReader { geo in
@@ -263,11 +266,16 @@ private struct ApercuGeste: View {
 
             ZStack {
                 if reglages.modeActivation.flechesActives {
-                    // Le halo figure la rampe d'opacité : il s'étale exactement sur la portée.
+                    // La bande figure l'ÉTENDUE de la portée, et le dégradé la rampe d'opacité qui
+                    // s'y joue. Elle est en gris et non en couleur d'accentuation : l'overlay ne
+                    // dessine aucun halo lumineux — ce qui s'estompe, ce sont les flèches
+                    // elles-mêmes (`NotchOverlay.opaciteFleches`, `alphaValue` des boutons). Un
+                    // aperçu qui invente un effet que le produit n'a pas se fait démentir au
+                    // premier essai sur l'écran.
                     RoundedRectangle(cornerRadius: 8)
                         .fill(
                             LinearGradient(
-                                colors: [.accentColor.opacity(0), .accentColor.opacity(0.28), .accentColor.opacity(0)],
+                                colors: [.primary.opacity(0), .primary.opacity(0.12), .primary.opacity(0)],
                                 startPoint: .leading, endPoint: .trailing
                             )
                         )

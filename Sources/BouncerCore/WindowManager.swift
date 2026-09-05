@@ -41,8 +41,14 @@ public struct NotchAppInfo: Identifiable, Equatable {
 /// Processus systèmes à ignorer dans le scan de la zone d'encoche, identifiés par bundleID —
 /// jamais par nom d'affichage localisé (kCGWindowOwnerName suit la langue système : "Centre de
 /// notifications" en français, "Notification Center" en anglais).
+///
+/// `UserNotificationCenter` est le démon d'alertes modales, distinct de `notificationcenterui` qui
+/// affiche les bannières : il figurait bel et bien dans le catalogue de la machine de référence, et
+/// s'il y est entré par la fuite inter-écrans corrigée dans `estFenetreEncoche`, il n'a de toute
+/// façon rien à faire dans un cycle d'apps d'encoche.
 private let systemBundleIDs: Set<String> = [
-    "com.apple.notificationcenterui", "com.apple.controlcenter", "com.apple.dock",
+    "com.apple.notificationcenterui", "com.apple.UserNotificationCenter",
+    "com.apple.controlcenter", "com.apple.dock",
     "com.apple.systemuiserver", "com.apple.loginwindow", "com.apple.PowerChime",
     "com.apple.Spotlight", "com.apple.WindowManager",
 ]
@@ -76,7 +82,17 @@ public final class WindowManager: ObservableObject {
     /// donc sans ce message l'utilisateur ne verrait qu'un geste sans effet.
     @Published public private(set) var echecBascule: String?
 
-    private let ownPid = ProcessInfo.processInfo.processIdentifier
+    /// Bouncer s'écarte elle-même du scan par bundleID, jamais par pid.
+    ///
+    /// Son overlay EST une fenêtre d'encoche au sens du filtre — relevé le 5 septembre 2026 :
+    /// `layer 35, X:1148→1442, sommet à cadre.maxY`, les trois conditions passent. Rien de
+    /// géométrique ne peut donc l'écarter, seule son identité le peut. L'ancien `pid == ownPid`
+    /// n'écartait que l'instance COURANTE : une seconde copie lancée depuis un autre chemin, ou
+    /// l'ancienne version encore ouverte pendant une mise à jour, avait un autre pid, franchissait
+    /// le filtre et entrait au catalogue — c'est ainsi que `io.github.donpaco13.bouncer` s'est
+    /// retrouvé dans le cycle de bascule de François, qui l'emmenait sur Bouncer elle-même.
+    /// Le pid est le mauvais axe dès qu'une app peut exister en plusieurs exemplaires.
+    private let ownBundleID = Bundle.main.bundleIdentifier
     private var timer: Timer?
     private var observateurQuit: (any NSObjectProtocol)?
 
@@ -289,7 +305,7 @@ public final class WindowManager: ObservableObject {
                 let layer = entry[kCGWindowLayer as String] as? Int
             else { continue }
 
-            if pidNum == ownPid || seenPids.contains(pidNum) { continue }
+            if seenPids.contains(pidNum) { continue }
 
             let appName = (entry[kCGWindowOwnerName as String] as? String) ?? "?"
             // Un process sans bundleID (Window Server, agents non-app) n'a pas d'identité stable :
@@ -297,7 +313,7 @@ public final class WindowManager: ObservableObject {
             // n'a donc rien à faire dans la liste, et cette règle remplace l'ancien repli par nom.
             guard let bundleID = NSRunningApplication(processIdentifier: pidNum)?.bundleIdentifier
             else { continue }
-            if systemBundleIDs.contains(bundleID) { continue }
+            if bundleID == ownBundleID || systemBundleIDs.contains(bundleID) { continue }
 
             // Une app d'encoche est structurellement un overlay flottant (kCGWindowLayer > 0,
             // au-dessus de kCGNormalWindowLevel) ; une fenêtre de document normale est à 0, et le
@@ -498,12 +514,19 @@ public final class WindowManager: ObservableObject {
     /// Les lignes du menu : les apps détectées, plus les apps du catalogue qui ne tournent pas.
     ///
     /// ponytail: `catalogue.installees()` interroge LaunchServices pour chaque bundleID connu.
-    /// C'est une propriété calculée plutôt qu'un `@Published` recalculé au refresh parce que ses
-    /// deux appelants sont rares : le corps du menu n'est évalué que menu ouvert, et `cyclableApps`
-    /// à chaque cran de swipe — que le seuil de défilement et le cooldown de `NotchOverlay`
-    /// limitent à quelques-uns par seconde. Si le catalogue grossit au point que l'ouverture du
-    /// menu ou le swipe se sentent, le mettre en cache dans `CatalogueApps` avec invalidation
-    /// sur `apprendre`.
+    /// C'est une propriété calculée plutôt qu'un `@Published` recalculé au refresh parce que
+    /// AUCUN de ses appelants ne l'évalue en continu :
+    ///   - `MenuBarContentView` (l. 28) : menu ouvert seulement ;
+    ///   - `cyclableApps`, donc chaque cran de swipe et chaque clic de flèche — que le seuil de
+    ///     défilement et le cooldown de `NotchOverlay` limitent à quelques-uns par seconde ;
+    ///   - `VueAccueil` (`FenetreAccueil.swift:132`) : à chaque rendu de la fenêtre d'accueil,
+    ///     qui ne s'ouvre qu'au premier lancement ou depuis le menu ;
+    ///   - l'onglet Applications des réglages (`FenetreReglages.swift:326`) : à chaque rendu de
+    ///     l'onglet, donc fenêtre de réglages ouverte.
+    /// Les deux derniers sont des vues SwiftUI : « à chaque rendu » veut dire à chaque changement
+    /// d'état observé, pas à intervalle fixe. Si le catalogue grossit au point que l'ouverture du
+    /// menu, le swipe ou la frappe dans les réglages se sentent, le mettre en cache dans
+    /// `CatalogueApps` avec invalidation sur `apprendre`.
     public var entreesMenu: [EntreeMenu] {
         construireEntreesMenu(
             apps: apps,

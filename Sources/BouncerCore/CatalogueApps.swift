@@ -55,8 +55,15 @@ public final class CatalogueApps {
     /// est définitif par construction, donc la seule façon honnête de jeter celui-là est de ne
     /// plus lire la clé qui le contient. L'ancienne est effacée au passage : la garder ne
     /// servirait qu'à faire grossir les préférences.
-    private static let cleApprises = "bouncer.bundleIDsApprises.v2"
-    private static let cleApprisesObsolete = "bouncer.bundleIDsApprises"
+    /// Le `v3` suit la même règle, appliquée au filtre suivant. Le catalogue `v2` de la machine de
+    /// référence contenait cinq bundleIDs dont TROIS intrus : `io.github.donpaco13.bouncer`
+    /// (Bouncer elle-même — l'ancienne exclusion portait sur le pid, donc sur la seule instance
+    /// courante), `com.apple.UserNotificationCenter` et `com.pais.handy` (fuite inter-écrans de
+    /// `estFenetreEncoche`, mesurée le 5 septembre 2026). Les trois causes sont corrigées ; ce que
+    /// le filtre fautif a appris, lui, ne se corrige pas tout seul, et un cycle de bascule qui
+    /// emmène sur Bouncer ou sur le centre de notifications reste faux tant que la clé est lue.
+    private static let cleApprises = "bouncer.bundleIDsApprises.v3"
+    private static let clesApprisesObsoletes = ["bouncer.bundleIDsApprises", "bouncer.bundleIDsApprises.v2"]
 
     private let defaults: UserDefaults
     private let amorcage: Set<String>
@@ -70,7 +77,7 @@ public final class CatalogueApps {
         self.defaults = defaults
         self.amorcage = amorcage
         self.resolveur = resolveur
-        defaults.removeObject(forKey: Self.cleApprisesObsolete)
+        Self.clesApprisesObsoletes.forEach(defaults.removeObject(forKey:))
     }
 
     /// Les bundleIDs déjà vus dans le notch, toutes sessions confondues.

@@ -13,11 +13,11 @@
 //
 // Le panel (NSPanel transparent) n'existe que pour porter ces flèches et leur donner une cible de
 // clic : il est construit une seule fois puis ordonné à l'écran (`orderFrontRegardless()`)
-// UNIQUEMENT pendant le survol de la zone, et retiré (`orderOut(nil)`) dès que le curseur en sort. Hors survol, aucune fenêtre d'Island
-// Switch ne recouvre l'encoche — un panel resté à l'écran en permanence, même transparent en
-// théorie (`isOpaque = false`), masquait visuellement le logo replié des apps d'encoche
-// tierces (constaté en réel avec Vibe Island) sans qu'on ait pu établir pourquoi la
-// transparence ne s'appliquait pas ; plutôt que déboguer ça, on supprime le besoin.
+// UNIQUEMENT pendant le survol de la zone, et retiré (`orderOut(nil)`) dès que le curseur en sort.
+// Hors survol, aucune fenêtre de Bouncer ne recouvre l'encoche — un panel resté à l'écran en
+// permanence, même transparent en théorie (`isOpaque = false`), masquait visuellement le logo
+// replié des apps d'encoche tierces (constaté en réel avec Vibe Island) sans qu'on ait pu établir
+// pourquoi la transparence ne s'appliquait pas ; plutôt que déboguer ça, on supprime le besoin.
 //
 // Le survol est détecté par un monitor GLOBAL (`.mouseMoved`) : tant que le panel n'est pas à
 // l'écran (ou que `ignoresMouseEvents = true`), il ne reçoit RIEN — un monitor local ne

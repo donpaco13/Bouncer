@@ -16,7 +16,7 @@ import Testing
 @MainActor
 struct RobustesseTests {
     private let vibe = "app.vibeisland.macos"
-    private let boring = "com.thecoolbeans.boringnotch"
+    private let boring = "theboringteam.boringnotch"
 
     private func info(_ bundleID: String, _ support: SupportStatus, pid: pid_t?) -> NotchAppInfo {
         NotchAppInfo(bundleID: bundleID, name: bundleID, support: support, pid: pid, isHiddenByUs: false)

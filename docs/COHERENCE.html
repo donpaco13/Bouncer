@@ -121,6 +121,15 @@
 <div class="container">
   <h1>Audit de cohérence — Bouncer après dix agents</h1>
   <div class="meta">5 septembre 2026 · Examen après parallélisme de dix agents (~3 000 lignes de Swift, 70 tests verts)</div>
+  <div class="meta" style="border-left:3px solid #34c759;padding-left:12px;margin-top:14px">
+    <strong>Suivi — 5 septembre 2026, après correction</strong> (branche <code>agent/worker-t147-nettoyage</code>).
+    Les sections 2, 3 et 4 sont traitées, sauf §3.1 (inversion de la flèche gauche dans le guide),
+    déjà corrigée par le passage QA. S'y ajoute un défaut que ce rapport ne nommait pas et qui était
+    le plus grave : Bouncer s'ajoutait elle-même à son catalogue d'apps d'encoche —
+    <code>estFenetreEncoche</code> ne vérifiait pas que la fenêtre était sur l'écran porteur de
+    l'encoche, et l'exclusion de Bouncer portait sur le pid donc sur la seule instance courante.
+    Restent ouverts : §5 (îlots d'anglais), §7 (angles morts de tests) et le sha256 désynchronisé du Cask.
+  </div>
 
   <h2>1. Verdict d'ensemble</h2>
   <p>Le moteur fonctionne et tient ses invariants fondamentaux. La bascule « allumer la suivante avant d'éteindre l'actuelle » est respectée, le filtrage géométrique est strict, l'overlay ne vole pas le focus et les 70 tests passent en 33 ms.</p>
