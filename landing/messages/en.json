@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "titre": "Bouncer — one notch, one app at a time",
+    "description": "Bouncer decides which notch app you see on your MacBook. They all stay open, only one shows, and you switch with a two-finger swipe."
+  },
+  "chrome": {
+    "evitement": "Skip to content",
+    "codeSource": "Source code",
+    "piedLigne": "Bouncer, a utility for macOS 14 and later.",
+    "piedGithub": "GitHub",
+    "piedVersions": "Releases"
+  },
+  "demo": {
+    "nom1": "Agent tracker",
+    "nom2": "Music",
+    "nom3": "Calendar",
+    "agents": "4 agents",
+    "duree": "2:41",
+    "jour": "Thu 14",
+    "heure": "11:00"
+  },
+  "heros": {
+    "titreLigne1": "One notch.",
+    "titreLigne2": "One app at a time.",
+    "chapo": "Your notch apps all stay open. Bouncer decides which one you see, and you change your mind with a two-finger swipe.",
+    "installer": "Install Bouncer",
+    "voirCompatibles": "See which apps work",
+    "legendeAvant": "Two apps draw in the same place.",
+    "legendeApres": "Bouncer leaves one of them on stage."
+  },
+  "probleme": {
+    "titre": "macOS coordinates nothing",
+    "para1": "Vibe Island, boringNotch, Alcove, Notchy: each one draws its own pill under your MacBook’s notch. Open two and they land on the same rectangle, one over the other.",
+    "para2": "There is no coordination API, and no such thing as an “active notch app”. <fort>The only way out macOS gives you is to quit one app to use the other</fort>, then launch it again when you need it back."
+  },
+  "geste": {
+    "titre": "Two fingers on the notch",
+    "chapo": "Swipe left or right. The next app takes the spot; the previous one stays open and keeps running."
+  },
+  "fleches": {
+    "titre": "Or two arrows, on hover",
+    "chapo": "If you’d rather use the mouse, bring the pointer near the notch: two arrows light up on either side of the camera housing. When you’re not hovering, Bouncer covers nothing.",
+    "corps": "The rest lives in the menu bar: the apps it found, the one on stage, and the settings. Bouncer has no Dock icon and no window to manage.",
+    "precedente": "Previous notch app",
+    "suivante": "Next notch app"
+  },
+  "compatibilite": {
+    "titre": "Not every app takes direction",
+    "chapo": "And that isn’t up to Bouncer. Better to know before you install.",
+    "legendeTableau": "Compatibility of the notch apps tested",
+    "colonne1": "App",
+    "colonne2": "Version tested",
+    "colonne3": "Takes direction",
+    "lignes": {
+      "vibeIsland": {
+        "libelle": "Yes",
+        "note": "Measured live, hiding confirmed by recounting the windows."
+      },
+      "boringNotch": {
+        "libelle": "No",
+        "note": "Measured live: the order to hide is accepted and changes nothing on screen."
+      },
+      "alcove": {
+        "libelle": "No, predicted",
+        "note": "Verdict read from the binary, not confirmed end to end."
+      },
+      "notchy": {
+        "libelle": "No, predicted",
+        "note": "Verdict read from the binary, not confirmed end to end."
+      }
+    },
+    "para1": "The dividing line shows in the binary. An app that leaves its windows in your Space responds when Bouncer hides them. An app that pins them to a private Space it creates itself is outside the standard macOS path: nothing dislodges it without a private API, and Bouncer won’t use one.",
+    "para2": "Bouncer tests each app once, when it finds it. It marks the ones that don’t respond as “unsupported”, drops them from the cycle, and never tests them again.",
+    "para3": "Today, out of the four apps tested, <fort>only one takes direction</fort>. The cycle between two apps is written and works, but with no second candidate it has never been verified in real conditions. Check yours with the command in the <lien>README</lien>."
+  },
+  "installation": {
+    "titre": "Install",
+    "chapo": "macOS 14 Sonoma or later, on a MacBook with a notch.",
+    "copier": "Copy",
+    "copie": "Copied",
+    "echecCopie": "Select the line",
+    "sousLaCommande": "Bouncer installs into Applications and opens normally.",
+    "sansHomebrew": "Without Homebrew",
+    "archive1": "Download the <code>.zip</code> from the <lien>releases page</lien>.",
+    "archive2": "Double-click the downloaded file.",
+    "archive3": "Drag Bouncer into your Applications folder.",
+    "citationGatekeeper": "“macOS cannot verify that Bouncer is free of malware.”",
+    "expliqueGatekeeper": "That’s what you’ll see on first launch, and it’s expected. macOS doesn’t know who wrote Bouncer: Apple charges developers $99 a year for an identity it recognizes on sight, and Bouncer doesn’t pay it. The block is about that missing identity, not about what’s inside the app: it is neither damaged nor infected.",
+    "ouvrirQuandMeme": "To open it anyway, once:",
+    "gatekeeper1": "Double-click Bouncer and let macOS refuse.",
+    "gatekeeper2": "Open System Settings, then Privacy & Security.",
+    "gatekeeper3": "Scroll down to the message about Bouncer and click “Open Anyway”.",
+    "gatekeeper4": "Confirm with your password.",
+    "apres1": "Later launches go straight through. With Homebrew you never see this screen, because the cask strips the quarantine attribute itself. That is a Gatekeeper workaround we write ourselves, and it goes away the day Apple notarizes Bouncer.",
+    "apres2": "Bouncer needs one macOS permission, and only one: Accessibility, which lets it hide other apps’ windows. It asks for it on first launch."
+  }
+}
