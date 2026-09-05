@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bouncer — Audit de Fluidité et Performance</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --heading: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-red: #f85149;
+      --accent-orange: #d29922;
+      --code-bg: #0b0e14;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f6f8fa;
+        --card-bg: #ffffff;
+        --border: #d0d7de;
+        --text: #24292f;
+        --text-muted: #57606a;
+        --heading: #1f2328;
+        --accent: #0969da;
+        --accent-green: #1a7f37;
+        --accent-red: #cf222e;
+        --accent-orange: #9a6700;
+        --code-bg: #f6f8fa;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      color: var(--heading);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 999px;
+      background-color: var(--border);
+      color: var(--text);
+      margin-right: 0.5rem;
+    }
+    .badge.success { background-color: var(--accent-green); color: #fff; }
+    .badge.warning { background-color: var(--accent-orange); color: #fff; }
+    .badge.danger { background-color: var(--accent-red); color: #fff; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    .card h3 {
+      margin-top: 0;
+      color: var(--heading);
+      font-size: 1.1rem;
+    }
+    .stat {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0.5rem 0;
+    }
+    .stat.bad { color: var(--accent-red); }
+    .stat.good { color: var(--accent-green); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(0,0,0,0.1);
+      color: var(--heading);
+      font-weight: 600;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.9rem;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      background: rgba(127,127,127,0.15);
+      padding: 0.15em 0.3em;
+      border-radius: 4px;
+    }
+    .highlight-box {
+      border-left: 4px solid var(--accent);
+      background: var(--card-bg);
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .highlight-box.danger { border-left-color: var(--accent-red); }
+    .highlight-box.success { border-left-color: var(--accent-green); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Audit Technique</span>
+      <span class="badge success">Mesures sur Machine Réelle</span>
+      <h1>Audit de Fluidité et Performance — Bouncer</h1>
+      <p style="color: var(--text-muted); margin: 0;">
+        Machine : MacBook Pro Apple M4 (10 cœurs) • macOS 14+ • Configuration multi-écrans avec encoche
+      </p>
+    </header>
+
+    <div class="highlight-box danger">
+      <h3 style="margin-top: 0; color: var(--accent-red);">Résultat clé : Le coupable n'était pas là où on regardait</h3>
+      <p style="margin-bottom: 0;">
+        La cause n°1 de la sensation d'accroche n'est <strong>ni le survol souris, ni le swipe</strong>. C'est un <code>usleep(300_000)</code> synchrone sur le <code>MainActor</code> dans <code>ControleurAppsSysteme.masquer()</code>. Chaque bascule entre deux apps régissables <strong>fige le thread principal pendant 600 ms</strong> (300 ms pour afficher la cible + 300 ms pour masquer l'actuelle), alors que WindowServer propage l'état en <strong>1,5 à 32 ms</strong>.
+      </p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Latence de Bascule Actuelle</h3>
+        <div class="stat bad">600 ms</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Gel complet de l'interface graphique (MainActor bloqué par 2x usleep)</p>
+      </div>
+      <div class="card">
+        <h3>Latence de Bascule Cible</h3>
+        <div class="stat good">~35 ms</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Propagation WindowServer asynchrone, 0 ms de freeze UI (x17 plus rapide)</p>
+      </div>
+      <div class="card">
+        <h3>Scan Périodique (Timer 2s)</h3>
+        <div class="stat bad">2,68 ms</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Coût unitaire d'un scan complet. 43 200 scans / 24h = 116 s de CPU gaspillé</p>
+      </div>
+    </div>
+
+    <h2>Bilan Comparatif des Mesures</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Composant / Action</th>
+          <th>Coût Actuel Mesuré</th>
+          <th>Coût Cible Proposé</th>
+          <th>Gain</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Bascule d'apps (freeze UI)</strong></td>
+          <td style="color: var(--accent-red); font-weight: bold;">600,0 ms</td>
+          <td style="color: var(--accent-green); font-weight: bold;">~35,0 ms (asynchrone)</td>
+          <td><strong>x17</strong> (0 ms freeze)</td>
+        </tr>
+        <tr>
+          <td><strong>Propagation WindowServer</strong></td>
+          <td>300,0 ms (usleep imposé)</td>
+          <td style="color: var(--accent-green);">1,52 ms à 31,7 ms</td>
+          <td>x10 à x200</td>
+        </tr>
+        <tr>
+          <td><strong>updateHover (souris loin)</strong></td>
+          <td>0,06 µs (64 ns)</td>
+          <td>0,06 µs</td>
+          <td>Déjà optimisé (0797023)</td>
+        </tr>
+        <tr>
+          <td><strong>Timer 2s : scanNotchApps</strong></td>
+          <td style="color: var(--accent-orange);">2,68 ms / 2s</td>
+          <td style="color: var(--accent-green);">Événementiel (NSWorkspace)</td>
+          <td>-98% CPU de fond</td>
+        </tr>
+        <tr>
+          <td><strong>CGWindowListCopyWindowInfo</strong></td>
+          <td>594 µs (43,9 ms à froid)</td>
+          <td>À la demande (ouverture menu)</td>
+          <td>Zéro appel périodique</td>
+        </tr>
+        <tr>
+          <td><strong>Invalidation SwiftUI (timer)</strong></td>
+          <td style="color: var(--accent-orange);">Toutes les 2 s inconditionnel</td>
+          <td style="color: var(--accent-green);">0 si aucun changement</td>
+          <td>Suppression de redraws</td>
+        </tr>
+        <tr>
+          <td><strong>Monitor .scrollWheel</strong></td>
+          <td>100% des scrolls Mac reçus</td>
+          <td style="color: var(--accent-green);">Actif seulement si opacité &gt; 0</td>
+          <td>-99.9% de wakeups</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Analyse Détaillée des 5 Suspects</h2>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h3>1. Le monitor global <code>.mouseMoved</code> (NotchOverlay.swift)</h3>
+      <p><strong>Constat :</strong> Le code antérieur au commit <code>0797023</code> appelait effectivement <code>zoneEncoche()</code> (227 µs) et déclenchait SwiftUI des centaines de fois par seconde. Mais le commit <code>0797023</code> a déjà mis en cache <code>zoneSensible</code> dans <code>rebuild()</code>.</p>
+      <p>Le calcul d'opacité actuel ne prend plus que <strong>64 nanosecondes</strong> quand le curseur est loin. La seule dette résiduelle est système : macOS réveille la runloop de Bouncer pour chaque événement souris sur tout l'écran (~432 000 réveils par heure active).</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h3>2. Le timer de <code>refresh()</code> toutes les 2s (WindowManager.swift)</h3>
+      <p><strong>Constat confirmé :</strong> Le scan complet <code>scanNotchApps()</code> prend <strong>2,68 ms</strong> toutes les 2 secondes (dont 594 µs pour <code>CGWindowListCopyWindowInfo</code> et 490 µs pour résoudre 15 PIDs via <code>NSRunningApplication</code>). En 24h d'inactivité, la machine passe <strong>116 secondes de CPU</strong> à scanner des fenêtres inchangées.</p>
+      <p>De plus, l'assignation <code>lastNotchZoneDescription = "\(ecran) — \(rect)"</code> déclenche inconditionnellement <code>objectWillChange</code> sur <code>WindowManager</code>, forçant SwiftUI à réévaluer le menu toutes les 2 secondes.</p>
+      <p><strong>Solution :</strong> Remplacer le timer par des notifications <code>NSWorkspace.didLaunchApplicationNotification</code> et <code>didTerminateApplicationNotification</code>, et réserver le scan à l'ouverture du menu.</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h3>3. Le monitor global <code>.scrollWheel</code> (NotchOverlay.swift)</h3>
+      <p><strong>Constat confirmé :</strong> <code>scrollMonitor</code> est installé une fois pour toutes lors du <code>buildPanel()</code>. Dès que l'utilisateur défile sur une page web ou dans son IDE (86 événements par geste), Bouncer intercepte et traite chaque événement sur son thread principal.</p>
+      <p><strong>Solution :</strong> Activer <code>scrollMonitor</code> <em>uniquement</em> quand le curseur s'approche de l'encoche (<code>opacite > 0</code>) et le détacher dès qu'il s'éloigne (<code>opacite == 0</code>). Coût hors encoche : zéro absolu.</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h3>4. Redessins SwiftUI et écritures <code>@Published</code></h3>
+      <p><strong>Constat confirmé :</strong> <code>lastNotchZoneDescription</code> n'est utilisé que par le mode CLI <code>--self-test</code>. Son statut <code>@Published</code> provoque une invalidation SwiftUI toutes les 2 secondes. De plus, <code>catalogue.installees()</code> interroge LaunchServices sur disque pour chaque app connue (50 µs) à chaque fois que le corps du menu est évalué.</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 1.5rem; border-color: var(--accent-red);">
+      <h3 style="color: var(--accent-red);">5. La cause racine du freeze : <code>usleep(300_000)</code></h3>
+      <p>Dans <code>ControleurAppsSysteme.masquer()</code> (ligne 148) :</p>
+      <pre><code>public func masquer(_ masquee: Bool, pid: pid_t) -> Bool {
+    let appElement = AXUIElementCreateApplication(pid)
+    let countBefore = compteFenetres(pid: pid)
+    AXUIElementSetAttributeValue(appElement, kAXHiddenAttribute, ...)
+    usleep(300_000) // &lt;-- FREEZE DE 300 MS SYNCHRONE SUR LE MAIN THREAD
+    let countAfter = compteFenetres(pid: pid)
+    return ...
+}</code></pre>
+      <p>Lors d'une bascule : <code>masquer(false, cible)</code> dort 300 ms, puis <code>masquer(true, actuelle)</code> dort 300 ms. <strong>Total = 600 ms de gel total de l'application</strong>. Or, nous avons mesuré que WindowServer propage le masquage en <strong>1,5 à 32 ms</strong> !</p>
+    </div>
+
+    <h2>Plan d'Action Recommandé</h2>
+    <ol style="padding-left: 1.25rem;">
+      <li><strong>P0 (Immédiat) :</strong> Passer <code>masquer()</code> en asynchrone non-bloquant avec sondage court (15 ms) et timeout à 100 ms max. Supprime instantanément les 600 ms de gel UI.</li>
+      <li><strong>P1 (Immédiat) :</strong> N'attacher <code>scrollMonitor</code> que lorsque <code>opacite &gt; 0</code>. Supprime 99,9% des réveils de scroll sur la machine.</li>
+      <li><strong>P2 (Fond) :</strong> Remplacer le timer 2s de <code>refresh()</code> par des notifications <code>NSWorkspace</code> et ne rafraîchir à chaud qu'au clic sur le menu.</li>
+      <li><strong>P3 (Propreté) :</strong> Retirer <code>@Published</code> de <code>lastNotchZoneDescription</code> pour couper les invalidations SwiftUI parasites.</li>
+    </ol>
+  </div>
+</body>
+</html>
