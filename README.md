@@ -1,5 +1,7 @@
 # Bouncer
 
+[![CI](https://github.com/donpaco13/Bouncer/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/donpaco13/Bouncer/actions/workflows/ci.yml)
+
 Sur un MacBook équipé d'une encoche matérielle, deux applications de notch ouvertes en même temps dessinent au même endroit et se superposent. macOS ne coordonne rien : aucune notion d'« app d'encoche active » n'existe au niveau du système. La seule issue manuelle consiste à quitter l'une pour voir l'autre.
 
 Bouncer résout ce conflit en régissant la visibilité des applications d'encoche : une seule application occupe le notch à la fois. Vous passez de l'une à l'autre d'un geste sur le trackpad, d'un clic sur des flèches au survol, ou depuis la barre des menus.
