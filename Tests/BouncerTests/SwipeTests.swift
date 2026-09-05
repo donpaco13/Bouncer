@@ -33,31 +33,33 @@ struct SwipeTests {
         return flux
     }
 
+    /// Nombre de bascules produites par le flux. Un compte et non une liste de sens : la
+    /// décision n'en porte plus, le swipe avance d'un cran dans les deux sens.
     private func bascules(_ flux: [EvenementDefilement], _ detecteur: DetecteurSwipe = .init())
-        -> [Bool]
+        -> Int
     {
         var d = detecteur
-        return flux.compactMap {
-            if case .bascule(let versLaSuite) = d.recoit($0) { return versLaSuite }
-            return nil
-        }
+        return flux.filter { d.recoit($0) == .bascule }.count
     }
 
     @Test("Un geste physique complet, inertie comprise, ne produit qu'UNE bascule")
     func unGesteUneBascule() {
-        #expect(bascules(gesteEnregistre()) == [true])
+        #expect(bascules(gesteEnregistre()) == 1)
     }
 
-    @Test("Vers la droite : une bascule, vers l'app précédente")
+    @Test("Vers la droite : une bascule aussi, et du même côté du cycle")
     func sensInverse() {
-        #expect(bascules(gesteEnregistre(versLaGauche: false)) == [false])
+        // Le geste inverse produit exactement la même décision que le geste direct : c'est ça,
+        // « un seul côté suffit ». Rien dans la décision ne distingue plus les deux sens.
+        #expect(bascules(gesteEnregistre(versLaGauche: false)) == 1)
+        #expect(bascules(gesteEnregistre(versLaGauche: false)) == bascules(gesteEnregistre()))
     }
 
     @Test("La traîne d'inertie seule ne déclenche jamais rien")
     func inertieSeule() {
         let inertie = gesteEnregistre().filter(\.inertie)
         #expect(inertie.count > 60)  // le flux mesuré en contenait 72
-        #expect(bascules(inertie).isEmpty)
+        #expect(bascules(inertie) == 0)
     }
 
     @Test("Deux gestes successifs produisent deux bascules, même rapprochés")
@@ -70,7 +72,7 @@ struct SwipeTests {
                                 deltaY: $0.deltaY, instant: $0.instant + fin,
                                 dansLaZone: $0.dansLaZone)
         }
-        #expect(bascules(flux) == [true, true])
+        #expect(bascules(flux) == 2)
     }
 
     @Test("Deux gestes lents sous le seuil ne s'additionnent pas d'un geste à l'autre")
@@ -98,12 +100,12 @@ struct SwipeTests {
             flux.append(.init(phase: .encours, inertie: false, deltaX: -1, deltaY: -9,
                               instant: 0.016 * Double(i + 1), dansLaZone: true))
         }
-        #expect(bascules(flux).isEmpty)
+        #expect(bascules(flux) == 0)
     }
 
     @Test("Curseur hors de la zone : rien ne passe")
     func horsZone() {
-        #expect(bascules(gesteEnregistre(dansLaZone: false)).isEmpty)
+        #expect(bascules(gesteEnregistre(dansLaZone: false)) == 0)
     }
 
     @Test("Molette classique (aucune phase) : la fenêtre de repos reste le seul anti-rebond")
@@ -114,7 +116,7 @@ struct SwipeTests {
                               instant: 0.05 * Double(i), dansLaZone: true))
         }
         // 12 crans sur 0,55 s : la fenêtre de repos de 0,5 s en laisse passer deux, pas douze.
-        #expect(bascules(flux) == [true, true])
+        #expect(bascules(flux) == 2)
     }
 
     @Test("L'opacité des flèches suit la distance à la zone")

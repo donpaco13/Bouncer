@@ -41,8 +41,14 @@ public struct EvenementDefilement {
 }
 
 /// Un geste physique -> au plus une bascule.
+///
+/// La décision ne porte PAS de sens. Le swipe fait avancer d'un cran, que les doigts aillent à
+/// gauche ou à droite : deux sens qui font deux choses différentes obligent à retenir lequel fait
+/// quoi, et le retour de test réel du 2026-09-05 est que ça ne se retient pas. Les deux flèches
+/// ‹ et › gardent leur sens, elles — une flèche qui pointe à gauche et envoie à droite mentirait.
+/// Le détecteur mesure donc « y a-t-il eu un geste horizontal », et rien d'autre.
 public struct DetecteurSwipe {
-    public enum Decision: Equatable { case rien, bascule(versLaSuite: Bool) }
+    public enum Decision: Equatable { case rien, bascule }
 
     /// Distance horizontale au-delà de laquelle l'intention est acquise. Bas de plafond assumé :
     /// ce qui empêchait de le baisser était la rafale d'événements d'un même geste, que la
@@ -95,8 +101,6 @@ public struct DetecteurSwipe {
         accY += e.deltaY
         guard abs(accX) >= seuil, abs(accX) > abs(accY) else { return .rien }
 
-        // Vers la gauche (deltaX négatif) -> app suivante ; vers la droite -> précédente.
-        let versLaSuite = accX < 0
         accX = 0
         accY = 0
         if case .aucune = e.phase {
@@ -104,7 +108,7 @@ public struct DetecteurSwipe {
         } else {
             arme = false
         }
-        return .bascule(versLaSuite: versLaSuite)
+        return .bascule
     }
 }
 

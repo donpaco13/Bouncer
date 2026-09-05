@@ -198,8 +198,13 @@ final class NotchOverlayController: NSObject {
                 dansLaZone: curseurDansLaZone()
             )
         )
-        if case .bascule(let versLaSuite) = decision {
-            windowManager.cycle(forward: versLaSuite)
+        // Toujours `forward: true` : un swipe horizontal avance d'un cran, quel que soit son
+        // sens, et le refaire du même côté continue de faire tourner le cycle. C'est `cycle` qui
+        // reboucle, il n'y a donc pas de cul-de-sac. Le sens reste porté par les deux flèches, où
+        // il est lisible ; dans un geste, il ne l'est pas — il faut le retenir, et il ne se
+        // retient pas (retour de test réel du 2026-09-05).
+        if case .bascule = decision {
+            windowManager.cycle(forward: true)
         }
     }
 
@@ -233,11 +238,15 @@ private final class NotchArrowsView: NSView {
             (leftButton, "chevron.left", false), (rightButton, "chevron.right", true),
         ] {
             button.isBordered = false
-            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+                .withSymbolConfiguration(.init(pointSize: 11, weight: .semibold))
             button.imageScaling = .scaleProportionallyDown
-            // `.labelColor` et pas blanc : les flèches ne sont plus sur le noir du boîtier mais
-            // sur la barre des menus, qui suit l'apparence système — du blanc y disparaît en clair.
-            button.contentTintColor = .labelColor
+            // Glyphe blanc sur pastille sombre — cf. `Self.fondPastille` : le fond de nos flèches
+            // nous appartient, donc le contraste ne dépend plus de ce qu'une app tierce dessine
+            // dessous.
+            button.contentTintColor = .white
+            button.wantsLayer = true
+            button.layer?.backgroundColor = Self.fondPastille
             button.target = self
             button.tag = forward ? 1 : 0
             button.action = #selector(arrowTapped(_:))
@@ -254,12 +263,28 @@ private final class NotchArrowsView: NSView {
         layoutArrows()
     }
 
+    /// Fond de la pastille. MESURÉ le 2026-09-05 : la fenêtre de boringNotch fait 640 pt de large
+    /// (975→1615 sur la machine de référence) alors que le boîtier caméra n'en fait que 166
+    /// (1212→1378) — elle recouvre donc INTÉGRALEMENT les deux marges de 44 pt où logent nos
+    /// flèches. Ce n'est pas un problème de z-order : notre panel est ordonné au niveau 35 et le
+    /// relevé `CGWindowList` le donne bien devant boringNotch (27) et Vibe Island (27). Nos flèches
+    /// sont donc DEVANT, mais dessinées par-dessus une surface qui ne nous appartient pas et dont
+    /// on ne sait rien : noir de l'encoche déployée, pochette d'album, visualiseur. Un glyphe
+    /// monochrome y disparaît, quelle que soit la couleur choisie — d'où la pastille : elle rend
+    /// les 22 pt sous le chevron prévisibles, et le blanc redevient lisible partout.
+    private static let fondPastille = NSColor.black.withAlphaComponent(0.55).cgColor
+
     private func layoutArrows() {
-        let size = min(bounds.height - 4, 14)
+        // 22 pt et non 14 : la pastille doit rester lisible sur une pochette d'album, et une cible
+        // de clic de 14 pt dans une marge de 44 était petite pour rien.
+        let size = min(bounds.height - 4, 22)
         let y = (bounds.height - size) / 2
         let x = abscissesFleches(largeurOverlay: bounds.width, marge: sideMargin, taille: size)
         leftButton.frame = NSRect(x: x.gauche, y: y, width: size, height: size)
         rightButton.frame = NSRect(x: x.droite, y: y, width: size, height: size)
+        for button in [leftButton, rightButton] {
+            button.layer?.cornerRadius = size / 2
+        }
     }
 
     /// Le panel couvre une portion de barre des menus dès l'approche : sans ce passe-plat, il
