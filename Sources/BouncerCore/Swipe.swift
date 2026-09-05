@@ -69,12 +69,6 @@ public struct DetecteurSwipe {
         self.repos = repos
     }
 
-    /// Curseur sorti de la zone : le geste en cours ne compte plus.
-    public mutating func reinitialise() {
-        accX = 0
-        accY = 0
-    }
-
     public mutating func recoit(_ e: EvenementDefilement) -> Decision {
         // L'inertie n'est pas un geste. C'est la cause mesurée du double déclenchement.
         guard !e.inertie else { return .rien }

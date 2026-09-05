@@ -15,6 +15,7 @@
 
 import AppKit
 import ApplicationServices
+import Combine
 import CoreGraphics
 import Foundation
 
@@ -103,14 +104,22 @@ public final class WindowManager: ObservableObject {
     /// chemins qui font « la même chose » finiraient par diverger.
     private let bascule: Bascule
 
+    /// Les préférences. Deux d'entre elles arrivent jusqu'ici : la période du timer et la liste
+    /// des apps exclues du cycle. Passées par référence depuis `BouncerApp`, la même instance que
+    /// celle de la fenêtre de réglages et de l'overlay — sinon un changement ne traverserait pas.
+    public let reglages: Reglages
+    private var abonnementReglages: AnyCancellable?
+
     /// `startTimer: false` pour le self-test CLI (un seul refresh() synchrone, pas de boucle).
     public init(
         startTimer: Bool = true,
         catalogue: CatalogueApps = CatalogueApps(),
-        controleur: ControleurApps = ControleurAppsSysteme()
+        controleur: ControleurApps = ControleurAppsSysteme(),
+        reglages: Reglages = Reglages()
     ) {
         self.catalogue = catalogue
         self.controleur = controleur
+        self.reglages = reglages
         bascule = Bascule(controleur: controleur)
         accessibilityTrusted = AXIsProcessTrusted()
         if !accessibilityTrusted {
@@ -121,7 +130,24 @@ public final class WindowManager: ObservableObject {
         }
         refresh()
         guard startTimer else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        replanifierTimer()
+        // Changer la période dans les réglages doit valoir tout de suite : sans ça, il faudrait
+        // relancer l'app pour voir l'effet du réglage qu'on vient de bouger.
+        abonnementReglages = reglages.changementsIntervalle
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] intervalle in
+                MainActor.assumeIsolated { self?.replanifierTimer(intervalle) }
+            }
+    }
+
+    /// (Re)pose le timer de resondage. Un `Timer` ne change pas de période : il faut l'invalider
+    /// et en reposer un.
+    private func replanifierTimer(_ intervalle: TimeInterval? = nil) {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(
+            withTimeInterval: intervalle ?? reglages.intervalleRafraichissement, repeats: true
+        ) { [weak self] _ in
             // Le timer est planifié sur la run loop principale : son callback s'exécute donc
             // déjà sur le main actor, `assumeIsolated` ne fait que le dire au compilateur.
             MainActor.assumeIsolated { self?.refreshTrustState() }
@@ -408,7 +434,11 @@ public final class WindowManager: ObservableObject {
     /// tout l'objet du chantier, ni sur l'état de lancement, puisque la bascule sait relancer une
     /// app arrêtée. Dérivé de `entreesMenu` plutôt que recalculé : le menu et le swipe doivent
     /// désigner la même « app suivante », sinon les deux gestes divergent sans rien signaler.
-    var cyclableApps: [String] { entreesMenu.map(\.bundleID) }
+    /// Seule exception à cette identité, et elle est explicite : les apps que l'utilisateur a
+    /// décochées dans les réglages sortent du cycle sans sortir du menu (cf. `bundleIDsCyclables`).
+    var cyclableApps: [String] {
+        bundleIDsCyclables(entrees: entreesMenu, exclus: reglages.bundleIDsExclus)
+    }
 
     /// Un cran de swipe, ou un clic sur une flèche : l'app suivante (ou précédente) du cycle
     /// circulaire devient active, par la bascule qu'emprunte aussi le menu. Une seule app au

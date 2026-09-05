@@ -7,7 +7,7 @@
 // derrière le matériel, et y attendre le curseur revenait à demander de viser une cible
 // invisible — mesuré : sur deux minutes d'usage réel, 342 événements de scroll et pas un seul
 // avec le curseur dans cette bande. La zone sensible et le panel couvrent donc le boîtier PLUS
-// `sideMargin` points de chaque côté, pris sur les aires auxiliaires (les parties visibles de la
+// `margeLaterale` points de chaque côté, pris sur les aires auxiliaires (les parties visibles de la
 // barre des menus), et les flèches se logent dans ces marges. Calcul dans `zoneSurvol` /
 // `abscissesFleches` (BouncerCore), verrouillé par `ZoneSurvolTests`.
 //
@@ -44,6 +44,7 @@
 // changement de configuration d'écrans — le seul moment où `rebuild()` tourne.
 
 import AppKit
+import Combine
 import BouncerCore
 
 // `@MainActor` : ce contrôleur ne manipule que des NSPanel, NSView et monitors NSEvent, et
@@ -51,6 +52,11 @@ import BouncerCore
 @MainActor
 final class NotchOverlayController: NSObject {
     private let windowManager: WindowManager
+    /// Les préférences. Trois d'entre elles atterrissent ici : ce qui déclenche le cycle, la
+    /// portée d'approche, la largeur des bandes latérales. La même instance que la fenêtre de
+    /// réglages — c'est ce qui fait qu'un curseur qu'on bouge se voit à l'écran sans relancer.
+    private let reglages: Reglages
+    private var abonnement: AnyCancellable?
     private var panel: NSPanel?
     private var arrowsView: NotchArrowsView?
     private var hoverMonitor: Any?
@@ -61,23 +67,25 @@ final class NotchOverlayController: NSObject {
     private var zoneSensible: CGRect?
     private var opaciteCourante: CGFloat = 0
 
-    /// Largeur de bande visible prise de chaque côté du boîtier caméra — assez pour loger une
-    /// flèche et lui donner une cible de clic atteignable, assez peu pour ne pas s'étaler sur les
-    /// menus. Cf. commentaire d'en-tête.
-    private let sideMargin: CGFloat = 44
-
-    /// Distance à laquelle les flèches commencent à apparaître, au-delà de la zone sensible.
-    /// SEULE CONSTANTE DE CE CORRECTIF QUI RESTE AU JUGÉ : la bande fait 41 pt de haut, 72 pt
-    /// donne une rampe encore perceptible à vitesse de pointeur normale sans allumer les flèches
-    /// dès qu'on longe le haut de l'écran. À régler au retour de test réel.
-    private let porteeApproche: CGFloat = 72
+    // `sideMargin` (44 pt) et `porteeApproche` (72 pt) étaient des constantes ici. La seconde
+    // était la SEULE du projet restée réglée à l'œil, et les deux décident de la sensation du
+    // geste : elles vivent désormais dans `Reglages`, avec ces mêmes valeurs en défaut.
 
     private var detecteur = DetecteurSwipe()
 
-    init(windowManager: WindowManager) {
+    init(windowManager: WindowManager, reglages: Reglages) {
         self.windowManager = windowManager
+        self.reglages = reglages
         super.init()
         rebuild()
+        // Un réglage qui ne se voit qu'au relancement n'est pas réglable : on ne peut pas tâtonner
+        // une distance d'approche en redémarrant l'app entre deux essais. `rebuild()` recalcule la
+        // géométrie et réapplique l'opacité, ce qui couvre les trois réglages d'un coup.
+        abonnement = reglages.objectWillChange.sink { [weak self] in
+            // `objectWillChange` part AVANT l'écriture de la nouvelle valeur : relire tout de
+            // suite rendrait l'ancienne.
+            Task { @MainActor in self?.rebuild() }
+        }
         hoverMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             self?.updateHover()
         }
@@ -92,10 +100,10 @@ final class NotchOverlayController: NSObject {
         if let m = scrollMonitor { NSEvent.removeMonitor(m) }
     }
 
-    /// Cadre du panel : le boîtier caméra élargi de `sideMargin` de chaque côté. La zone SENSIBLE
+    /// Cadre du panel : le boîtier caméra élargi de `margeLaterale` de chaque côté. La zone SENSIBLE
     /// ajoute 6 pt en haut et en bas — la bande fait ~29 pt, difficile à survoler pile.
     private func cadrePanel() -> CGRect? {
-        windowManager.notchZone().map { zoneSurvol(encoche: $0, marge: sideMargin) }
+        windowManager.notchZone().map { zoneSurvol(encoche: $0, marge: reglages.margeLaterale) }
     }
 
     /// (Re)positionne le panel sur la zone actuelle. Pas d'encoche détectée -> pas de
@@ -110,9 +118,14 @@ final class NotchOverlayController: NSObject {
         if let panel {
             panel.setFrame(zone, display: true)
             arrowsView?.frame = NSRect(origin: .zero, size: zone.size)
+            arrowsView?.margeLaterale = reglages.margeLaterale
         } else {
             buildPanel(zone: zone)
         }
+        // Force le recalcul : `updateHover` sort tôt quand l'opacité n'a pas bougé, or ici c'est
+        // la géométrie ou le mode d'activation qui vient de changer, pas le curseur.
+        opaciteCourante = -1
+        updateHover()
     }
 
     private func teardownPanel() {
@@ -147,7 +160,7 @@ final class NotchOverlayController: NSObject {
         // icônes de statut compris, reste cliquable normalement.
         p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
 
-        let arrows = NotchArrowsView(frame: NSRect(origin: .zero, size: zone.size), sideMargin: sideMargin)
+        let arrows = NotchArrowsView(frame: NSRect(origin: .zero, size: zone.size), margeLaterale: reglages.margeLaterale)
         arrows.onArrowClicked = { [weak self] forward in self?.windowManager.cycle(forward: forward) }
         p.contentView = arrows
 
@@ -155,9 +168,38 @@ final class NotchOverlayController: NSObject {
         // survol, piloté par updateHover() — cf. commentaire d'en-tête.
         panel = p
         arrowsView = arrows
+        // Le monitor de scroll n'est PAS posé ici : il vit et meurt avec la présence du curseur
+        // dans la zone (cf. `majMoniteurScroll`).
+    }
 
-        scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
-            self?.handleScroll(event)
+    /// Attache ou détache le monitor de défilement.
+    ///
+    /// Il était attaché en permanence, et interceptait donc 100 % des défilements de la machine
+    /// pour n'en utiliser qu'une poignée : `handleScroll` jette de toute façon tout ce qui arrive
+    /// hors zone, et un seul geste produit 86 événements dont 72 d'inertie (audit de fluidité,
+    /// `docs/PERFORMANCE.md`). La condition d'attache est donc exactement celle sous laquelle un
+    /// événement pourrait compter — ni plus large, ni plus étroite.
+    ///
+    /// Le monitor reste GLOBAL, et ce n'est pas un détail : dès qu'une app d'encoche tierce
+    /// déploie son panneau, sa fenêtre consomme le scroll avant nous, et un monitor local ne
+    /// verrait plus rien (cf. commentaire d'en-tête). On change QUAND il écoute, jamais quoi.
+    ///
+    /// La condition ne se dérive PAS de l'opacité des flèches : en mode « swipe seul » elle vaut
+    /// zéro en permanence, et le swipe ne marcherait plus du tout.
+    private func majMoniteurScroll() {
+        let voulu = reglages.modeActivation.swipeActif && curseurDansLaZone()
+        if voulu, scrollMonitor == nil {
+            // Détecteur neuf à chaque attache : un geste a pu commencer AVANT l'entrée en zone,
+            // ses premiers événements sont partis pendant qu'on n'écoutait pas, et `arme` a pu
+            // rester à faux depuis la bascule précédente — le geste en cours serait alors perdu
+            // en entier. Repartir de zéro le rend comptable dès le premier événement reçu.
+            detecteur = DetecteurSwipe()
+            scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+                self?.handleScroll(event)
+            }
+        } else if !voulu, let m = scrollMonitor {
+            NSEvent.removeMonitor(m)
+            scrollMonitor = nil
         }
     }
 
@@ -170,7 +212,16 @@ final class NotchOverlayController: NSObject {
     /// portée, on le retire, ce que l'en-tête explique.
     private func updateHover() {
         guard let panel, let zone = zoneSensible else { return }
-        let opacite = opaciteFleches(curseur: NSEvent.mouseLocation, zone: zone, portee: porteeApproche)
+        // AVANT la garde d'opacité : en mode « swipe seul » l'opacité vaut zéro en permanence, et
+        // une garde placée plus haut empêcherait le monitor d'être jamais attaché.
+        majMoniteurScroll()
+
+        // Flèches désactivées : le panel ne va JAMAIS à l'écran, donc rien de Bouncer ne recouvre
+        // la barre des menus. C'est la différence entre « invisible » et « absent », et c'est ce
+        // que promet le mode « swipe seul ».
+        let opacite = reglages.modeActivation.flechesActives
+            ? opaciteFleches(curseur: NSEvent.mouseLocation, zone: zone, portee: reglages.porteeApproche)
+            : 0
         guard opacite != opaciteCourante else { return }
         let etaitVisible = opaciteCourante > 0
         opaciteCourante = opacite
@@ -179,12 +230,13 @@ final class NotchOverlayController: NSObject {
             if !etaitVisible { panel.orderFrontRegardless() }
         } else {
             panel.orderOut(nil)
-            detecteur.reinitialise()
         }
         arrowsView?.opacite = opacite
     }
 
     private func handleScroll(_ event: NSEvent) {
+        // Pas de garde sur le mode ici : le monitor n'est simplement pas attaché quand le swipe
+        // est désactivé (`majMoniteurScroll`). Une seule condition, un seul endroit.
         // La position du curseur est revérifiée ici plutôt que déduite d'un état latché par le
         // monitor `.mouseMoved` : celui-ci ne se remet pas à jour si le curseur reste immobile
         // pendant qu'une app d'encoche tierce déploie son panneau par-dessus.
@@ -226,11 +278,14 @@ private final class NotchArrowsView: NSView {
     private let leftButton = NSButton()
     private let rightButton = NSButton()
     /// Largeur de la bande visible à chaque extrémité : les flèches s'y centrent, jamais au milieu
-    /// où le boîtier caméra les cacherait.
-    private let sideMargin: CGFloat
+    /// où le boîtier caméra les cacherait. Variable, parce qu'elle est réglable et que le panel
+    /// est construit une seule fois puis repositionné.
+    var margeLaterale: CGFloat {
+        didSet { layoutArrows() }
+    }
 
-    init(frame frameRect: NSRect, sideMargin: CGFloat) {
-        self.sideMargin = sideMargin
+    init(frame frameRect: NSRect, margeLaterale: CGFloat) {
+        self.margeLaterale = margeLaterale
         super.init(frame: frameRect)
         wantsLayer = true
 
@@ -279,7 +334,7 @@ private final class NotchArrowsView: NSView {
         // de clic de 14 pt dans une marge de 44 était petite pour rien.
         let size = min(bounds.height - 4, 22)
         let y = (bounds.height - size) / 2
-        let x = abscissesFleches(largeurOverlay: bounds.width, marge: sideMargin, taille: size)
+        let x = abscissesFleches(largeurOverlay: bounds.width, marge: margeLaterale, taille: size)
         leftButton.frame = NSRect(x: x.gauche, y: y, width: size, height: size)
         rightButton.frame = NSRect(x: x.droite, y: y, width: size, height: size)
         for button in [leftButton, rightButton] {

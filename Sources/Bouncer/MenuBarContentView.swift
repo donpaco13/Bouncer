@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import BouncerCore
 
@@ -47,9 +48,46 @@ struct MenuBarContentView: View {
         }
 
         Divider()
+        Button("Réglages…") { Self.ouvrirReglages() }
+            .keyboardShortcut(",", modifiers: .command)
         Button("Guide de démarrage…") { ouvrirAccueil() }
         Button("Rafraîchir") { windowManager.refresh() }
         Button("Quitter") { NSApplication.shared.terminate(nil) }
+    }
+
+    /// Ouvre la scène `Settings`.
+    ///
+    /// Trois voies plus courtes ont été essayées et MESURÉES ici, toutes inutilisables :
+    ///   - `SettingsLink` (la voie officielle macOS 14) : l'entrée est présente au tout premier
+    ///     lancement puis DISPARAÎT du menu aux suivants — relevé deux fois sur l'arbre
+    ///     d'accessibilité, le menu ne contenait plus que les apps, le séparateur, Guide,
+    ///     Rafraîchir, Quitter ;
+    ///   - `NSApp.sendAction(showSettingsWindow:, to: nil, …)` : rien ne s'ouvre. Une app
+    ///     accessoire (`LSUIElement`) n'a pas de fenêtre clé, donc pas de chaîne de répondeurs à
+    ///     remonter ;
+    ///   - chercher ce même sélecteur dans le menu de l'app : il n'y est pas. Relevé sur le menu
+    ///     réel, l'entrée « Réglages… » que SwiftUI installe porte `menuAction:`, son sélecteur
+    ///     interne, et non `showSettingsWindow:`.
+    ///
+    /// Ce qui marche, vérifié : déclencher cette entrée-là. On l'identifie par son RACCOURCI ⌘,
+    /// — jamais par son titre, localisé (« Settings… » en anglais), ni par son sélecteur, qui
+    /// appartient à SwiftUI et peut changer sans préavis. Le raccourci, lui, est le contrat que
+    /// macOS tient avec l'utilisateur : s'il bougeait, l'entrée ne serait plus celle qu'on veut.
+    private static func ouvrirReglages() {
+        // Un tour de run loop : le NSMenu est encore en cours de fermeture, et `activate` n'a pas
+        // encore pris effet.
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.async {
+            guard let menuApp = NSApp.mainMenu?.items.first?.submenu,
+                  let entree = menuApp.items.first(where: {
+                      $0.keyEquivalent == "," && $0.keyEquivalentModifierMask == .command
+                  }),
+                  let action = entree.action
+            else { return }
+            // `to: entree.target` et non `to: nil` : l'entrée de menu connaît son destinataire,
+            // la chaîne des répondeurs non — c'est toute la différence avec la voie qui échouait.
+            NSApp.sendAction(action, to: entree.target, from: entree)
+        }
     }
 
     /// Un symbole sur chaque entrée, y compris inactive : c'est ce qui garde les libellés alignés

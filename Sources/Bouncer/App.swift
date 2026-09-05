@@ -11,13 +11,19 @@ import BouncerCore
 
 struct BouncerApp: App {
     @StateObject private var windowManager: WindowManager
+    /// UNE instance de réglages pour toute l'app, créée ici et passée à la main. Deux instances
+    /// liraient les mêmes clés mais ne se préviendraient pas : bouger un curseur dans la fenêtre
+    /// de réglages ne changerait rien à l'overlay tant que l'app ne serait pas relancée.
+    @StateObject private var reglages: Reglages
     private let overlayController: NotchOverlayController
     private let accueilController: FenetreAccueilController
 
     init() {
-        let windowManager = WindowManager()
+        let reglages = Reglages()
+        _reglages = StateObject(wrappedValue: reglages)
+        let windowManager = WindowManager(reglages: reglages)
         _windowManager = StateObject(wrappedValue: windowManager)
-        overlayController = NotchOverlayController(windowManager: windowManager)
+        overlayController = NotchOverlayController(windowManager: windowManager, reglages: reglages)
 
         // L'accueil s'affiche APRÈS le retour de cet init : ordonner une fenêtre à l'écran depuis
         // l'init d'un `App` la pose avant que l'app ait fini son lancement, et elle n'obtient
@@ -42,6 +48,12 @@ struct BouncerApp: App {
                 windowManager: windowManager,
                 ouvrirAccueil: { [accueilController] in accueilController.afficher() }
             )
+        }
+
+        // Scène `Settings` : macOS lui donne le titre localisé, ⌘, et la position mémorisée. Cf.
+        // FenetreReglages.swift.
+        Settings {
+            VueReglages(windowManager: windowManager, reglages: reglages)
         }
     }
 }

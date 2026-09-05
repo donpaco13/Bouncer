@@ -129,4 +129,14 @@ struct SwipeTests {
         #expect(opaciteFleches(curseur: CGPoint(x: 1295, y: -200), zone: zone, portee: portee) == 0)
         #expect(opaciteFleches(curseur: CGPoint(x: 1000, y: -14), zone: zone, portee: portee) == 0)
     }
+
+    @Test("Portée nulle : les flèches n'existent que dans la bande, sans rampe")
+    func porteeNulle() {
+        // C'est le bas de course du curseur « Apparition » des Réglages, et une valeur qu'on
+        // peut vouloir : plus rien ne s'allume en longeant le haut de l'écran.
+        let zone = CGRect(x: 1168, y: -35, width: 254, height: 41)
+        #expect(opaciteFleches(curseur: CGPoint(x: 1295, y: -14), zone: zone, portee: 0) == 1)
+        #expect(opaciteFleches(curseur: CGPoint(x: 1295, y: -40), zone: zone, portee: 0) == 0)
+        #expect(opaciteFleches(curseur: CGPoint(x: 1160, y: -14), zone: zone, portee: 0) == 0)
+    }
 }
