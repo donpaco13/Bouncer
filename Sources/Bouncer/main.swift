@@ -13,6 +13,15 @@ if CommandLine.arguments.contains("--self-test") {
     // le déclare au compilateur au lieu d'introduire une hop asynchrone dans un chemin CLI.
     MainActor.assumeIsolated {
     let wm = WindowManager(startTimer: false)
+    // `refresh()` lance le test de support dans une tâche : sans pomper la boucle principale, la
+    // table s'imprimerait avec « Test en cours… » partout et ne mesurerait rien. On rend la main
+    // dès que tous les verdicts sont tombés, et au plus tard au bout de 15 s (le pire cas connu
+    // est une app par cycle de vie, ~1 s, mais une app qui ne répond pas fait attendre le timeout
+    // de masquage sur chaque appel).
+    let echeance = Date().addingTimeInterval(15)
+    while wm.apps.contains(where: { $0.support == .testing }), Date() < echeance {
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+    }
     print("Accessibilité accordée à ce binaire : \(wm.accessibilityTrusted)")
     print("Zone d'encoche : \(wm.lastNotchZoneDescription)")
     if wm.apps.isEmpty {

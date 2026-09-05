@@ -145,6 +145,7 @@ Les ouvertures suivantes s'effectueront directement sans nouvel avertissement.
 
 ## Documentation interne et archives
 
+- [`docs/COMPATIBILITE.md`](docs/COMPATIBILITE.md) : recensement des apps d'encoche du marché et verdict de Bouncer pour chacune, mesure et prédiction séparées.
 - [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md) : analyse technique de Gatekeeper, quarantaine Homebrew et signatures.
 - [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) : mesures de consommation CPU, coût du scan `CGWindowList` et optimisations.
 - [`docs/archive/`](docs/archive/) : scripts initiaux de validation technique (`Spike.swift`, `AXProbe.swift`), résultats de mesures d'accessibilité (`SPIKE_RESULTS.md`) et documents d'architecture d'origine (`PRD.md`, `TECH_SPEC.md`, `ROADMAP.md`).
