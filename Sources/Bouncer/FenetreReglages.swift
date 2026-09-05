@@ -190,6 +190,25 @@ private struct OngletGeste: View {
                 }
             }
 
+            Section("Zone sensible") {
+                Picker("Bouncer se cale sur", selection: $reglages.ancrageZone) {
+                    ForEach(AncrageZone.allCases) { a in Text(a.libelle).tag(a) }
+                }
+                .pickerStyle(.inline)
+
+                Text(reglages.ancrageZone.explication)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Le chiffre plutôt que l'adjectif : c'est lui qui rend le réglage décidable, et
+                // c'est la mesure qui a expliqué les swipes ratés.
+                Text("Mesuré : le boîtier caméra fait 166 pt de large, une app d'encoche en fait 640 à 740 et descend jusqu'à 520 pt sous la barre. Calé sur le boîtier, le swipe n'écoutait que 3 % de l'île qu'on voit.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Section("Flèches") {
                 // La valeur est dans le libellé du curseur, pas sur une ligne à part : un
                 // panneau de préférences se lit d'un coup d'œil, et « Réglage actuel : 72 pt »
@@ -219,7 +238,22 @@ private struct OngletGeste: View {
                 .accessibilityLabel("Largeur des bandes latérales des flèches")
                 .accessibilityValue("\(Int(reglages.margeLaterale)) points de chaque côté")
 
-                Text("Les flèches se logent de part et d'autre du boîtier caméra, jamais dessus. Élargir donne une cible de clic plus facile ; réduire laisse la barre des menus tranquille.")
+                Text("Les flèches se logent de part et d'autre de ce qui couvre l'encoche, jamais dessus. Élargir donne une cible de clic plus facile ; réduire laisse la barre des menus tranquille.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Slider(value: $reglages.retraitFleches, in: Reglages.Domaine.retrait, step: 1) {
+                    Text("Déploiement — \(libelleRetrait)")
+                } minimumValueLabel: {
+                    Text("Fondu seul")
+                } maximumValueLabel: {
+                    Text("Ample")
+                }
+                .accessibilityLabel("Amplitude du déploiement des flèches")
+                .accessibilityValue(reglages.retraitFleches == 0 ? "aucune, fondu seul" : "\(Int(reglages.retraitFleches)) points")
+
+                Text("À l'approche, la flèche sort de derrière l'encoche en même temps qu'elle apparaît : un soupçon de loin, déployée de près. À zéro, elle se contente de s'éclaircir sans bouger.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -238,6 +272,12 @@ private struct OngletGeste: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var libelleRetrait: String {
+        reglages.retraitFleches == 0
+            ? "la flèche ne bouge pas"
+            : "\(Int(reglages.retraitFleches)) pt de glissement"
     }
 
     private var libellePortee: String {
@@ -268,8 +308,8 @@ private struct ApercuGeste: View {
                 if reglages.modeActivation.flechesActives {
                     // La bande figure l'ÉTENDUE de la portée, et le dégradé la rampe d'opacité qui
                     // s'y joue. Elle est en gris et non en couleur d'accentuation : l'overlay ne
-                    // dessine aucun halo lumineux — ce qui s'estompe, ce sont les flèches
-                    // elles-mêmes (`NotchOverlay.opaciteFleches`, `alphaValue` des boutons). Un
+                    // dessine aucun halo lumineux — ce qui s'estompe ET GLISSE, ce sont les
+                    // flèches elles-mêmes (`revelationFleches`, BouncerCore). Un
                     // aperçu qui invente un effet que le produit n'a pas se fait démentir au
                     // premier essai sur l'écran.
                     RoundedRectangle(cornerRadius: 8)

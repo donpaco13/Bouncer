@@ -133,8 +133,50 @@ public func zoneSurvol(encoche: CGRect, marge: CGFloat) -> CGRect {
     encoche.insetBy(dx: -marge, dy: 0)
 }
 
+/// Cadre de l'overlay quand il se cale sur LA FENÊTRE réellement posée sur l'encoche.
+///
+/// MESURÉ le 2026-09-05, et c'est la cause racine des swipes ratés : la bande que Bouncer écoutait
+/// faisait 254×41 pt (boîtier 166 + 2×44 de marge), quand la fenêtre que l'utilisateur VOIT et
+/// vise fait 640×210 pt (boringNotch) ou 740×520 pt (Vibe Island). Un geste posé sur l'île, à
+/// 180 pt à droite de la bande, était rejeté 13 fois de suite par le garde `horsZone` ; un geste
+/// posé 80 pt sous la barre des menus ne laissait AUCUNE trace, le monitor n'étant même pas
+/// attaché. Viser ce qu'on voit ne marchait que sur 2,7 % de la surface visible.
+///
+/// La largeur suit donc la fenêtre, plus `marge` de chaque côté pour y loger les flèches — qui se
+/// retrouvent ainsi HORS de la surface de l'app tierce, ce qui règle du même coup le contraste
+/// (cf. `NotchArrowsView`). La HAUTEUR, elle, reste celle de la barre des menus : le panel est une
+/// vraie fenêtre au niveau 35, et lui donner les 520 pt de Vibe Island la ferait recouvrir un tiers
+/// de l'écran pour n'y dessiner que deux chevrons.
+///
+/// `ecran` borne le tout : une fenêtre d'encoche large sur un écran étroit pousserait les flèches
+/// hors champ.
+public func cadreFleches(encoche: CGRect, marge: CGFloat, fenetre: CGRect?, ecran: CGRect) -> CGRect {
+    let base = zoneSurvol(encoche: encoche, marge: marge)
+    guard let fenetre, !fenetre.isEmpty else { return base }
+    let elargi = CGRect(x: fenetre.minX - marge, y: base.minY,
+                        width: fenetre.width + 2 * marge, height: base.height)
+    return base.union(elargi).intersection(
+        CGRect(x: ecran.minX, y: base.minY, width: ecran.width, height: base.height)
+    )
+}
+
+/// Ce que Bouncer ÉCOUTE : le cadre des flèches, détendu de 6 pt en haut et en bas (la bande fait
+/// ~29 pt, difficile à survoler pile), réuni à la fenêtre d'encoche en entier.
+///
+/// Contrairement au cadre des flèches, cette zone n'est pas une fenêtre : c'est un test
+/// géométrique. Elle peut donc prendre toute la hauteur de l'île sans rien recouvrir, et c'est ce
+/// qui rattrape le geste posé sous la barre des menus. Le faux positif que ça ouvrirait — un
+/// défilement horizontal fait par mégarde dans cette région — est écarté ailleurs, par la
+/// dominance horizontale du `DetecteurSwipe` : un défilement vertical qui dérive n'y suffit pas.
+public func zoneSwipe(cadreFleches: CGRect, fenetre: CGRect?) -> CGRect {
+    let bande = cadreFleches.insetBy(dx: 0, dy: -6)
+    guard let fenetre, !fenetre.isEmpty else { return bande }
+    return bande.union(fenetre)
+}
+
 /// Abscisses des deux flèches dans le repère de l'overlay, centrées chacune dans sa marge — donc
-/// hors du boîtier caméra par construction, ce que verrouille `ZoneSurvolTests`.
+/// hors du boîtier caméra ET hors de la fenêtre d'encoche par construction, ce que verrouille
+/// `ZoneSurvolTests`.
 public func abscissesFleches(largeurOverlay: CGFloat, marge: CGFloat, taille: CGFloat)
     -> (gauche: CGFloat, droite: CGFloat)
 {
@@ -195,6 +237,17 @@ private let partEcranMaxFenetreEncoche: CGFloat = 0.8
 func estFenetreEncoche(
     _ zone: CGRect, cadreEcran: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat
 ) -> Bool {
+    cadreFenetreEncoche(zone, cadreEcran: cadreEcran, bounds: bounds,
+                        hauteurEcranPrincipal: hauteurEcranPrincipal) != nil
+}
+
+/// Le même prédicat, mais qui REND le cadre converti en repère AppKit plutôt qu'un booléen : la
+/// géométrie des flèches et de la zone de swipe se cale dessus (`cadreFleches`, `zoneSwipe`), et
+/// la relire une seconde fois ailleurs rouvrirait la porte aux deux conversions divergentes que
+/// ce fichier existe pour empêcher.
+func cadreFenetreEncoche(
+    _ zone: CGRect, cadreEcran: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat
+) -> CGRect? {
     let repereCGWindow = CGRect(
         x: bounds["X"] ?? 0, y: bounds["Y"] ?? 0,
         width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0
@@ -210,10 +263,10 @@ func estFenetreEncoche(
     // gratuitement. 1 pt de tolérance : le WindowServer rend des bornes déjà entières, mais un
     // facteur d'échelle non entier pourrait en décaler une, et un widget d'encoche à 1 pt du bord
     // reste un widget.
-    guard abs(fenetre.maxY - cadreEcran.maxY) <= 1 else { return false }
-    guard fenetre.minX <= zone.minX, fenetre.maxX >= zone.maxX else { return false }
-    guard fenetre.width <= cadreEcran.width * partEcranMaxFenetreEncoche else { return false }
-    return true
+    guard abs(fenetre.maxY - cadreEcran.maxY) <= 1 else { return nil }
+    guard fenetre.minX <= zone.minX, fenetre.maxX >= zone.maxX else { return nil }
+    guard fenetre.width <= cadreEcran.width * partEcranMaxFenetreEncoche else { return nil }
+    return fenetre
 }
 
 // MARK: - L'implémentation système

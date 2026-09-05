@@ -67,6 +67,16 @@ public final class WindowManager: ObservableObject {
     @Published public private(set) var apps: [NotchAppInfo] = []
     @Published public private(set) var accessibilityTrusted: Bool = false
     @Published public private(set) var lastNotchZoneDescription: String = "—"
+    /// Le cadre de ce qui COUVRE réellement l'encoche : réunion des fenêtres d'apps d'encoche
+    /// détectées, en repère AppKit. `nil` quand il n'y en a aucune.
+    ///
+    /// C'est ce qui permet à l'overlay d'écouter là où l'utilisateur vise, plutôt qu'une bande
+    /// fixe de 254 pt autour d'un boîtier de 166 (cf. `cadreFleches` / `zoneSwipe`). MESURÉ le
+    /// 2026-09-05 : boringNotch pose un conteneur de 640×210 pt, Vibe Island de 740×520 — et ces
+    /// cadres NE BOUGENT PAS quand l'île se déploie, ce sont des conteneurs transparents de
+    /// taille fixe. On mesure donc l'emprise maximale de l'app, ce qui est exactement la garantie
+    /// dont les flèches ont besoin pour ne jamais être dessinées par-dessus.
+    @Published public private(set) var cadreFenetresEncoche: CGRect?
 
     /// bundleID de l'app dont la bascule est en cours, `nil` si aucune. Publié parce que le menu
     /// doit le montrer : la voie par cycle de vie prend environ une seconde, et sans retour visuel
@@ -285,9 +295,18 @@ public final class WindowManager: ObservableObject {
         lastNotchZoneDescription = description
     }
 
+    /// Même précaution que `publier` : ce cadre est relu à chaque tour de timer et ne change qu'au
+    /// lancement ou à l'arrêt d'une app d'encoche. Le réassigner à l'identique ferait reconstruire
+    /// l'overlay toutes les deux secondes.
+    private func publierCadre(_ cadre: CGRect?) {
+        let normalise = (cadre?.isNull == true || cadre?.isEmpty == true) ? nil : cadre
+        guard cadreFenetresEncoche != normalise else { return }
+        cadreFenetresEncoche = normalise
+    }
+
     // MARK: - Scan (portée depuis Spike.swift, réduit à pid -> nom d'app)
 
-    private func scanNotchApps(zone: CGRect, cadreEcran: CGRect) -> [(pid: pid_t, bundleID: String, name: String)] {
+    private func scanNotchApps(zone: CGRect, cadreEcran: CGRect) -> [(pid: pid_t, bundleID: String, name: String, cadre: CGRect)] {
         guard
             let list = CGWindowListCopyWindowInfo(
                 [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
@@ -296,7 +315,7 @@ public final class WindowManager: ObservableObject {
         else { return [] }
 
         var seenPids = Set<pid_t>()
-        var results: [(pid_t, String, String)] = []
+        var results: [(pid_t, String, String, CGRect)] = []
 
         for entry in list {
             guard
@@ -325,12 +344,12 @@ public final class WindowManager: ObservableObject {
             // détail des trois conditions et les mesures qui les fondent sont dans
             // `estFenetreEncoche` (ControleurApps.swift). Même prédicat que le recomptage par pid,
             // sinon le scan et la vérification ne mesureraient plus la même chose.
-            guard estFenetreEncoche(
+            guard let cadre = cadreFenetreEncoche(
                 zone, cadreEcran: cadreEcran, bounds: boundsDict, hauteurEcranPrincipal: screenHeight
             ) else { continue }
 
             seenPids.insert(pidNum)
-            results.append((pidNum, bundleID, appName))
+            results.append((pidNum, bundleID, appName, cadre))
         }
         return results
     }
@@ -345,10 +364,12 @@ public final class WindowManager: ObservableObject {
             // permettait de les réafficher. Débrancher un écran ne doit pas faire oublier ce
             // qu'on a caché — c'est la même règle qu'en bas, appliquée au même endroit.
             apps.removeAll { !$0.isHiddenByUs }
+            publierCadre(nil)
             return
         }
         publier(description: "\(ecran) — \(zone)")
         let discovered = scanNotchApps(zone: zone, cadreEcran: cadreEcran)
+        publierCadre(discovered.map(\.cadre).reduce(CGRect.null) { $0.union($1) })
         let vuesParBundleID = Dictionary(discovered.map { ($0.bundleID, $0) }, uniquingKeysWith: { premiere, _ in premiere })
 
         // Une entrée sort de la liste dès que son process est mort OU qu'il ne croise plus
@@ -376,11 +397,11 @@ public final class WindowManager: ObservableObject {
         // Toute app vue dans le notch entre au catalogue, y compris celles qu'on ne connaissait
         // pas : c'est le seul moyen de la retrouver plus tard, une fois quittée et absente de
         // `CGWindowList`. Idempotent, donc pas de garde à ajouter ici.
-        for (_, bundleID, _) in discovered {
+        for (_, bundleID, _, _) in discovered {
             catalogue.apprendre(bundleID: bundleID)
         }
 
-        for (pid, bundleID, name) in discovered where !apps.contains(where: { $0.bundleID == bundleID }) {
+        for (pid, bundleID, name, _) in discovered where !apps.contains(where: { $0.bundleID == bundleID }) {
             if let cachedVerdict = supportVerdictCache[bundleID] {
                 apps.append(NotchAppInfo(bundleID: bundleID, name: name, support: cachedVerdict, pid: pid, isHiddenByUs: false))
                 continue

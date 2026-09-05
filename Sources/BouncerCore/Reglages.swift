@@ -62,6 +62,35 @@ public enum ModeActivation: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Sur quoi Bouncer cale sa géométrie : la zone qu'il écoute et l'endroit où il pose ses flèches.
+///
+/// MESURÉ le 2026-09-05 : le boîtier caméra fait 166 pt, la fenêtre d'une app d'encoche en fait
+/// 640 (boringNotch) ou 740 (Vibe Island), et haute de 210 à 520 pt. Se caler sur le boîtier, c'est
+/// écouter 2,7 % de ce que l'utilisateur voit et vise — d'où les swipes ratés. Le défaut se cale
+/// donc sur la fenêtre. Le mode `boitier` reste, parce qu'il est la seule réponse quand aucune app
+/// d'encoche n'est là, et le seul repli si la zone élargie attrape des gestes non voulus.
+public enum AncrageZone: String, CaseIterable, Identifiable, Sendable {
+    case fenetreEncoche, boitier
+
+    public var id: String { rawValue }
+
+    public var libelle: String {
+        switch self {
+        case .fenetreEncoche: return "La fenêtre de l'app d'encoche"
+        case .boitier: return "Le boîtier caméra seul"
+        }
+    }
+
+    public var explication: String {
+        switch self {
+        case .fenetreEncoche:
+            return "Le swipe marche partout sur l'île qu'on voit, et les flèches se posent de part et d'autre. Sans app d'encoche à l'écran, revient au boîtier."
+        case .boitier:
+            return "Zone étroite, collée à l'encoche matérielle. À essayer si un défilement horizontal déclenche une bascule sans l'avoir voulu."
+        }
+    }
+}
+
 /// Les préférences, publiées vers SwiftUI et écrites au disque à chaque changement.
 ///
 /// Une seule instance vit dans l'app (créée par `BouncerApp.init` et passée à qui en a besoin) :
@@ -78,6 +107,12 @@ public final class Reglages: ObservableObject {
         public static let marge: ClosedRange<CGFloat> = 24...96
         public static let margeDefaut: CGFloat = 44
 
+        /// De combien de points la flèche GLISSE vers l'extérieur pendant qu'elle se révèle.
+        /// 0 = fondu seul, l'ancien comportement. 8 pt : assez pour que l'œil lise un
+        /// déploiement, assez peu pour que la flèche reste dans sa marge sur tout le trajet.
+        public static let retrait: ClosedRange<CGFloat> = 0...24
+        public static let retraitDefaut: CGFloat = 8
+
         /// Pas un intervalle continu : un curseur suggérerait qu'une valeur intermédiaire a un
         /// sens, alors que le seul arbitrage est « réactivité contre travail à vide ».
         ///
@@ -91,6 +126,8 @@ public final class Reglages: ObservableObject {
 
     private enum Cle {
         static let mode = "bouncer.modeActivation"
+        static let ancrage = "bouncer.ancrageZone"
+        static let retrait = "bouncer.retraitFleches"
         static let portee = "bouncer.porteeApproche"
         static let marge = "bouncer.margeLaterale"
         static let intervalle = "bouncer.intervalleRafraichissement"
@@ -103,6 +140,11 @@ public final class Reglages: ObservableObject {
     /// Ce qui déclenche le cycle : swipe, flèches, ou les deux.
     @Published public var modeActivation: ModeActivation {
         didSet { defaults.set(modeActivation.rawValue, forKey: Cle.mode) }
+    }
+
+    /// Sur quoi la zone sensible et les flèches se calent.
+    @Published public var ancrageZone: AncrageZone {
+        didSet { defaults.set(ancrageZone.rawValue, forKey: Cle.ancrage) }
     }
 
     /// La combinaison qui fait tourner le cycle depuis n'importe quelle app. `.aucun` n'enregistre
@@ -138,6 +180,14 @@ public final class Reglages: ObservableObject {
                     dans: &margeStockee, cle: Cle.marge) }
     }
     @Published private var margeStockee: CGFloat
+
+    /// Glissement des flèches pendant la révélation, en points.
+    public var retraitFleches: CGFloat {
+        get { retraitStocke }
+        set { ecris(Self.borne(newValue, dans: Domaine.retrait, sinon: retraitStocke),
+                    dans: &retraitStocke, cle: Cle.retrait) }
+    }
+    @Published private var retraitStocke: CGFloat
 
     /// Période du resondage système (apps présentes dans l'encoche, autorisation Accessibilité).
     public var intervalleRafraichissement: TimeInterval {
@@ -191,6 +241,12 @@ public final class Reglages: ObservableObject {
             (defaults.object(forKey: Cle.marge) as? Double).map { CGFloat($0) },
             dans: Domaine.marge, sinon: Domaine.margeDefaut
         )
+        retraitStocke = Self.borne(
+            (defaults.object(forKey: Cle.retrait) as? Double).map { CGFloat($0) },
+            dans: Domaine.retrait, sinon: Domaine.retraitDefaut
+        )
+        ancrageZone = (defaults.string(forKey: Cle.ancrage).flatMap(AncrageZone.init(rawValue:)))
+            ?? .fenetreEncoche
         let lu = defaults.object(forKey: Cle.intervalle) as? Double
         intervalleStocke = lu.flatMap { Domaine.intervalles.contains($0) ? $0 : nil }
             ?? Domaine.intervalleDefaut
@@ -207,8 +263,10 @@ public final class Reglages: ObservableObject {
     public func reinitialiser() {
         modeActivation = .lesDeux
         raccourciGlobal = .defaut
+        ancrageZone = .fenetreEncoche
         porteeApproche = Domaine.porteeDefaut
         margeLaterale = Domaine.margeDefaut
+        retraitFleches = Domaine.retraitDefaut
         intervalleRafraichissement = Domaine.intervalleDefaut
         // Les exclusions ne sont PAS remises à zéro : ce n'est pas un réglage de sensation, c'est
         // une liste que l'utilisateur a composée app par app. La perdre par un bouton nommé

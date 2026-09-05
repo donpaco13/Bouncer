@@ -1,6 +1,16 @@
 //
 // NotchOverlay.swift — Milestone 2 : flèches ‹ › au survol de l'encoche, swipe deux doigts.
 //
+// MESURÉ le 2026-09-05, et c'est la cause des swipes ratés que remontait le test réel. La zone
+// écoutée faisait 254×41 pt ; la fenêtre que l'utilisateur VOIT et vise fait 640×210 pt
+// (boringNotch) ou 740×520 pt (Vibe Island) — soit 2,7 % de la surface visible réellement
+// sensible. Rejoué à travers ce pipeline : un geste posé sur l'île à 180 pt à droite de la bande
+// est rejeté 13 fois par le garde `horsZone` ; un geste posé 80 pt sous la barre des menus ne
+// laisse AUCUNE trace, le monitor de scroll n'étant même pas attaché. La géométrie se cale
+// désormais sur la fenêtre réellement présente (`cadreFleches` / `zoneSwipe`, BouncerCore), et le
+// journal `TraceSwipe` note par quel garde chaque événement est tombé — sans quoi un swipe raté
+// est un silence, et un silence ne se débogue pas.
+//
 // Géométrie dérivée de `WindowManager.notchZone()` (source unique, cf. CLAUDE.md "zéro
 // hardcoding d'encoche"), MAIS élargie : `notchZone()` décrit le boîtier caméra, c'est-à-dire la
 // bande NON AFFICHABLE de la barre des menus. Y dessiner les flèches revenait à les cacher
@@ -85,6 +95,11 @@ final class NotchOverlayController: NSObject {
     /// contrôle qui répond visuellement et n'agit pas est pire qu'un contrôle absent.
     private var cycleAUneCible = true
 
+    /// Dernier cadre de fenêtre d'encoche sur lequel la géométrie a été calée. Comparé à chaque
+    /// publication de `WindowManager` : reconstruire l'overlay à chaque tour de timer pour un
+    /// cadre identique ferait clignoter le panel deux fois par seconde.
+    private var cadreFenetreSuivi: CGRect?
+
     init(windowManager: WindowManager, reglages: Reglages) {
         self.windowManager = windowManager
         self.reglages = reglages
@@ -100,8 +115,11 @@ final class NotchOverlayController: NSObject {
         }
         // Le contenu du cycle change sans que ni les réglages ni les écrans bougent : une app
         // d'encoche qu'on lance ou qu'on quitte suffit. Les flèches doivent suivre.
+        // Deux choses suivies ici, et pour la même raison : ni les réglages ni les écrans ne
+        // bougent quand une app d'encoche se lance ou se quitte, or ça change ET le contenu du
+        // cycle ET l'emprise sur laquelle la géométrie se cale.
         abonnementApps = windowManager.objectWillChange.sink { [weak self] in
-            Task { @MainActor in self?.majCycleAUneCible() }
+            Task { @MainActor in self?.majSuiviApps() }
         }
         hoverMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             self?.updateHover()
@@ -117,10 +135,20 @@ final class NotchOverlayController: NSObject {
         if let m = scrollMonitor { NSEvent.removeMonitor(m) }
     }
 
-    /// Cadre du panel : le boîtier caméra élargi de `margeLaterale` de chaque côté. La zone SENSIBLE
-    /// ajoute 6 pt en haut et en bas — la bande fait ~29 pt, difficile à survoler pile.
+    /// La fenêtre d'encoche à prendre en compte, ou `nil` si l'utilisateur a choisi de se caler
+    /// sur le boîtier seul (ou qu'aucune app d'encoche n'est à l'écran).
+    private func fenetreDeReference() -> CGRect? {
+        reglages.ancrageZone == .fenetreEncoche ? windowManager.cadreFenetresEncoche : nil
+    }
+
+    /// Cadre du panel : de quoi loger une flèche de part et d'autre de ce qui couvre l'encoche —
+    /// la fenêtre de l'app si elle est là, le boîtier caméra sinon. La zone ÉCOUTÉE, elle, prend
+    /// en plus toute la hauteur de cette fenêtre (`zoneSwipe`) : c'est un test géométrique, pas
+    /// une fenêtre, donc l'agrandir ne recouvre rien.
     private func cadrePanel() -> CGRect? {
-        windowManager.notchZone().map { zoneSurvol(encoche: $0, marge: reglages.margeLaterale) }
+        guard let (encoche, _, ecran) = zoneEncoche() else { return nil }
+        return cadreFleches(encoche: encoche, marge: reglages.margeLaterale,
+                            fenetre: fenetreDeReference(), ecran: ecran)
     }
 
     /// (Re)positionne le panel sur la zone actuelle. Pas d'encoche détectée -> pas de
@@ -131,7 +159,7 @@ final class NotchOverlayController: NSObject {
             teardownPanel()
             return
         }
-        zoneSensible = zone.insetBy(dx: 0, dy: -6)
+        zoneSensible = zoneSwipe(cadreFleches: zone, fenetre: fenetreDeReference())
         if let panel {
             panel.setFrame(zone, display: true)
             arrowsView?.frame = NSRect(origin: .zero, size: zone.size)
@@ -139,21 +167,46 @@ final class NotchOverlayController: NSObject {
         } else {
             buildPanel(zone: zone)
         }
+        arrowsView?.retrait = reglages.retraitFleches
+        // La pastille sombre n'est pas un parti pris graphique, c'est un correctif de contraste :
+        // elle n'a de raison d'être que si la flèche est dessinée PAR-DESSUS la fenêtre d'une app
+        // tierce, dont on ne sait rien (noir de l'île, pochette d'album, visualiseur). Calées sur
+        // la fenêtre, les flèches se posent à côté d'elle, sur la barre des menus — et la pastille
+        // disparaît d'elle-même, sans qu'on ait troqué la lisibilité contre l'esthétique.
+        arrowsView?.pastilleNecessaire = flechesPoseesSurUneAppTierce(cadre: zone)
         // Force le recalcul : `updateHover` sort tôt quand l'opacité n'a pas bougé, or ici c'est
         // la géométrie, le mode d'activation ou la liste des apps cochées qui vient de changer,
         // pas le curseur.
         cycleAUneCible = windowManager.cycleAUneCible
+        cadreFenetreSuivi = fenetreDeReference()
         opaciteCourante = -1
         updateHover()
     }
 
-    /// Relit le cache et ne réveille l'affichage que si la réponse a changé.
-    private func majCycleAUneCible() {
+    /// Une flèche tombe-t-elle SUR la fenêtre d'une app d'encoche ?
+    ///
+    /// La question ne se pose pas au réglage d'ancrage mais à la géométrie : c'est le
+    /// recouvrement réel qui décide, et il reste possible en mode « boîtier », ou avec une fenêtre
+    /// assez large pour que les flèches retombent dessus malgré le calage. Le contraste ne nous
+    /// appartient plus dans ce cas-là — la pastille revient (cf. `NotchArrowsView.fondPastille`).
+    private func flechesPoseesSurUneAppTierce(cadre: CGRect) -> Bool {
+        guard let fenetre = windowManager.cadreFenetresEncoche, let vue = arrowsView else { return false }
+        let taille = vue.tailleFleche
+        let x = abscissesFleches(largeurOverlay: cadre.width, marge: reglages.margeLaterale, taille: taille)
+        return [x.gauche, x.droite].contains { abscisse in
+            fenetre.intersects(CGRect(x: cadre.minX + abscisse, y: cadre.minY, width: taille, height: cadre.height))
+        }
+    }
+
+    /// Relit les deux caches et ne réveille l'affichage que si l'un d'eux a changé.
+    private func majSuiviApps() {
         let cible = windowManager.cycleAUneCible
-        guard cible != cycleAUneCible else { return }
+        let cadre = fenetreDeReference()
+        guard cible != cycleAUneCible || cadre != cadreFenetreSuivi else { return }
         cycleAUneCible = cible
-        opaciteCourante = -1
-        updateHover()
+        cadreFenetreSuivi = cadre
+        // La géométrie a pu changer : c'est `rebuild` qui repositionne le panel, pas `updateHover`.
+        rebuild()
     }
 
     private func teardownPanel() {
@@ -229,9 +282,14 @@ final class NotchOverlayController: NSObject {
             scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
                 self?.handleScroll(event)
             }
+            TraceSwipe.note("monitor", "attache", "curseur=\(NSEvent.mouseLocation)",
+                            "zone=\(zoneSensible.map(String.init(describing:)) ?? "nil")")
         } else if !voulu, let m = scrollMonitor {
             NSEvent.removeMonitor(m)
             scrollMonitor = nil
+            TraceSwipe.note("monitor", "detache",
+                            "cycleAUneCible=\(cycleAUneCible)", "dansLaZone=\(curseurDansLaZone())",
+                            "gesteEnCours=\(session.gesteEnCours)", "curseur=\(NSEvent.mouseLocation)")
         }
     }
 
@@ -243,7 +301,7 @@ final class NotchOverlayController: NSObject {
     /// curseur à la zone. Le panel n'est à l'écran que tant qu'elles sont visibles — hors de la
     /// portée, on le retire, ce que l'en-tête explique.
     private func updateHover() {
-        guard let panel, let zone = zoneSensible else { return }
+        guard let panel, zoneSensible != nil else { return }
         // AVANT la garde d'opacité : en mode « swipe seul » l'opacité vaut zéro en permanence, et
         // une garde placée plus haut empêcherait le monitor d'être jamais attaché.
         majMoniteurScroll()
@@ -254,19 +312,30 @@ final class NotchOverlayController: NSObject {
         // Deux raisons de ne rien montrer, et c'est la même : la flèche ne ferait rien. Le mode
         // « swipe seul », que l'utilisateur a choisi ; et un cycle sans aucune cible, parce qu'il
         // a tout décoché dans les réglages — `cycle` sort alors sur une liste vide.
-        let opacite = (reglages.modeActivation.flechesActives && cycleAUneCible)
-            ? opaciteFleches(curseur: NSEvent.mouseLocation, zone: zone, portee: reglages.porteeApproche)
+        // La progression se mesure à la BANDE des flèches, pas à la zone de swipe : celle-ci
+        // descend jusqu'en bas de l'île déployée, et les flèches s'allumeraient dès qu'on passe
+        // sous l'encoche, loin d'elles.
+        let progression = (reglages.modeActivation.flechesActives && cycleAUneCible)
+            ? opaciteFleches(curseur: NSEvent.mouseLocation, zone: panel.frame,
+                             portee: reglages.porteeApproche)
             : 0
-        guard opacite != opaciteCourante else { return }
+        guard progression != opaciteCourante else { return }
         let etaitVisible = opaciteCourante > 0
-        opaciteCourante = opacite
+        opaciteCourante = progression
 
-        if opacite > 0 {
+        if progression > 0 {
             if !etaitVisible { panel.orderFrontRegardless() }
         } else {
             panel.orderOut(nil)
         }
-        arrowsView?.opacite = opacite
+        let r = revelationFleches(progression: progression, retrait: reglages.retraitFleches)
+        arrowsView?.revelation = r
+        TraceSwipe.note("survol", "progression=\(String(format: "%.2f", progression))",
+                        "opacite=\(String(format: "%.2f", r.opacite))",
+                        "decalage=\(String(format: "%.1f", r.decalage))",
+                        "echelle=\(String(format: "%.2f", r.echelle))",
+                        "pastille=\(arrowsView?.pastilleNecessaire ?? false)",
+                        "cadre=\(panel.frame)", "curseur=\(NSEvent.mouseLocation)")
     }
 
     private func handleScroll(_ event: NSEvent) {
@@ -276,6 +345,8 @@ final class NotchOverlayController: NSObject {
         // monitor `.mouseMoved` : celui-ci ne se remet pas à jour si le curseur reste immobile
         // pendant qu'une app d'encoche tierce déploie son panneau par-dessus.
         let phase = phaseGeste(event)
+        let curseur = NSEvent.mouseLocation
+        let dansLaZone = curseurDansLaZone()
         let decision = session.recoit(
             EvenementDefilement(
                 phase: phase,
@@ -283,8 +354,19 @@ final class NotchOverlayController: NSObject {
                 deltaX: event.scrollingDeltaX,
                 deltaY: event.scrollingDeltaY,
                 instant: event.timestamp,
-                dansLaZone: curseurDansLaZone()
+                dansLaZone: dansLaZone
             )
+        )
+        // Le journal note le verdict ET le garde qui l'a produit : un swipe qui ne déclenche rien
+        // est autrement un silence, et un silence ne se débogue pas (cf. `TraceSwipe`).
+        TraceSwipe.note(
+            "scroll", "\(phase)", "verdict=\(decision)", "garde=\(session.raison.rawValue)",
+            "dX=\(String(format: "%.1f", event.scrollingDeltaX))",
+            "dY=\(String(format: "%.1f", event.scrollingDeltaY))",
+            "accX=\(String(format: "%.1f", session.accumule.x))",
+            "phaseNS=\(event.phase.rawValue)", "momentum=\(event.momentumPhase.rawValue)",
+            "dansLaZone=\(dansLaZone)", "curseur=(\(Int(curseur.x)),\(Int(curseur.y)))",
+            "gesteEnCours=\(session.gesteEnCours)", "t=\(String(format: "%.4f", event.timestamp))"
         )
         // Toujours `forward: true` : un swipe horizontal avance d'un cran, quel que soit son
         // sens, et le refaire du même côté continue de faire tourner le cycle. C'est `cycle` qui
@@ -314,7 +396,8 @@ final class NotchOverlayController: NSObject {
     }
 }
 
-/// Flèches ‹ › de part et d'autre du boîtier caméra, invisibles par défaut, révélées à l'approche.
+/// Flèches ‹ › de part et d'autre de ce qui couvre l'encoche, révélées progressivement à
+/// l'approche : elles GLISSENT vers l'extérieur en même temps qu'elles apparaissent.
 private final class NotchArrowsView: NSView {
     var onArrowClicked: ((_ forward: Bool) -> Void)?
 
@@ -326,6 +409,22 @@ private final class NotchArrowsView: NSView {
     var margeLaterale: CGFloat {
         didSet { layoutArrows() }
     }
+
+    /// De combien de points la flèche sort pendant la révélation. 0 = fondu seul.
+    var retrait: CGFloat = 0
+
+    /// Vrai seulement si la flèche se retrouve dessinée PAR-DESSUS la fenêtre d'une app tierce.
+    /// Cf. `fondPastille` : c'est le seul cas où le contraste ne nous appartient plus.
+    var pastilleNecessaire: Bool = false {
+        didSet {
+            guard pastilleNecessaire != oldValue else { return }
+            appliqueHabillage()
+        }
+    }
+
+    /// 22 pt et non 14 : une cible de clic de 14 pt dans une marge de 44 était petite pour rien,
+    /// et la pastille — quand elle est nécessaire — doit rester lisible sur une pochette d'album.
+    var tailleFleche: CGFloat { min(bounds.height - 4, 22) }
 
     init(frame frameRect: NSRect, margeLaterale: CGFloat) {
         self.margeLaterale = margeLaterale
@@ -339,18 +438,14 @@ private final class NotchArrowsView: NSView {
             button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
                 .withSymbolConfiguration(.init(pointSize: 11, weight: .semibold))
             button.imageScaling = .scaleProportionallyDown
-            // Glyphe blanc sur pastille sombre — cf. `Self.fondPastille` : le fond de nos flèches
-            // nous appartient, donc le contraste ne dépend plus de ce qu'une app tierce dessine
-            // dessous.
-            button.contentTintColor = .white
             button.wantsLayer = true
-            button.layer?.backgroundColor = Self.fondPastille
             button.target = self
             button.tag = forward ? 1 : 0
             button.action = #selector(arrowTapped(_:))
             button.alphaValue = 0
             addSubview(button)
         }
+        appliqueHabillage()
         layoutArrows()
     }
 
@@ -363,25 +458,50 @@ private final class NotchArrowsView: NSView {
 
     /// Fond de la pastille. MESURÉ le 2026-09-05 : la fenêtre de boringNotch fait 640 pt de large
     /// (975→1615 sur la machine de référence) alors que le boîtier caméra n'en fait que 166
-    /// (1212→1378) — elle recouvre donc INTÉGRALEMENT les deux marges de 44 pt où logent nos
-    /// flèches. Ce n'est pas un problème de z-order : notre panel est ordonné au niveau 35 et le
-    /// relevé `CGWindowList` le donne bien devant boringNotch (27) et Vibe Island (27). Nos flèches
-    /// sont donc DEVANT, mais dessinées par-dessus une surface qui ne nous appartient pas et dont
-    /// on ne sait rien : noir de l'encoche déployée, pochette d'album, visualiseur. Un glyphe
-    /// monochrome y disparaît, quelle que soit la couleur choisie — d'où la pastille : elle rend
-    /// les 22 pt sous le chevron prévisibles, et le blanc redevient lisible partout.
+    /// (1212→1378). Tant que les flèches se logeaient dans une marge fixe de 44 pt, elles étaient
+    /// dessinées par-dessus une surface qui ne nous appartient pas et dont on ne sait rien : noir
+    /// de l'île déployée, pochette d'album, visualiseur. Un glyphe monochrome y disparaît quelle
+    /// que soit la couleur choisie — d'où cette pastille.
+    ///
+    /// Elle n'est plus posée par défaut, et c'est la GÉOMÉTRIE qui l'a rendue inutile, pas un
+    /// changement de goût : calées sur la fenêtre (`cadreFleches`), les flèches se posent À CÔTÉ
+    /// d'elle, sur la barre des menus, dont le contraste est celui du système. Elle revient dès
+    /// que ce n'est plus vrai — ancrage « boîtier caméra », ou fenêtre si large que les flèches
+    /// retombent dessus. Un chevron invisible reste pire qu'un chevron entouré.
     private static let fondPastille = NSColor.black.withAlphaComponent(0.55).cgColor
 
+    /// Sans pastille, le contraste repose sur la barre des menus — qui suit l'apparence système,
+    /// donc `.labelColor` y est juste par construction. Le halo couvre le cas restant : une barre
+    /// rendue translucide sur un fond d'écran clair en apparence sombre (ou l'inverse), où le
+    /// glyphe seul frôlerait la limite. Il coûte une ombre de calque, pas un disque de 22 pt.
+    private func appliqueHabillage() {
+        for button in [leftButton, rightButton] {
+            button.contentTintColor = pastilleNecessaire ? .white : .labelColor
+            button.layer?.backgroundColor = pastilleNecessaire ? Self.fondPastille : nil
+            button.layer?.shadowColor = pastilleNecessaire ? nil : NSColor.textBackgroundColor.cgColor
+            button.layer?.shadowOpacity = pastilleNecessaire ? 0 : 0.7
+            button.layer?.shadowRadius = 2.5
+            button.layer?.shadowOffset = .zero
+        }
+        layoutArrows()
+    }
+
     private func layoutArrows() {
-        // 22 pt et non 14 : la pastille doit rester lisible sur une pochette d'album, et une cible
-        // de clic de 14 pt dans une marge de 44 était petite pour rien.
-        let size = min(bounds.height - 4, 22)
+        let size = tailleFleche
         let y = (bounds.height - size) / 2
         let x = abscissesFleches(largeurOverlay: bounds.width, marge: margeLaterale, taille: size)
-        leftButton.frame = NSRect(x: x.gauche, y: y, width: size, height: size)
-        rightButton.frame = NSRect(x: x.droite, y: y, width: size, height: size)
+        // Le décalage est SIGNÉ par côté : la flèche gauche sort vers la gauche, la droite vers la
+        // droite. Un décalage commun les ferait glisser toutes les deux du même côté, ce qui se
+        // lit comme un défaut d'alignement et pas comme un déploiement.
+        leftButton.frame = NSRect(x: x.gauche - revelation.decalage, y: y, width: size, height: size)
+        rightButton.frame = NSRect(x: x.droite + revelation.decalage, y: y, width: size, height: size)
         for button in [leftButton, rightButton] {
             button.layer?.cornerRadius = size / 2
+            // L'échelle se pose sur le calque et autour de son centre : redimensionner le `frame`
+            // décalerait aussi la cible de clic, et une cible qui change de taille pendant qu'on
+            // la vise est une cible qu'on rate.
+            button.layer?.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            button.layer?.transform = CATransform3DMakeScale(revelation.echelle, revelation.echelle, 1)
         }
     }
 
@@ -390,7 +510,7 @@ private final class NotchArrowsView: NSView {
     /// boutons répondent, et seulement une fois franchement visibles — une flèche à 10 %
     /// d'opacité est une cible qu'on ne voit pas, donc qu'on ne vise pas volontairement.
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard opacite >= 0.5 else { return nil }
+        guard revelation.opacite >= 0.5 else { return nil }
         let hit = super.hitTest(point)
         return hit === self ? nil : hit
     }
@@ -399,13 +519,21 @@ private final class NotchArrowsView: NSView {
         onArrowClicked?(sender.tag == 1)
     }
 
-    /// Le fondu, c'est cette rampe : elle suit la distance du curseur, donc la main. Pas
-    /// d'animation de durée fixe — elle se battrait contre le mouvement au lieu de l'accompagner,
-    /// et sur un aller-retour rapide au bord de la zone elle traînerait derrière le curseur.
-    var opacite: CGFloat = 0 {
+    /// Le fondu ET le déploiement, c'est cette valeur : elle suit la distance du curseur, donc la
+    /// main. Pas d'animation de durée fixe — elle se battrait contre le mouvement au lieu de
+    /// l'accompagner, et sur un aller-retour rapide au bord de la zone elle traînerait derrière le
+    /// curseur. La courbe, elle, vit dans `revelationFleches` (BouncerCore), où elle se teste.
+    var revelation = RevelationFleches(opacite: 0, decalage: 0, echelle: 1) {
         didSet {
-            leftButton.alphaValue = opacite
-            rightButton.alphaValue = opacite
+            leftButton.alphaValue = revelation.opacite
+            rightButton.alphaValue = revelation.opacite
+            // Le repositionnement est fait DANS la même passe que l'opacité, sans animation
+            // implicite : Core Animation en poserait une de 0,25 s sur `frame` et `transform`, et
+            // elle traînerait derrière le curseur exactement comme celle qu'on refuse.
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            layoutArrows()
+            CATransaction.commit()
         }
     }
 }
