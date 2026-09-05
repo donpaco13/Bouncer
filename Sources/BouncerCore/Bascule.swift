@@ -74,7 +74,17 @@ public struct Bascule {
         // Voie rapide (~31 ms) : l'app est déjà chaude et se laisse démasquer.
         if cible.support == .supported, let pid = controleur.pid(pour: cible.bundleID) {
             _ = await controleur.masquer(false, pid: pid)
-            return controleur.fenetreVisibleDansNotch(pid: pid) ? .reussie : .cibleJamaisApparue
+            if controleur.fenetreVisibleDansNotch(pid: pid) { return .reussie }
+
+            // Le démasquage n'a rien ramené à l'écran, alors que le verdict promettait le
+            // contraire : le droit Accessibilité a été retiré depuis, ou une mise à jour de l'app
+            // l'a rendue résistante. On ne peut PAS s'arrêter là — l'app est masquée et on ne
+            // sait plus la démasquer, or une app d'encoche n'a ni icône du Dock ni entrée
+            // Cmd-Tab : elle serait invisible ET introuvable, exactement le pire état possible.
+            // La quitter pour la relancer par la voie cycle de vie est le seul retour, et c'est
+            // le pendant exact du dernier filet de `eteindre`, qui tue déjà quand le masquage
+            // mesuré échoue.
+            _ = controleur.tuer(pid: pid)
         }
 
         // Voie cycle de vie : démarrer, puis attendre que le WindowServer affiche la fenêtre.

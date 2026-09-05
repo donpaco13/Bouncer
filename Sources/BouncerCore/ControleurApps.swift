@@ -48,6 +48,14 @@ public protocol ControleurApps {
     func fenetreVisibleDansNotch(pid: pid_t) -> Bool
     /// pid courant d'un bundleID, `nil` si l'app n'est pas lancée.
     func pid(pour bundleID: String) -> pid_t?
+    /// Lève le masquage sans rien mesurer ni attendre la propagation du WindowServer.
+    ///
+    /// C'est le seul geste possible depuis un handler de terminaison — l'app est en train de
+    /// mourir, il n'y a plus de tour de run loop pour sonder quoi que ce soit — et c'est aussi
+    /// tout ce dont on a besoin au démarrage, où l'on ignore ce qu'une session précédente a
+    /// laissé masqué et où le verdict ne servirait à rien. Sans valeur de retour, donc :
+    /// l'appelant n'a rien à en faire, et prétendre mesurer serait mentir.
+    func reafficherSansAttendre(pid: pid_t)
 }
 
 // MARK: - Géométrie de l'encoche, partagée
@@ -229,6 +237,12 @@ public final class ControleurAppsSysteme: ControleurApps {
 
     public func pid(pour bundleID: String) -> pid_t? {
         NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first?.processIdentifier
+    }
+
+    public func reafficherSansAttendre(pid: pid_t) {
+        AXUIElementSetAttributeValue(
+            AXUIElementCreateApplication(pid), kAXHiddenAttribute as CFString, kCFBooleanFalse
+        )
     }
 
     // MARK: Recomptage CGWindowList

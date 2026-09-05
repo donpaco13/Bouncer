@@ -16,6 +16,7 @@ enum ActionControleur: Equatable {
     case lance(String)
     case tue(pid_t)
     case masque(Bool, pid_t)
+    case reaffiche(pid_t)
 }
 
 /// Le double du protocole. Il simule ce qui compte pour la bascule et rien d'autre : quelles apps
@@ -68,6 +69,7 @@ final class ControleurAppsDouble: ControleurApps {
 
     func masquer(_ masquee: Bool, pid: pid_t) async -> Bool {
         journal.append(.masque(masquee, pid))
+        guard !accessibiliteRevoquee else { return false }
         guard let bundleID = bundleID(de: pid) else { return false }
         // Une app résistante accepte l'ordre et ne change rien : le constat est `false`, et
         // c'est bien ce que mesure le vrai `ControleurAppsSysteme` par recomptage.
@@ -85,6 +87,19 @@ final class ControleurAppsDouble: ControleurApps {
     }
 
     func pid(pour bundleID: String) -> pid_t? { pidsParBundleID[bundleID] }
+
+    /// Le pendant du vrai : il lève le masquage sans rien mesurer. Un pid inconnu ne fait rien,
+    /// comme un `AXUIElementSetAttributeValue` sur un process mort.
+    func reafficherSansAttendre(pid: pid_t) {
+        journal.append(.reaffiche(pid))
+        guard !accessibiliteRevoquee, let bundleID = bundleID(de: pid) else { return }
+        masquees.remove(bundleID)
+    }
+
+    /// Le droit Accessibilité retiré pendant que Bouncer tourne : `masquer` part dans le vide et
+    /// l'écran ne bouge pas, dans les DEUX sens. C'est ce que `resistantes` ne simule pas — une
+    /// app résistante refuse le masquage mais se laisse démasquer.
+    var accessibiliteRevoquee = false
 
     private func bundleID(de pid: pid_t) -> String? {
         pidsParBundleID.first(where: { $0.value == pid })?.key

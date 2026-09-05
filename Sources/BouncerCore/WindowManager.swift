@@ -78,6 +78,7 @@ public final class WindowManager: ObservableObject {
 
     private let ownPid = ProcessInfo.processInfo.processIdentifier
     private var timer: Timer?
+    private var observateurQuit: (any NSObjectProtocol)?
 
     /// Toutes les actions sur les apps tierces passent par là. Injectable : c'est ce qui rendra
     /// la bascule testable sans lancer ni tuer de vraies apps.
@@ -129,8 +130,22 @@ public final class WindowManager: ObservableObject {
             )
         }
         refresh()
+        restaurerAppsMasquees()
         guard startTimer else { return }
         replanifierTimer()
+        // La contrepartie de la restauration au démarrage : ranger avant de partir, pour ne pas
+        // laisser l'utilisateur sans encoche entre deux lancements de Bouncer.
+        //
+        // `queue: nil` et pas `.main` : une queue non nulle fait passer le bloc par
+        // `addOperation`, donc au tour de run loop SUIVANT — qui n'arrive jamais, l'app est en
+        // train de mourir. Sans queue, le bloc s'exécute de façon synchrone sur le thread qui
+        // poste, le thread principal pour cette notification-là, ce qui rend `assumeIsolated`
+        // exact et le rangement effectif.
+        observateurQuit = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: nil
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.restaurerAppsMasquees() }
+        }
         // Changer la période dans les réglages doit valoir tout de suite : sans ça, il faudrait
         // relancer l'app pour voir l'effet du réglage qu'on vient de bouger.
         abonnementReglages = reglages.changementsIntervalle
@@ -168,9 +183,15 @@ public final class WindowManager: ObservableObject {
     private func refreshTrustState() {
         let nowTrusted = AXIsProcessTrusted()
         let justGranted = nowTrusted && !accessibilityTrusted
+        let justRevoked = !nowTrusted && accessibilityTrusted
         accessibilityTrusted = nowTrusted
 
         guard justGranted else {
+            // Le passage true -> false ne changeait RIEN d'observable : le menu affichait déjà sa
+            // ligne « Autoriser… », mais l'icône de la barre restait au repos et l'utilisateur qui
+            // ne l'ouvrait pas voyait seulement ses gestes cesser de faire effet. Un échec muet
+            // est le seul qu'on ne peut pas diagnostiquer — on le nomme.
+            if justRevoked { signalerRevocation() }
             refresh()
             return
         }
@@ -180,9 +201,46 @@ public final class WindowManager: ObservableObject {
         // décalage) — un retest synchrone à l'instant du flip peut donc figer un faux "Non
         // supportée". On jette les verdicts et on laisse une seconde de marge avant de
         // retester. Si le décalage réel dépasse cette marge, prévoir un retry supplémentaire.
+        // Le droit est revenu : le message de révocation ne décrit plus rien.
+        echecBascule = nil
         apps.removeAll()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.refresh()
+        }
+    }
+
+    /// Dit ce que la révocation vient de coûter, et nomme l'app coincée s'il y en a une. Passe
+    /// par `echecBascule` et pas par une nouvelle propriété : c'est déjà le canal des échecs, et
+    /// c'est lui qui fait passer l'icône de la barre en triangle d'alerte.
+    private func signalerRevocation() {
+        let coincees = apps.filter(\.isHiddenByUs).map(\.name)
+        let sort = coincees.isEmpty
+            ? "Les bascules quitteront les apps au lieu de les masquer."
+            : "\(coincees.joined(separator: ", ")) \(coincees.count > 1 ? "sont masquées" : "est masquée") : une bascule les relancera pour les ramener."
+        echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer. \(sort)"
+    }
+
+    /// Lève le masquage sur toutes les apps d'encoche connues qui tournent.
+    ///
+    /// `kAXHidden` survit à notre process. Une app que Bouncer a masquée puis oubliée — parce
+    /// qu'il a été quitté, forcé à quitter, mis à jour ou qu'il a planté — reste invisible, et
+    /// comme une app d'encoche n'a ni icône du Dock ni entrée Cmd-Tab, l'utilisateur n'a AUCUN
+    /// moyen de la ramener : il la croit perdue. Ce filet tourne donc aux deux bouts de la vie de
+    /// Bouncer, au démarrage (ce qu'une session morte a laissé derrière elle) et à la fermeture
+    /// propre (ce que celle-ci a masqué).
+    ///
+    /// On balaye le catalogue et pas `apps` : une app masquée n'a par construction plus de
+    /// fenêtre dans l'encoche, donc le scan ne la voit pas — au démarrage elle n'est nulle part
+    /// ailleurs. L'appel est sans effet sur une app déjà visible.
+    ///
+    /// Le garde-fou sur le trust n'est pas une optimisation : toucher l'API AX sans droits met la
+    /// connexion Accessibility de ce process hors service pour le reste de sa vie (cf. le
+    /// commentaire de `refresh`).
+    private func restaurerAppsMasquees() {
+        guard accessibilityTrusted else { return }
+        for installee in catalogue.installees() {
+            guard let pid = controleur.pid(pour: installee.bundleID) else { continue }
+            controleur.reafficherSansAttendre(pid: pid)
         }
     }
 
@@ -266,7 +324,11 @@ public final class WindowManager: ObservableObject {
     public func refresh() {
         guard let (zone, ecran, cadreEcran) = zoneEncoche() else {
             publier(description: "Aucune encoche détectée sur cette machine.")
-            apps = []
+            // Écran débranché, résolution changée, session verrouillée : le `apps = []` d'avant
+            // jetait AUSSI les apps qu'on venait de masquer, et avec elles le seul drapeau qui
+            // permettait de les réafficher. Débrancher un écran ne doit pas faire oublier ce
+            // qu'on a caché — c'est la même règle qu'en bas, appliquée au même endroit.
+            apps.removeAll { !$0.isHiddenByUs }
             return
         }
         publier(description: "\(ecran) — \(zone)")
@@ -372,7 +434,13 @@ public final class WindowManager: ObservableObject {
             echecBascule = "\(cible.name) n'a pas pu être lancée."
         case .cibleJamaisApparue:
             let repli = actuelle.map { "\($0.name) reste en place." } ?? "L'encoche est inchangée."
-            echecBascule = "\(cible.name) s'est lancée sans rien afficher dans l'encoche. \(repli)"
+            // Une bascule qui traverse un changement d'écrans sonde une encoche qui n'existe
+            // plus : elle expire donc au bout du délai, sans que la cible y soit pour quoi que ce
+            // soit. Accuser l'app d'un débranchement d'écran envoie l'utilisateur la déboguer
+            // pour rien.
+            echecBascule = zoneEncoche() == nil
+                ? "Plus aucune encoche détectée — la bascule vers \(cible.name) a été abandonnée. \(repli)"
+                : "\(cible.name) s'est lancée sans rien afficher dans l'encoche. \(repli)"
         }
     }
 
@@ -465,7 +533,15 @@ public final class WindowManager: ObservableObject {
     /// le catalogue est vide.
     public func cycle(forward: Bool) {
         guard let suivant = prochaineCible(dans: cyclableApps, depuis: bundleIDActive, forward: forward)
-        else { return }
+        else {
+            // Un cycle vide ne rendait rien du tout : le swipe passait pour non détecté, et
+            // l'utilisateur réessayait. Les deux causes ne se corrigent pas au même endroit —
+            // l'une s'installe, l'autre se recoche dans les réglages — donc on les distingue.
+            echecBascule = entreesMenu.isEmpty
+                ? "Aucune app d'encoche détectée. Lancez-en une pour que Bouncer l'apprenne."
+                : "Toutes les apps d'encoche sont décochées dans les réglages."
+            return
+        }
         rendreActive(bundleID: suivant)
     }
 
