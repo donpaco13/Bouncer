@@ -71,7 +71,7 @@ public final class WindowManager: ObservableObject {
     /// détectées, en repère AppKit. `nil` quand il n'y en a aucune.
     ///
     /// C'est ce qui permet à l'overlay d'écouter là où l'utilisateur vise, plutôt qu'une bande
-    /// fixe de 254 pt autour d'un boîtier de 166 (cf. `cadreFleches` / `zoneSwipe`). MESURÉ le
+    /// fixe de 254 pt autour d'un boîtier de 166 (cf. `zoneSurvol` / `zoneSwipe`). MESURÉ le
     /// 2026-09-05 : boringNotch pose un conteneur de 640×210 pt, Vibe Island de 740×520 — et ces
     /// cadres NE BOUGENT PAS quand l'île se déploie, ce sont des conteneurs transparents de
     /// taille fixe. On mesure donc l'emprise maximale de l'app, ce qui est exactement la garantie

@@ -128,51 +128,81 @@ public var boitierEncocheReference: CGSize {
 /// Mesuré en réel sur le MacBook de référence (écran 1352×878) : aire gauche 0→593, boîtier
 /// 593→759, aire droite 759→1352. Une flèche dessinée dans le boîtier est cachée par le matériel,
 /// et un curseur qu'on y attend y est invisible — personne ne vise ce qu'il ne voit pas. D'où la
-/// marge : les flèches vivent dedans, et la zone sensible (survol, swipe) les englobe.
+/// marge : les flèches vivent dedans, et la zone du swipe (`zoneSwipe`) part de cette bande.
+///
+/// **Les flèches se calent sur le BOÎTIER, jamais sur la fenêtre de l'app d'encoche**, et c'est
+/// une régression corrigée. Calées sur la fenêtre, elles se logeaient aux extrémités d'un panel de
+/// 768 pt — c'est-à-dire au beau milieu du bandeau des icônes de statut, qu'elles privaient de
+/// leurs clics (le panel vit au niveau `statusBar + 10`, au-dessus d'elles). Relevé CGWindowList
+/// du 2026-09-05 : les items de statut occupent les 448 pt les plus à DROITE de la barre des
+/// menus (2112→2560 sur l'écran 2560 de la machine ; Hidden Bar, CopyClip, Bouncer, Vorssaint,
+/// One Thing, Centre de contrôle). Ramené sur l'écran interne 1352, leur bord gauche tombe à 904
+/// quand le boîtier finit à 759 :
+///
+///   - flèche calée sur le boîtier, marge 64 -> 780→802, soit 102 pt de libre devant le bandeau ;
+///   - flèche calée sur la fenêtre, marge 64 -> 1025→1047, soit 118 pt DEDANS, sur Vorssaint.
+///
+/// La géométrie du swipe, elle, n'a aucune raison de se limiter à cette bande : elle ne recouvre
+/// rien, donc elle ne vole rien. C'est tout l'intérêt de les dissocier — un clic doit être précis,
+/// un geste peut être large.
+///
+/// ponytail: la marge est libre parce que les items de statut sont alignés à droite et que macOS
+/// les arrête au boîtier. Une barre des menus remplie jusqu'à l'encoche reprendrait ce dégagement.
+/// La mesure à relever serait alors le bord gauche réel du bandeau (CGWindowList, `layer` 25).
 public func zoneSurvol(encoche: CGRect, marge: CGFloat) -> CGRect {
     encoche.insetBy(dx: -marge, dy: 0)
 }
 
-/// Cadre de l'overlay quand il se cale sur LA FENÊTRE réellement posée sur l'encoche.
+/// Ce que Bouncer ÉCOUTE : la bande des flèches, détendue de 6 pt en haut et en bas (elle fait
+/// ~29 pt, difficile à survoler pile), réunie à la fenêtre d'encoche mais BORNÉE en hauteur.
 ///
-/// MESURÉ le 2026-09-05, et c'est la cause racine des swipes ratés : la bande que Bouncer écoutait
-/// faisait 254×41 pt (boîtier 166 + 2×44 de marge), quand la fenêtre que l'utilisateur VOIT et
-/// vise fait 640×210 pt (boringNotch) ou 740×520 pt (Vibe Island). Un geste posé sur l'île, à
-/// 180 pt à droite de la bande, était rejeté 13 fois de suite par le garde `horsZone` ; un geste
-/// posé 80 pt sous la barre des menus ne laissait AUCUNE trace, le monitor n'étant même pas
-/// attaché. Viser ce qu'on voit ne marchait que sur 2,7 % de la surface visible.
+/// Contrairement à la bande des flèches, cette zone n'est pas une fenêtre : c'est un test
+/// géométrique, elle peut donc s'étendre bien au-delà du boîtier sans rien recouvrir. C'est ce qui
+/// rattrape le geste que l'utilisateur pose sur l'île qu'il VOIT — mesuré le 2026-09-05 : un geste
+/// à 180 pt à droite de l'ancienne bande tombait 13 fois par le garde `horsZone`, un geste posé
+/// 80 pt sous la barre des menus ne laissait aucune trace, le monitor n'étant même pas attaché.
+/// La LARGEUR suit donc la fenêtre, sans réserve : c'est elle qui rend le geste trouvable, et un
+/// défilement horizontal à hauteur de barre des menus n'existe pratiquement pas.
 ///
-/// La largeur suit donc la fenêtre, plus `marge` de chaque côté pour y loger les flèches — qui se
-/// retrouvent ainsi HORS de la surface de l'app tierce, ce qui règle du même coup le contraste
-/// (cf. `NotchArrowsView`). La HAUTEUR, elle, reste celle de la barre des menus : le panel est une
-/// vraie fenêtre au niveau 35, et lui donner les 520 pt de Vibe Island la ferait recouvrir un tiers
-/// de l'écran pour n'y dessiner que deux chevrons.
+/// La HAUTEUR, elle, est plafonnée, et c'est une régression corrigée. Prendre la fenêtre entière
+/// portait la zone à 38,5 % de l'écran interne avec Vibe Island (868×526 sur 1352×878), où un
+/// défilement horizontal ORDINAIRE suffisait à basculer l'encoche — rejeu mesuré : 40 événements
+/// de −12 pt en X, soit 480 pt continus, une bascule. Et le garde qui devait tenir ce faux positif
+/// (la dominance horizontale du `DetecteurSwipe`) ne peut rien : un défilement de carrousel EST
+/// horizontal.
 ///
-/// `ecran` borne le tout : une fenêtre d'encoche large sur un écran étroit pousserait les flèches
-/// hors champ.
-public func cadreFleches(encoche: CGRect, marge: CGFloat, fenetre: CGRect?, ecran: CGRect) -> CGRect {
-    let base = zoneSurvol(encoche: encoche, marge: marge)
+/// La fenêtre d'une app d'encoche n'est pas son île. Relevé CGWindowList du 2026-09-05 :
+/// TheBoringNotch publie un canevas de 640×210 et Vibe Island un de 740×520, quand l'île fermée
+/// en fait quelques dizaines de points ; capture de la région exacte du canevas de boringNotch —
+/// 640×210 — pas un pixel dessiné, luminance uniforme du fond d'écran sur les 210 pt. Écouter la
+/// fenêtre entière revenait à écouter un canevas transparent.
+///
+/// Le plafond est posé sur le geste le plus BAS réellement mesuré, pas au jugé : cf.
+/// `descenteMaxZoneSwipe`.
+public func zoneSwipe(bande: CGRect, fenetre: CGRect?) -> CGRect {
+    let base = bande.insetBy(dx: 0, dy: -6)
     guard let fenetre, !fenetre.isEmpty else { return base }
-    let elargi = CGRect(x: fenetre.minX - marge, y: base.minY,
-                        width: fenetre.width + 2 * marge, height: base.height)
-    return base.union(elargi).intersection(
-        CGRect(x: ecran.minX, y: base.minY, width: ecran.width, height: base.height)
-    )
+    let elargi = base.union(fenetre)
+    let plancher = base.minY - descenteMaxZoneSwipe
+    guard elargi.minY < plancher else { return elargi }
+    return CGRect(x: elargi.minX, y: plancher, width: elargi.width, height: elargi.maxY - plancher)
 }
 
-/// Ce que Bouncer ÉCOUTE : le cadre des flèches, détendu de 6 pt en haut et en bas (la bande fait
-/// ~29 pt, difficile à survoler pile), réuni à la fenêtre d'encoche en entier.
+/// De combien de points la zone écoutée descend SOUS la bande des flèches, au plus.
 ///
-/// Contrairement au cadre des flèches, cette zone n'est pas une fenêtre : c'est un test
-/// géométrique. Elle peut donc prendre toute la hauteur de l'île sans rien recouvrir, et c'est ce
-/// qui rattrape le geste posé sous la barre des menus. Le faux positif que ça ouvrirait — un
-/// défilement horizontal fait par mégarde dans cette région — est écarté ailleurs, par la
-/// dominance horizontale du `DetecteurSwipe` : un défilement vertical qui dérive n'y suffit pas.
-public func zoneSwipe(cadreFleches: CGRect, fenetre: CGRect?) -> CGRect {
-    let bande = cadreFleches.insetBy(dx: 0, dy: -6)
-    guard let fenetre, !fenetre.isEmpty else { return bande }
-    return bande.union(fenetre)
-}
+/// 120, et le chiffre vient d'un relevé : le geste le plus bas que François ait réellement posé et
+/// que Bouncer ait raté était à 80 pt sous la barre des menus (mesure du 2026-09-05, celle qui a
+/// motivé l'élargissement). 120 le couvre avec 50 % de réserve, et laisse la zone à ~155 pt sous
+/// le bord haut de l'écran une fois la bande et sa détente comptées.
+///
+/// Ce que ça donne sur la machine de référence (écran interne 1352×878) : Vibe Island passe de
+/// 868×526 = 38,5 % à 740×155 = 9,7 %, boringNotch de 768×216 = 14,0 % à 640×155 = 8,4 %. Le
+/// plafond absolu est celui de `partEcranMaxFenetreEncoche` (80 % de large) × 155 pt de haut.
+///
+/// ponytail: plafond en points, pas en fraction d'île. Une app dont l'île fermée descendrait plus
+/// bas que 120 pt perdrait le geste posé sur son bord bas — la mesure à relever serait alors la
+/// hauteur DESSINÉE de cette île, pas celle de son canevas.
+private let descenteMaxZoneSwipe: CGFloat = 120
 
 /// Abscisses des deux flèches dans le repère de l'overlay, centrées chacune dans sa marge — donc
 /// hors du boîtier caméra ET hors de la fenêtre d'encoche par construction, ce que verrouille
@@ -242,7 +272,7 @@ func estFenetreEncoche(
 }
 
 /// Le même prédicat, mais qui REND le cadre converti en repère AppKit plutôt qu'un booléen : la
-/// géométrie des flèches et de la zone de swipe se cale dessus (`cadreFleches`, `zoneSwipe`), et
+/// géométrie des flèches et de la zone de swipe se cale dessus (`zoneSwipe`), et
 /// la relire une seconde fois ailleurs rouvrirait la porte aux deux conversions divergentes que
 /// ce fichier existe pour empêcher.
 func cadreFenetreEncoche(
