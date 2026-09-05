@@ -66,7 +66,7 @@ pas de cache. Tout passe par `UserDefaults`, donc par le seul fichier
 
 | Clé | Contenu | Écrite dans |
 |---|---|---|
-| `bouncer.accueilVu` | booléen : la fenêtre d'accueil a été refermée une fois | `FenetreAccueil.swift:79` |
+| `bouncer.accueilVu` | booléen : la fenêtre d'accueil a été refermée une fois | `FenetreAccueil.swift:50` |
 | `bouncer.modeActivation` | `swipe`, `fleches` ou les deux | `Reglages.swift:104` |
 | `bouncer.porteeApproche` | nombre : distance d'apparition des flèches, en points | `Reglages.swift:161` |
 | `bouncer.margeLaterale` | nombre : largeur de bande de chaque côté du boîtier caméra | `Reglages.swift:161` |

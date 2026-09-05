@@ -1,27 +1,29 @@
 //
-// FenetreAccueil.swift — Guide de démarrage de Bouncer.
+// FenetreAccueil.swift — le premier contact avec Bouncer.
 //
-// Le rôle de cette fenêtre : Bouncer est un utilitaire d'arrière-plan sans icône dans le Dock
-// (`LSUIElement = true`). Au premier lancement, un utilisateur ne voit aucun repère familier.
-// Ce guide explique et montre immédiatement trois choses indispensables :
-//   1. Où vit l'app : dans la barre des menus en haut à droite, pas dans le Dock.
-//   2. L'autorisation : l'Accessibilité système macOS, avec mise à jour réactive en direct.
-//   3. Le geste central : survoler l'encoche, swiper à deux doigts.
-//      Dynamique clé : un swipe horizontal avance d'une app quel que soit son sens (gauche ou droite),
-//      et répéter le geste du même côté fait tourner toutes les apps en boucle continue (cycle infini).
-//      Il n'y a aucun sens à retenir.
+// Bouncer est un utilitaire d'arrière-plan sans icône dans le Dock (`LSUIElement = true`) : au
+// premier lancement, rien à l'écran ne dit qu'il existe, ni ce qu'il fait, ni ce qu'il attend.
+// Cette fenêtre est donc le seul endroit où l'app se présente, et elle le fait en cinq écrans
+// (`EtapeAccueil`, BouncerCore) : bienvenue, le problème, l'autorisation, le geste, l'état.
+//
+// Parti pris visuel : fond sombre plein cadre, aucun chrome sauf les pastilles de fenêtre, et le
+// mot « hello » qui S'ÉCRIT à l'ouverture — le tracé de `TraceHello` est un chemin de Bézier
+// unique, révélé par `trim(from:to:)` animé de 0 à 1, comme au premier démarrage d'un Mac. Ce
+// n'est pas une police cursive posée là : une police se contenterait d'apparaître.
 //
 // Contraintes architecturales :
 //   - NSWindow classique (pas de NSPanel non-activating) pour accepter le focus et les clics.
-//   - NSHostingController avec .preferredContentSize : la fenêtre adapte sa hauteur au contenu,
-//     PLAFONNÉE à ce que l'écran offre (`hauteurMax`). MESURÉ le 2026-09-05 : le contenu faisait
-//     888 pt de haut alors que l'écran interne d'un MacBook n'en offre que 780
-//     (`visibleFrame.height`) — le pied de page, donc le bouton « Commencer », tombait sous le
-//     Dock, et sans défilement il n'y avait aucun moyen de l'atteindre. Seules les cartes
-//     défilent : l'en-tête et le pied de page restent ancrés, sinon le bouton pourrait à nouveau
-//     se retrouver hors de vue, cette fois par le défilement.
-//   - Aucun appel d'API AX direct : on lit uniquement l'état publié par WindowManager / EtatAccueil.
-//   - Réactivité native : détection automatique de l'octroi d'Accessibilité sans relancer l'app.
+//   - Apparence forcée en `.darkAqua` : les pastilles de fenêtre et toutes les couleurs
+//     sémantiques (`.secondary`, `.windowBackgroundColor` des sous-vues réutilisées) doivent se
+//     résoudre en sombre quel que soit le thème du système, sinon les composants repris du guide
+//     précédent peignent du gris clair sur le dégradé bleu nuit.
+//   - Hauteur plafonnée à ce que l'écran offre (`hauteurMaxContenu`). MESURÉ le 2026-09-05 sur
+//     l'écran interne d'un MacBook : `visibleFrame.height` vaut 780 pt, une fenêtre plus haute
+//     pose son bouton sous le Dock, hors d'atteinte.
+//   - Aucun appel d'API AX direct : on lit uniquement l'état publié par WindowManager /
+//     EtatAccueil (un appel AX passé avant l'octroi du trust condamne la connexion du process).
+//   - Réactivité native : l'écran de l'Accessibilité passe au vert tout seul dès que
+//     l'utilisateur coche Bouncer dans les Réglages, sans relancer ni recliquer.
 //
 
 import AppKit
@@ -31,13 +33,12 @@ import SwiftUI
 
 // MARK: - Contrôleur de fenêtre
 
-/// Sous-classe de NSWindow qui intercepte Escape (`cancelOperation`) pour fermer la fenêtre
+/// Sous-classe de NSWindow qui intercepte Échap (`cancelOperation`) pour fermer la fenêtre
 /// proprement, indispensable dans une application d'arrière-plan (LSUIElement) sans menu Fichier.
 ///
 /// SEUL point d'interception d'Échap pour cette fenêtre. La chaîne des répondeurs y aboutit quel
 /// que soit l'endroit où le focus se trouve dans le contenu SwiftUI, ce qu'un bouton invisible
-/// portant `.keyboardShortcut(.cancelAction)` ne garantit pas — il en existait un, qui appelait le
-/// même `performClose`.
+/// portant `.keyboardShortcut(.cancelAction)` ne garantit pas.
 private final class FenetreAccueilWindow: NSWindow {
     override func cancelOperation(_ sender: Any?) {
         performClose(sender)
@@ -47,6 +48,12 @@ private final class FenetreAccueilWindow: NSWindow {
 @MainActor
 final class FenetreAccueilController: NSObject, NSWindowDelegate {
     private static let cleVue = "bouncer.accueilVu"
+
+    /// Taille du parcours. Fixe d'un écran à l'autre : une fenêtre qui grandit et rétrécit à
+    /// chaque « Continuer » donne l'impression que le contenu saute, et déplace le bouton sous le
+    /// curseur entre deux clics.
+    private static let largeur: CGFloat = 660
+    private static let hauteurVoulue: CGFloat = 580
 
     private let windowManager: WindowManager
     private let defaults: UserDefaults
@@ -58,7 +65,7 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
         super.init()
     }
 
-    /// Affiche le guide uniquement si l'utilisateur ne l'a pas encore refermé une première fois.
+    /// Affiche le parcours uniquement si l'utilisateur ne l'a pas encore refermé une première fois.
     func afficherSiPremierLancement() {
         guard !defaults.bool(forKey: Self.cleVue) else { return }
         afficher()
@@ -72,12 +79,11 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
             return
         }
 
-        let hauteurMax = Self.hauteurMaxContenu()
-
         let hote = NSHostingController(
             rootView: VueAccueil(
                 windowManager: windowManager,
-                hauteurMax: hauteurMax,
+                largeur: Self.largeur,
+                hauteur: Self.hauteurContenu(),
                 fermer: { [weak self] in
                     self?.fenetre?.performClose(nil)
                 }
@@ -86,10 +92,16 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
         hote.sizingOptions = .preferredContentSize
 
         let fenetre = FenetreAccueilWindow(contentViewController: hote)
-        fenetre.styleMask = Self.styleMask
+        fenetre.styleMask = [.titled, .closable, .fullSizeContentView]
+        // Titre vidé mais pas absent : c'est le nom accessible de la fenêtre, et VoiceOver
+        // annoncerait « fenêtre sans titre » sans lui. `titleVisibility` l'efface du bandeau.
         fenetre.title = "Bienvenue dans Bouncer"
-        fenetre.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        fenetre.titleVisibility = .hidden
         fenetre.titlebarAppearsTransparent = true
+        fenetre.isMovableByWindowBackground = true
+        fenetre.appearance = NSAppearance(named: .darkAqua)
+        fenetre.backgroundColor = NSColor(red: 0.02, green: 0.03, blue: 0.09, alpha: 1)
+        fenetre.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         fenetre.isReleasedWhenClosed = false
         fenetre.delegate = self
         fenetre.center()
@@ -99,22 +111,19 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private static let styleMask: NSWindow.StyleMask = [.titled, .closable, .fullSizeContentView]
-
-    /// Hauteur maximale du CONTENU, pour que la fenêtre entière tienne sur l'écran où elle va
-    /// s'ouvrir — `center()` la pose sur l'écran principal, c'est donc celui-là qu'on mesure.
+    /// Hauteur du CONTENU, pour que la fenêtre entière tienne sur l'écran où elle va s'ouvrir —
+    /// `center()` la pose sur l'écran principal, c'est donc celui-là qu'on mesure.
     ///
     /// La barre de titre se déduit du style plutôt que de s'estimer, mais SANS
     /// `.fullSizeContentView` : ce drapeau-là annule la différence entre cadre et contenu dans le
-    /// calcul d'AppKit, alors que la fenêtre, elle, est construite AVANT qu'on le pose (c'est
-    /// `contentViewController` qui la dimensionne). MESURÉ le 2026-09-05 : la fenêtre fait bien
-    /// 28 pt de plus que son contenu, et l'oublier la laissait dépasser de l'écran de ces 28 pt —
-    /// exactement le bug qu'on corrige, en plus discret.
-    private static func hauteurMaxContenu() -> CGFloat {
+    /// calcul d'AppKit, alors que la fenêtre, elle, est construite AVANT qu'on le pose. MESURÉ le
+    /// 2026-09-05 : la fenêtre fait bien 28 pt de plus que son contenu.
+    private static func hauteurContenu() -> CGFloat {
         let visible = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame.height ?? 780
         let barreDeTitre = NSWindow.frameRect(forContentRect: .zero, styleMask: [.titled, .closable]).height
         // 24 pt de respiration : une fenêtre qui affleure pile le Dock se lit comme tronquée.
-        return max(320, visible - barreDeTitre - 24)
+        let plafond = visible - barreDeTitre - 24
+        return max(460, min(hauteurVoulue, plafond))
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -123,13 +132,145 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
     }
 }
 
-// MARK: - Vue Principale
+// MARK: - Palette
+
+/// Le parcours ne suit pas le thème du système : il est sombre en permanence, comme l'écran
+/// d'accueil d'un Mac neuf. Les couleurs sont donc écrites, pas sémantiques.
+private enum Nuit {
+    static let fond = LinearGradient(
+        colors: [
+            Color(red: 0.055, green: 0.094, blue: 0.216),
+            Color(red: 0.027, green: 0.043, blue: 0.118),
+            Color(red: 0.016, green: 0.024, blue: 0.071),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+    static let encre = Color.white
+    static let doux = Color.white.opacity(0.60)
+    static let tresDoux = Color.white.opacity(0.38)
+    static let trait = Color.white.opacity(0.12)
+}
+
+// MARK: - Le tracé « hello »
+
+/// Le mot « hello » en cursive, d'un seul trait continu, du premier jambage du `h` à la sortie du
+/// `o`. Un seul sous-chemin : c'est ce qui permet à `trim(from:to:)` de le révéler comme une main
+/// qui écrit, dans l'ordre où on l'écrirait. Deux sous-chemins et le trim les avancerait de front.
+///
+/// Les points sont posés dans un repère de dessin fixe (`repere`, origine en haut à gauche,
+/// ligne de base à y = 296, hauteur d'x à y = 152, hampes à y = 44) puis mis à l'échelle du rect
+/// reçu. Le cadrage passe par la boîte englobante réelle du chemin plutôt que par des marges
+/// devinées : les points de contrôle débordent des points d'ancrage, et une boîte estimée à la
+/// main recentrait le mot de travers.
+struct TraceHello: Shape {
+    /// Épaisseur prévue du trait, en unités du repère de dessin. Sert à réserver la place que le
+    /// trait déborde de la boîte englobante — sinon les extrémités arrondies sont rognées.
+    static let epaisseurRepere: CGFloat = 22
+
+    func path(in rect: CGRect) -> Path {
+        let brut = Self.trace()
+        let boite = brut.boundingRect.insetBy(dx: -Self.epaisseurRepere / 2, dy: -Self.epaisseurRepere / 2)
+        guard boite.width > 0, boite.height > 0 else { return brut }
+
+        let echelle = min(rect.width / boite.width, rect.height / boite.height)
+        let transformation = CGAffineTransform(translationX: -boite.minX, y: -boite.minY)
+            .concatenating(CGAffineTransform(scaleX: echelle, y: echelle))
+            .concatenating(CGAffineTransform(
+                translationX: rect.midX - boite.width * echelle / 2,
+                y: rect.midY - boite.height * echelle / 2
+            ))
+        return brut.applying(transformation)
+    }
+
+    /// Épaisseur de trait à appliquer pour un rendu de largeur `largeur`, dans la même proportion
+    /// que dans le repère de dessin. Écrit ici pour que le trait grossisse avec le mot.
+    static func epaisseur(pourLargeur largeur: CGFloat) -> CGFloat {
+        let boite = trace().boundingRect.insetBy(dx: -epaisseurRepere / 2, dy: -epaisseurRepere / 2)
+        return max(1.5, epaisseurRepere * largeur / boite.width)
+    }
+
+    private static func trace() -> Path {
+        var p = Path()
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x, y: y) }
+
+        // h — montée de la hampe, boucle du haut, jambage, épaule.
+        p.move(to: pt(58, 296))
+        p.addCurve(to: pt(118, 46), control1: pt(66, 220), control2: pt(86, 90))
+        p.addCurve(to: pt(96, 128), control1: pt(150, 20), control2: pt(132, 90))
+        p.addCurve(to: pt(146, 296), control1: pt(86, 178), control2: pt(140, 298))
+        p.addCurve(to: pt(234, 292), control1: pt(154, 130), control2: pt(232, 138))
+        // Liaison h → e : le creux arrondi sur la ligne de base, jamais un angle.
+        p.addCurve(to: pt(296, 246), control1: pt(250, 316), control2: pt(272, 282))
+        // e — montée, retour par-dessus (l'œil se ferme au croisement), puis la panse.
+        p.addCurve(to: pt(344, 152), control1: pt(300, 200), control2: pt(310, 152))
+        p.addCurve(to: pt(274, 234), control1: pt(388, 172), control2: pt(344, 218))
+        p.addCurve(to: pt(412, 244), control1: pt(282, 292), control2: pt(364, 320))
+        // l — hampe, boucle, descente qui s'aplatit sur la ligne de base.
+        p.addCurve(to: pt(492, 44), control1: pt(440, 200), control2: pt(466, 88))
+        p.addCurve(to: pt(466, 138), control1: pt(524, 16), control2: pt(506, 94))
+        p.addCurve(to: pt(528, 296), control1: pt(452, 220), control2: pt(520, 298))
+        // l — le second, décalé de 78 pt.
+        p.addCurve(to: pt(606, 44), control1: pt(546, 286), control2: pt(580, 88))
+        p.addCurve(to: pt(580, 138), control1: pt(638, 16), control2: pt(620, 94))
+        p.addCurve(to: pt(642, 296), control1: pt(566, 220), control2: pt(634, 298))
+        // o — montée jusqu'au sommet, petite boucle de retournement, puis la panse dans le sens
+        // inverse des aiguilles, refermée en haut à droite.
+        p.addCurve(to: pt(760, 168), control1: pt(668, 296), control2: pt(746, 208))
+        p.addCurve(to: pt(698, 232), control1: pt(740, 148), control2: pt(696, 184))
+        p.addCurve(to: pt(750, 300), control1: pt(698, 270), control2: pt(722, 300))
+        p.addCurve(to: pt(802, 232), control1: pt(780, 300), control2: pt(802, 270))
+        p.addCurve(to: pt(768, 174), control1: pt(802, 196), control2: pt(790, 174))
+        // Le délié de sortie, qui passe par-dessus le o.
+        p.addCurve(to: pt(884, 194), control1: pt(802, 170), control2: pt(848, 176))
+
+        return p
+    }
+}
+
+/// Le mot « hello » qui s'écrit. `trim` avance la fin du tracé de 0 à 1 : le trait naît sous une
+/// main invisible plutôt que d'apparaître d'un bloc.
+private struct SignatureHello: View {
+    var largeur: CGFloat = 300
+    var hauteur: CGFloat = 120
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var avancement: CGFloat = 0
+
+    var body: some View {
+        let epaisseur = TraceHello.epaisseur(pourLargeur: largeur)
+
+        TraceHello()
+            .trim(from: 0, to: avancement)
+            .stroke(style: StrokeStyle(lineWidth: epaisseur, lineCap: .round, lineJoin: .round))
+            .foregroundStyle(Nuit.encre)
+            .shadow(color: Color(red: 0.55, green: 0.72, blue: 1).opacity(0.45), radius: epaisseur * 2.2)
+            .frame(width: largeur, height: hauteur)
+            .onAppear {
+                guard !reduceMotion else {
+                    avancement = 1
+                    return
+                }
+                avancement = 0
+                // 2,1 s : le rythme d'une main qui écrit un mot court. Plus vite, l'effet se perd ;
+                // plus lentement, on attend devant sa fenêtre.
+                withAnimation(.easeInOut(duration: 2.1)) { avancement = 1 }
+            }
+            .accessibilityElement()
+            .accessibilityLabel("hello")
+    }
+}
+
+// MARK: - Vue principale
 
 struct VueAccueil: View {
     @ObservedObject var windowManager: WindowManager
-    /// Hauteur au-delà de laquelle le contenu se met à défiler au lieu de sortir de l'écran.
-    var hauteurMax: CGFloat = .infinity
+    var largeur: CGFloat = 660
+    var hauteur: CGFloat = 580
     let fermer: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var etape: EtapeAccueil = .bienvenue
 
     private var etat: EtatAccueil {
         EtatAccueil(
@@ -139,306 +280,540 @@ struct VueAccueil: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            entete
-            Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    blocBarreDesMenus
-                    blocAccessibilite
-                    blocGeste
-                    if !etat.appsAInstaller.isEmpty {
-                        alerteAppsManquantes
-                    }
-                }
-                .padding(.horizontal, 28)
-                .padding(.vertical, 20)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(spacing: 0) {
+            // Les pastilles de fenêtre flottent au-dessus du dégradé : cette marge leur réserve
+            // la place plutôt que de laisser le contenu passer dessous.
+            Spacer(minLength: 34)
+
+            ZStack {
+                contenu(pour: etape)
+                    .id(etape)
+                    .transition(
+                        reduceMotion
+                            ? .opacity
+                            : .asymmetric(
+                                insertion: .opacity.combined(with: .offset(x: 26)),
+                                removal: .opacity.combined(with: .offset(x: -26))
+                            )
+                    )
             }
-            // Le contenu tient sur un grand écran : pas de rebond, pas de barre, la fenêtre reste
-            // exactement à la taille du guide. C'est seulement quand l'écran est trop court que le
-            // plafond mord et que le défilement apparaît.
-            .scrollBounceBehavior(.basedOnSize)
-            Divider()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 44)
+
             piedDePage
         }
-        .frame(width: 550)
-        .frame(maxHeight: hauteurMax)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: largeur, height: hauteur)
+        .background(Nuit.fond)
+        // Halo froid derrière le contenu : le dégradé seul est plat, ce voile lui donne un centre.
+        .background(
+            RadialGradient(
+                colors: [Color(red: 0.20, green: 0.35, blue: 0.75).opacity(0.35), .clear],
+                center: .init(x: 0.5, y: 0.32),
+                startRadius: 0,
+                endRadius: largeur * 0.75
+            )
+            .allowsHitTesting(false),
+            alignment: .center
+        )
     }
 
-    // MARK: En-tête
-
-    private var entete: some View {
-        HStack(spacing: 15) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 42, height: 42)
-                    .shadow(color: Color.accentColor.opacity(0.3), radius: 5, x: 0, y: 2)
-
-                Image(systemName: "rectangle.on.rectangle")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-            .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Bienvenue dans Bouncer")
-                    .font(.system(size: 19, weight: .bold))
-
-                Text("L'arbitre de l'encoche de votre Mac : une seule app affichée à la fois, le geste pour basculer.")
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+    @ViewBuilder
+    private func contenu(pour etape: EtapeAccueil) -> some View {
+        switch etape {
+        case .bienvenue: pageBienvenue
+        case .probleme: pageProbleme
+        case .accessibilite: pageAccessibilite
+        case .geste: pageGeste
+        case .pret: pagePret
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 28)
-        .padding(.bottom, 16)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: 1 — Barre des menus
+    // MARK: 1 — Bienvenue
 
-    private var blocBarreDesMenus: some View {
-        CarteEtape(
-            titre: "Dans la barre des menus, pas dans le Dock",
-            icone: "menubar.rectangle",
-            couleurIcone: .indigo
-        ) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Bouncer tourne en arrière-plan sans fenêtre permanente (`LSUIElement`). Elle n'apparaît ni dans le Dock ni dans le sélecteur d'applications : cherchez son icône en haut à droite de l'écran.")
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(.primary.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
+    private var pageBienvenue: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            SignatureHello(largeur: 320, hauteur: 132)
+                .padding(.bottom, 26)
+
+            TitreEtape("Bienvenue dans Bouncer")
+
+            SousTitreEtape("Vos apps d’encoche ne se marchent plus dessus. Une seule occupe le notch, et un swipe désigne laquelle.")
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: 2 — Le problème
+
+    private var pageProbleme: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            IllustrationConflit()
+                .padding(.bottom, 28)
+
+            TitreEtape("Trois apps, une seule encoche")
+
+            SousTitreEtape("macOS ne coordonne rien : chaque app d’encoche pose sa fenêtre au même endroit, en même temps. La dernière lancée recouvre les autres. Bouncer en garde une visible et met les autres de côté.")
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: 3 — L'Accessibilité
+
+    private var pageAccessibilite: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            Sceau(
+                symbole: etat.accessibiliteAccordee ? "checkmark.shield.fill" : "lock.shield.fill",
+                teinte: etat.accessibiliteAccordee ? Color.green : Color.orange
+            )
+            .padding(.bottom, 26)
+
+            TitreEtape(etat.accessibiliteAccordee ? "Autorisation accordée" : "macOS demande une autorisation")
+
+            SousTitreEtape(
+                etat.accessibiliteAccordee
+                    ? "Bouncer peut masquer et révéler les fenêtres de vos apps d’encoche. Rien d’autre à faire ici."
+                    : "Masquer la fenêtre d’une autre application passe par l’Accessibilité. Sans elle, Bouncer voit vos apps d’encoche mais ne peut rien en faire."
+            )
+
+            if !etat.accessibiliteAccordee {
+                VStack(spacing: 10) {
+                    Button("Ouvrir les Réglages Système…") {
+                        windowManager.openAccessibilitySettings()
+                    }
+                    .buttonStyle(BoutonSecondaire())
+                    .accessibilityHint("Ouvre la section Confidentialité et sécurité, Accessibilité, des Réglages Système")
+
+                    Text("Cochez Bouncer dans la liste. Cet écran passe au vert tout seul, sans relancer l’app.")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Nuit.tresDoux)
+                }
+                .padding(.top, 22)
+            }
+
+            Spacer(minLength: 0)
+        }
+        // L'état vient de `windowManager.accessibilityTrusted`, resondé toutes les 2 s : la bascule
+        // au vert arrive pendant que l'utilisateur regarde, elle mérite d'être adoucie.
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: etat.accessibiliteAccordee)
+    }
+
+    // MARK: 4 — Le geste
+
+    private var pageGeste: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            SimulateurNotchInteractif()
+                .padding(.bottom, 22)
+
+            TitreEtape("Survolez l’encoche, swipez à deux doigts")
+
+            SousTitreEtape("Un swipe horizontal avance d’une app, vers la gauche comme vers la droite : il n’y a aucun sens à retenir. Les flèches ‹ ›, elles, en ont un.")
+
+            HStack(spacing: 7) {
+                Text("⌃⌥⌘B")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Nuit.encre)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .strokeBorder(Nuit.trait, lineWidth: 1)
+                    )
+
+                Text("fait tourner le cycle depuis n’importe quelle app.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Nuit.doux)
+            }
+            .padding(.top, 16)
+            .accessibilityElement(children: .combine)
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: 5 — Prêt
+
+    private var pagePret: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            Sceau(
+                symbole: etat.pretAServir ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
+                teinte: etat.pretAServir ? Color.green : Color.orange
+            )
+            .padding(.bottom, 22)
+
+            TitreEtape(etat.pretAServir ? "Tout est en place" : "Il manque encore quelque chose")
+
+            VStack(alignment: .leading, spacing: 9) {
+                LigneBilan(
+                    valide: etat.accessibiliteAccordee,
+                    texte: etat.accessibiliteAccordee
+                        ? "Accessibilité autorisée"
+                        : "Accessibilité pas encore autorisée"
+                )
+                LigneBilan(
+                    valide: etat.appsAInstaller.isEmpty,
+                    texte: etat.appsAInstaller.isEmpty
+                        ? bilanApps
+                        : "Aucune app d’encoche installée — essayez \(etat.appsAInstaller.formatted(.list(type: .or)))"
+                )
+            }
+            .padding(.top, 18)
+
+            VStack(spacing: 9) {
+                Text("Bouncer vit dans la barre des menus, pas dans le Dock.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Nuit.doux)
 
                 ApercuBarreDesMenus()
             }
+            .padding(.top, 24)
+
+            Spacer(minLength: 0)
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: etat)
     }
 
-    // MARK: 2 — Accessibilité
-
-    private var blocAccessibilite: some View {
-        CarteEtape(
-            titre: etat.accessibiliteAccordee ? "Accessibilité autorisée" : "Autoriser l'Accessibilité",
-            icone: etat.accessibiliteAccordee ? "checkmark.shield.fill" : "lock.shield.fill",
-            couleurIcone: etat.accessibiliteAccordee ? .green : .orange,
-            estValide: etat.accessibiliteAccordee
-        ) {
-            VStack(alignment: .leading, spacing: 10) {
-                if etat.accessibiliteAccordee {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .font(.system(size: 13.5))
-                            .accessibilityHidden(true)
-                        Text("Autorisation active. Bouncer peut masquer et réafficher vos fenêtres d'encoche.")
-                            .font(.system(size: 12.5))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 2)
-                } else {
-                    Text("Pour régir l'affichage sans conflit, macOS exige l'accès à l'Accessibilité. Sans elle, Bouncer ne peut ni masquer ni révéler vos apps d'encoche.")
-                        .font(.system(size: 12.5))
-                        .foregroundStyle(.primary.opacity(0.9))
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    HStack(spacing: 12) {
-                        Button("Ouvrir les Réglages Système…") {
-                            windowManager.openAccessibilitySettings()
-                        }
-                        .controlSize(.regular)
-                        .buttonStyle(.borderedProminent)
-                        .accessibilityHint("Ouvre la section Accessibilité des Réglages Système pour autoriser Bouncer")
-
-                        Text("Cochez Bouncer. Détection en direct sans relancer l'app.")
-                            .font(.system(size: 11.5))
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.top, 2)
-                }
-            }
-        }
-    }
-
-    // MARK: 3 — Le geste
-
-    private var blocGeste: some View {
-        CarteEtape(
-            titre: "Le geste : survolez l'encoche, swipez",
-            icone: "hand.draw.fill",
-            couleurIcone: .purple
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Amenez le curseur sur l'encoche. Un swipe horizontal à deux doigts — **vers la gauche ou vers la droite** — avance d'une app. Répéter le geste fait défiler vos apps en boucle continue.")
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(.primary.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
-
-                SimulateurNotchInteractif()
-
-                // Les 3 piliers visuels du geste
-                HStack(alignment: .top, spacing: 8) {
-                    PilierGeste(
-                        symbole: "cursorarrow.rays",
-                        titre: "1. Survol",
-                        description: "Le curseur sur l'encoche révèle les flèches ‹ ›."
-                    )
-                    PilierGeste(
-                        symbole: "arrow.left.and.right",
-                        titre: "2. Swipe ↔",
-                        description: "Gauche ou droite : chaque geste avance d'un cran."
-                    )
-                    PilierGeste(
-                        symbole: "arrow.triangle.2.circlepath",
-                        titre: "3. En boucle ↺",
-                        description: "Répétez le geste : le cycle tourne sans fin."
-                    )
-                }
-
-                HStack(spacing: 6) {
-                    Image(systemName: "cursorarrow.click")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                    Text("Les flèches, elles, ont un sens : ‹ revient à l'app précédente, › passe à la suivante. Et ⌃⌥⌘B fait tourner le cycle depuis n'importe quelle app.")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 1)
-            }
-        }
-    }
-
-    // MARK: Alerte apps manquantes
-
-    private var alerteAppsManquantes: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-                .font(.system(size: 13))
-                .padding(.top, 1)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Aucune app d'encoche installée")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.primary)
-
-                Text("Bouncer n'a rien à arbitrer pour l'instant. Installez au moins une app prise en charge — \(etat.appsAInstaller.formatted(.list(type: .or))) — et elle apparaîtra automatiquement dans le menu.")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .strokeBorder(Color.orange.opacity(0.2), lineWidth: 1)
-        )
-        .accessibilityElement(children: .combine)
+    private var bilanApps: String {
+        let n = windowManager.entreesMenu.count
+        return n == 1 ? "1 app d’encoche détectée" : "\(n) apps d’encoche détectées"
     }
 
     // MARK: Pied de page
 
     private var piedDePage: some View {
-        HStack {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(etat.pretAServir ? Color.green : Color.secondary.opacity(0.4))
-                    .frame(width: 7.5, height: 7.5)
-                    .accessibilityHidden(true)
-                Text(etat.pretAServir ? "Bouncer est prêt." : "Ce guide reste accessible depuis le menu de l'app.")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
+        VStack(spacing: 18) {
+            Button(action: avancer) {
+                Text(libelleBouton)
             }
+            .buttonStyle(BoutonPrincipal())
+            .keyboardShortcut(.defaultAction)
 
-            Spacer()
+            HStack {
+                // Le retour occupe sa place même sur le premier écran : sinon les points de
+                // pagination se décalent d'un écran à l'autre.
+                Button(action: reculer) {
+                    Label("Retour", systemImage: "chevron.left")
+                        .labelStyle(.titleAndIcon)
+                        .font(.system(size: 11.5, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Nuit.doux)
+                .opacity(etape.precedente == nil ? 0 : 1)
+                .disabled(etape.precedente == nil)
+                .accessibilityHidden(etape.precedente == nil)
+                .frame(width: 92, alignment: .leading)
 
-            Button("Commencer", action: fermer)
-                .keyboardShortcut(.defaultAction)
-                .controlSize(.large)
-                .buttonStyle(.borderedProminent)
-                .accessibilityHint("Ferme ce guide et commence à utiliser Bouncer")
+                Spacer()
+
+                PointsPagination(etape: $etape)
+
+                Spacer()
+
+                Button("Passer", action: fermer)
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(Nuit.tresDoux)
+                    .opacity(etape.estDerniere ? 0 : 1)
+                    .disabled(etape.estDerniere)
+                    .accessibilityHidden(etape.estDerniere)
+                    .frame(width: 92, alignment: .trailing)
+                    .accessibilityHint("Ferme la présentation et commence à utiliser Bouncer")
+            }
 
             // ⌘W n'a pas d'équivalent AppKit ici : une app LSUIElement n'a pas de menu Fichier
             // d'où le raccourci viendrait. Échap, lui, n'est PAS ici — `FenetreAccueilWindow`
-            // l'intercepte au niveau de la fenêtre, et deux interceptions du même `performClose`
-            // au même endroit ne font que se doubler.
-            Button("Fermer le guide avec commande W", action: fermer)
+            // l'intercepte au niveau de la fenêtre.
+            Button("Fermer la présentation avec commande W", action: fermer)
                 .keyboardShortcut("w", modifiers: .command)
                 .opacity(0)
                 .frame(width: 0, height: 0)
                 .accessibilityHidden(true)
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 44)
+        .padding(.bottom, 30)
+        .padding(.top, 6)
+    }
+
+    /// Le premier écran invite (« Commencer »), les suivants enchaînent, le dernier conclut.
+    private var libelleBouton: String {
+        switch etape {
+        case .bienvenue: return "Commencer"
+        case .pret: return "Utiliser Bouncer"
+        default: return "Continuer"
+        }
+    }
+
+    private func avancer() {
+        guard let suivante = etape.suivante else {
+            fermer()
+            return
+        }
+        changer(vers: suivante)
+    }
+
+    private func reculer() {
+        guard let precedente = etape.precedente else { return }
+        changer(vers: precedente)
+    }
+
+    private func changer(vers cible: EtapeAccueil) {
+        if reduceMotion {
+            etape = cible
+        } else {
+            withAnimation(.easeInOut(duration: 0.28)) { etape = cible }
+        }
     }
 }
 
-// MARK: - Composant Carte Étape
+// MARK: - Éléments de mise en page
 
-private struct CarteEtape<Contenu: View>: View {
-    let titre: String
-    let icone: String
-    let couleurIcone: Color
-    var estValide: Bool = false
-    @ViewBuilder let contenu: Contenu
+private struct TitreEtape: View {
+    let texte: String
+    init(_ texte: String) { self.texte = texte }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            HStack(spacing: 9) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6.5, style: .continuous)
-                        .fill(couleurIcone.opacity(0.14))
-                        .frame(width: 24, height: 24)
+        Text(texte)
+            .font(.system(size: 26, weight: .bold))
+            .foregroundStyle(Nuit.encre)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
 
-                    Image(systemName: icone)
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .foregroundStyle(couleurIcone)
-                }
+private struct SousTitreEtape: View {
+    let texte: String
+    init(_ texte: String) { self.texte = texte }
+
+    var body: some View {
+        Text(texte)
+            .font(.system(size: 13.5))
+            .foregroundStyle(Nuit.doux)
+            .multilineTextAlignment(.center)
+            .lineSpacing(3)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: 460)
+            .padding(.top, 12)
+    }
+}
+
+/// Le grand symbole rond des écrans qui n'ont pas d'illustration propre.
+private struct Sceau: View {
+    let symbole: String
+    let teinte: Color
+
+    var body: some View {
+        Image(systemName: symbole)
+            .font(.system(size: 52, weight: .regular))
+            .foregroundStyle(teinte)
+            .shadow(color: teinte.opacity(0.45), radius: 22)
+            .frame(height: 72)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct LigneBilan: View {
+    let valide: Bool
+    let texte: String
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: valide ? "checkmark.circle.fill" : "circle.dashed")
+                .font(.system(size: 13))
+                .foregroundStyle(valide ? Color.green : Color.orange)
                 .accessibilityHidden(true)
 
-                Text(titre)
-                    .font(.system(size: 13.5, weight: .semibold))
-                    .foregroundStyle(.primary)
+            Text(texte)
+                .font(.system(size: 12.5))
+                .foregroundStyle(Nuit.doux)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
 
-                Spacer()
+/// Les cinq points du bas. Cliquables : sur un parcours court, sauter à l'écran qu'on cherche
+/// vaut mieux que quatre « Continuer » d'affilée.
+private struct PointsPagination: View {
+    @Binding var etape: EtapeAccueil
 
-                if estValide {
-                    Text("Actif")
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundStyle(.green)
-                        .padding(.horizontal, 6.5)
-                        .padding(.vertical, 2)
-                        .background(Color.green.opacity(0.12), in: Capsule())
-                        .accessibilityLabel("Statut : Actif")
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(EtapeAccueil.allCases) { candidate in
+                Button {
+                    if reduceMotion {
+                        etape = candidate
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.28)) { etape = candidate }
+                    }
+                } label: {
+                    Capsule()
+                        .fill(candidate == etape ? Nuit.encre : Color.white.opacity(0.22))
+                        .frame(width: candidate == etape ? 20 : 7, height: 7)
+                        // La cible cliquable dépasse largement le point dessiné : 7 pt de haut,
+                        // c'est sous la taille minimale d'une cible pointée.
+                        .contentShape(Rectangle().inset(by: -7))
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Écran \(candidate.rawValue + 1) sur \(EtapeAccueil.allCases.count)")
+                .accessibilityAddTraits(candidate == etape ? [.isSelected] : [])
+            }
+        }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.28), value: etape)
+    }
+}
+
+// MARK: - Boutons
+
+/// Le bouton clair et large du bas, seul appel à l'action de chaque écran.
+///
+/// Le survol vit dans une vue imbriquée et non sur le style : un `@State` posé sur le
+/// `ButtonStyle` lui-même n'a pas de nœud dans le graphe de vues — il se laisse écrire et ne
+/// redessine jamais rien.
+private struct BoutonPrincipal: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View { Corps(configuration: configuration) }
+
+    private struct Corps: View {
+        let configuration: ButtonStyleConfiguration
+
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @State private var survol = false
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color(red: 0.03, green: 0.05, blue: 0.13))
+                .frame(maxWidth: 300)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule().fill(Nuit.encre.opacity(configuration.isPressed ? 0.82 : (survol ? 1 : 0.94)))
+                )
+                .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.985)
+                .onHover { survol = $0 }
+        }
+    }
+}
+
+/// Le bouton d'un écran qui envoie ailleurs (les Réglages Système) : présent, mais pas au même
+/// rang que « Continuer ».
+private struct BoutonSecondaire: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View { Corps(configuration: configuration) }
+
+    private struct Corps: View {
+        let configuration: ButtonStyleConfiguration
+
+        @State private var survol = false
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(Nuit.encre)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule().fill(Color.white.opacity(configuration.isPressed ? 0.24 : (survol ? 0.18 : 0.12)))
+                )
+                .overlay(Capsule().strokeBorder(Nuit.trait, lineWidth: 1))
+                .onHover { survol = $0 }
+        }
+    }
+}
+
+// MARK: - Illustration du conflit (écran 2)
+
+/// Trois fenêtres d'encoche empilées au même endroit : la dernière lancée couvre les autres.
+/// Dessinée plutôt que capturée — une capture d'écran vieillirait au premier redesign des apps
+/// concernées, et il en faudrait une par thème.
+private struct IllustrationConflit: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulsation = false
+
+    private let couches: [(nom: String, couleur: Color, decalage: CGFloat)] = [
+        ("Vibe Island", .orange, 22),
+        ("Boring Notch", .green, 11),
+        ("NotchNook", .pink, 0),
+    ]
+
+    /// Même géométrie d'encoche que partout ailleurs : la hauteur est choisie pour la maquette,
+    /// la largeur suit les proportions du vrai boîtier (`boitierEncocheReference`, BouncerCore).
+    private let hauteurBoitier: CGFloat = 26
+    private var largeurBoitier: CGFloat {
+        let boitier = boitierEncocheReference
+        return (hauteurBoitier * boitier.width / boitier.height).rounded()
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(Color.black.opacity(0.45))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .strokeBorder(Nuit.trait, lineWidth: 1)
+                )
+                .frame(width: 330, height: 150)
+
+            // La contention respire en rouge sous l'encoche, sans pictogramme d'alerte : c'est
+            // l'endroit du conflit qu'on montre, pas un message d'erreur. Posée ici plutôt qu'en
+            // fond de l'encoche, où le flou débordait au-dessus de la maquette.
+            Capsule()
+                .fill(Color.red.opacity(pulsation ? 0.32 : 0.08))
+                .frame(width: 150, height: 30)
+                .blur(radius: 18)
+                .padding(.top, 24)
+                .allowsHitTesting(false)
+
+            // Les trois panneaux, décalés juste assez pour qu'on voie qu'ils sont trois.
+            ForEach(Array(couches.enumerated()), id: \.offset) { index, couche in
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(couche.couleur)
+                        .frame(width: 7, height: 7)
+                    Text(couche.nom)
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .frame(width: 168, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(Color(white: 0.10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .strokeBorder(couche.couleur.opacity(0.45), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.55), radius: 8, y: 3)
+                )
+                .offset(x: couche.decalage - 22, y: 42 + CGFloat(index) * 23)
             }
 
-            contenu
+            // L'encoche physique, par-dessus : c'est le point de contention.
+            EncochePhysiqueShape()
+                .fill(Color.black)
+                .frame(width: largeurBoitier, height: hauteurBoitier)
+
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color(nsColor: .controlBackgroundColor).opacity(0.55),
-            in: RoundedRectangle(cornerRadius: 11, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-        )
+        .frame(width: 330, height: 150)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                pulsation = true
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Trois applications d'encoche — NotchNook, Boring Notch et Vibe Island — dessinent leur fenêtre au même endroit, sous l'encoche, et se recouvrent.")
     }
 }
 
@@ -451,13 +826,13 @@ private struct ApercuBarreDesMenus: View {
             HStack(spacing: 11) {
                 Text("")
                     .font(.system(size: 11.5, weight: .bold))
-                    .foregroundStyle(.secondary.opacity(0.7))
+                    .foregroundStyle(Color.white.opacity(0.55))
                 Text("Finder")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary.opacity(0.7))
+                    .foregroundStyle(Color.white.opacity(0.55))
                 Text("Fichier")
                     .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary.opacity(0.5))
+                    .foregroundStyle(Color.white.opacity(0.38))
             }
             .padding(.leading, 12)
 
@@ -487,27 +862,28 @@ private struct ApercuBarreDesMenus: View {
 
                 Image(systemName: "wifi")
                     .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.55))
 
                 Image(systemName: "battery.100")
                     .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.55))
 
                 Text("10:42")
                     .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.55))
             }
             .padding(.trailing, 10)
         }
-        .frame(height: 30)
-        .frame(maxWidth: .infinity)
+        .frame(width: 380, height: 30)
+        // Couleurs écrites plutôt que sémantiques : cet aperçu vit sur le dégradé bleu nuit du
+        // parcours, où `.windowBackgroundColor` peindrait une barre gris clair.
         .background(
-            Color(nsColor: .windowBackgroundColor).opacity(0.8),
+            Color(white: 0.17),
             in: RoundedRectangle(cornerRadius: 7.5, style: .continuous)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 7.5, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("L'icône de Bouncer dans la barre des menus a la forme de deux rectangles superposés, en haut à droite de l'écran.")
@@ -556,6 +932,8 @@ private struct SimulateurNotchInteractif: View {
     private let timer = Timer.publish(every: 3.2, on: .main, in: .common).autoconnect()
 
     var body: some View {
+        // Largeur figée : la maquette d'un écran de Mac ne gagne rien à s'étirer sur toute la
+        // page, et l'encoche y paraîtrait minuscule.
         VStack(spacing: 10) {
             // Visualisation de l'écran & de l'encoche
             ZStack(alignment: .top) {
@@ -708,42 +1086,8 @@ private struct SimulateurNotchInteractif: View {
                 estSurvole = survole
             }
 
-            // Commandes d'essai interactif
-            HStack {
-                HStack(spacing: 4) {
-                    Text("Dynamique :")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Text("swipe \(sensDernierGeste) ➔ avance à l'app suivante")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.accentColor)
-                }
-
-                Spacer()
-
-                Button {
-                    basculer(vers: "gauche")
-                } label: {
-                    Label("Swipe ⟵", systemImage: "hand.point.left")
-                        .font(.system(size: 10.5, weight: .medium))
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .accessibilityLabel("Simuler un swipe vers la gauche")
-                .accessibilityHint("Fait avancer le cycle à l'application suivante")
-
-                Button {
-                    basculer(vers: "droite")
-                } label: {
-                    Label("Swipe ⟶", systemImage: "hand.point.right")
-                        .font(.system(size: 10.5, weight: .medium))
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .accessibilityLabel("Simuler un swipe vers la droite")
-                .accessibilityHint("Fait avancer le cycle à l'application suivante")
-            }
         }
+        .frame(width: 420)
         .onReceive(timer) { _ in
             guard !reduceMotion && !estSurvole else { return }
             animerSwipeAutomatique()
@@ -852,43 +1196,5 @@ private struct BoutonFlecheEncoche: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Piliers Explicatifs du Geste
-
-private struct PilierGeste: View {
-    let symbole: String
-    let titre: String
-    let description: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4.5) {
-                Image(systemName: symbole)
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityHidden(true)
-
-                Text(titre)
-                    .font(.system(size: 11, weight: .bold))
-            }
-
-            Text(description)
-                .font(.system(size: 10.5))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(9)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(
-            Color(nsColor: .windowBackgroundColor).opacity(0.65),
-            in: RoundedRectangle(cornerRadius: 7.5, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 7.5, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-        )
-        .accessibilityElement(children: .combine)
     }
 }

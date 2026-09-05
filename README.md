@@ -77,12 +77,15 @@ Bouncer est un utilitaire d'arrière-plan sans icône dans le Dock (`LSUIElement
 
 ### Le guide de démarrage
 
-Au tout premier lancement, Bouncer affiche automatiquement une fenêtre de bienvenue qui :
-- Vous indique son emplacement dans la barre des menus.
-- Vérifie l'état de l'autorisation Accessibilité (mise à jour réactive sans avoir à relancer l'app dès que vous l'accordez).
-- Présente le geste physique de commande.
+Au tout premier lancement, Bouncer affiche automatiquement une fenêtre de bienvenue, en cinq écrans sur fond sombre :
 
-Vous pouvez rouvrir ce guide à tout moment via l'entrée « Guide de démarrage… » du menu.
+1. **Bienvenue** — le mot « hello » s'écrit à la main, comme au premier démarrage d'un Mac.
+2. **Le problème** — plusieurs apps d'encoche posent leur fenêtre au même endroit, et macOS ne coordonne rien.
+3. **L'Accessibilité** — pourquoi l'autorisation est nécessaire, avec le bouton qui ouvre le bon volet des Réglages. L'écran passe au vert tout seul dès que vous cochez Bouncer, sans relancer l'app.
+4. **Le geste** — le survol de l'encoche, le swipe à deux doigts, les flèches et `⌃⌥⌘B`.
+5. **Prêt** — ce qui a été détecté sur votre machine, et où retrouver Bouncer.
+
+On avance avec « Continuer », on revient en arrière, on saute d'un écran à l'autre par les points de pagination, et Échap referme à tout moment. Vous pouvez rouvrir ce guide via l'entrée « Guide de démarrage… » du menu.
 
 ### Les gestes de commande
 
