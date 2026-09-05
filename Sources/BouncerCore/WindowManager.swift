@@ -459,6 +459,11 @@ public final class WindowManager: ObservableObject {
         bundleIDsCyclables(entrees: entreesMenu, exclus: reglages.bundleIDsExclus)
     }
 
+    /// Le cycle a-t-il au moins une cible ? Les flèches ‹ › s'y adossent : quand l'utilisateur a
+    /// décoché toutes les apps dans les réglages, `cycle` sort sur une liste vide et un clic ne
+    /// fait rien — mieux vaut alors ne pas montrer de flèche du tout.
+    public var cycleAUneCible: Bool { !cyclableApps.isEmpty }
+
     /// Un cran de swipe, ou un clic sur une flèche : l'app suivante (ou précédente) du cycle
     /// circulaire devient active, par la bascule qu'emprunte aussi le menu. Une seule app au
     /// catalogue redonne l'interrupteur d'origine, la bascule d'une app sur elle-même. No-op si

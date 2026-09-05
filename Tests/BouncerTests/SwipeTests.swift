@@ -62,6 +62,86 @@ struct SwipeTests {
         #expect(bascules(inertie) == 0)
     }
 
+    // MARK: - Durée de vie du détecteur (bug QA #8, 2026-09-05)
+    //
+    // Le détecteur ne voit jamais qu'on l'a remplacé : ces tests-là ne portent donc pas sur sa
+    // décision (verrouillée au-dessus) mais sur QUAND `NotchOverlay` le remplace.
+
+    /// Rejoue la boucle réelle de `NotchOverlay` : le monitor de défilement s'attache quand
+    /// `doitEcouter` le veut, se détache sinon, et chaque attache repart d'une session neuve.
+    /// `sortiesDeZone` liste les index d'événements pendant lesquels le curseur a débordé.
+    private func basculesAvecOscillation(
+        sortiesDeZone: Set<Int>,
+        politique: (SessionSwipe, Bool) -> Bool
+    ) -> Int {
+        var session = SessionSwipe()
+        var attache = false
+        var total = 0
+
+        for (i, e) in gesteEnregistre().enumerated() {
+            let dansLaZone = !sortiesDeZone.contains(i)
+            // Le monitor `.mouseMoved` réévalue l'attache à chaque mouvement du curseur.
+            let voulu = politique(session, dansLaZone)
+            if voulu, !attache {
+                session.demarre()
+                attache = true
+            } else if !voulu {
+                attache = false
+                continue
+            }
+            let evenement = EvenementDefilement(
+                phase: e.phase, inertie: e.inertie, deltaX: e.deltaX, deltaY: e.deltaY,
+                instant: e.instant, dansLaZone: dansLaZone
+            )
+            if session.recoit(evenement) == .bascule { total += 1 }
+        }
+        return total
+    }
+
+    /// L'ancienne règle : le monitor suit le curseur, point. C'est elle qui doublait.
+    private func ancienneRegle(_ session: SessionSwipe, _ dansLaZone: Bool) -> Bool {
+        dansLaZone
+    }
+
+    private func regleActuelle(_ session: SessionSwipe, _ dansLaZone: Bool) -> Bool {
+        session.doitEcouter(swipeActif: true, curseurDansLaZone: dansLaZone)
+    }
+
+    @Test("Un geste qui effleure la bordure de la zone ne produit toujours qu'UNE bascule")
+    func oscillationEnBordDeZone() {
+        // Index 7 : après la bascule (le seuil tombe au 4e événement) et avant la fin du geste —
+        // c'est-à-dire pile là où un détecteur réarmé a de quoi produire un second déclenchement.
+        #expect(basculesAvecOscillation(sortiesDeZone: [7], politique: regleActuelle) == 1)
+    }
+
+    @Test("Le témoin du bug : la règle « le monitor suit le curseur » en produisait DEUX")
+    func ancienneRegleDoublait() {
+        // Ce test n'exige rien du code de production ; il atteste que le scénario ci-dessus est
+        // bien celui qui cassait, sans quoi le test précédent passerait pour de mauvaises raisons.
+        #expect(basculesAvecOscillation(sortiesDeZone: [7], politique: ancienneRegle) == 2)
+    }
+
+    @Test("Hors geste, le monitor se détache dès que le curseur sort")
+    func detacheHorsGeste() {
+        let session = SessionSwipe()
+        #expect(session.doitEcouter(swipeActif: true, curseurDansLaZone: false) == false)
+        #expect(session.doitEcouter(swipeActif: true, curseurDansLaZone: true))
+        // Le mode « flèches seules » reste prioritaire : rien à écouter, geste en cours ou non.
+        #expect(session.doitEcouter(swipeActif: false, curseurDansLaZone: true) == false)
+    }
+
+    @Test("La fin du geste relâche la rétention du monitor")
+    func finDeGesteRelache() {
+        var session = SessionSwipe()
+        session.demarre()
+        _ = session.recoit(EvenementDefilement(phase: .debut, inertie: false, deltaX: 0, deltaY: 0,
+                                               instant: 0, dansLaZone: true))
+        #expect(session.doitEcouter(swipeActif: true, curseurDansLaZone: false))
+        _ = session.recoit(EvenementDefilement(phase: .fin, inertie: false, deltaX: 0, deltaY: 0,
+                                               instant: 0.5, dansLaZone: false))
+        #expect(session.doitEcouter(swipeActif: true, curseurDansLaZone: false) == false)
+    }
+
     @Test("Deux gestes successifs produisent deux bascules, même rapprochés")
     func deuxGestes() {
         // Le cooldown de 0,5 s mangeait le second geste volontaire ; la détente par geste, non.

@@ -57,6 +57,7 @@ final class NotchOverlayController: NSObject {
     /// réglages — c'est ce qui fait qu'un curseur qu'on bouge se voit à l'écran sans relancer.
     private let reglages: Reglages
     private var abonnement: AnyCancellable?
+    private var abonnementApps: AnyCancellable?
     private var panel: NSPanel?
     private var arrowsView: NotchArrowsView?
     private var hoverMonitor: Any?
@@ -71,7 +72,18 @@ final class NotchOverlayController: NSObject {
     // était la SEULE du projet restée réglée à l'œil, et les deux décident de la sensation du
     // geste : elles vivent désormais dans `Reglages`, avec ces mêmes valeurs en défaut.
 
-    private var detecteur = DetecteurSwipe()
+    /// La session porte le détecteur ET sa durée de vie (cf. `SessionSwipe`) : c'est le
+    /// remplacement du détecteur EN COURS DE GESTE qui produisait deux bascules pour un geste.
+    private var session = SessionSwipe()
+
+    /// Le cycle a-t-il au moins une cible ? Mis en cache et non redemandé à chaque événement :
+    /// `cycleAUneCible` traverse `entreesMenu`, qui interroge LaunchServices pour chaque bundleID
+    /// du catalogue, et `updateHover` tourne à chaque mouvement du curseur.
+    ///
+    /// Sans ça, décocher toutes les apps dans les réglages laissait les deux flèches s'allumer
+    /// normalement au survol et ne RIEN faire au clic (`cycle` sort sur une liste vide). Un
+    /// contrôle qui répond visuellement et n'agit pas est pire qu'un contrôle absent.
+    private var cycleAUneCible = true
 
     init(windowManager: WindowManager, reglages: Reglages) {
         self.windowManager = windowManager
@@ -85,6 +97,11 @@ final class NotchOverlayController: NSObject {
             // `objectWillChange` part AVANT l'écriture de la nouvelle valeur : relire tout de
             // suite rendrait l'ancienne.
             Task { @MainActor in self?.rebuild() }
+        }
+        // Le contenu du cycle change sans que ni les réglages ni les écrans bougent : une app
+        // d'encoche qu'on lance ou qu'on quitte suffit. Les flèches doivent suivre.
+        abonnementApps = windowManager.objectWillChange.sink { [weak self] in
+            Task { @MainActor in self?.majCycleAUneCible() }
         }
         hoverMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             self?.updateHover()
@@ -123,7 +140,18 @@ final class NotchOverlayController: NSObject {
             buildPanel(zone: zone)
         }
         // Force le recalcul : `updateHover` sort tôt quand l'opacité n'a pas bougé, or ici c'est
-        // la géométrie ou le mode d'activation qui vient de changer, pas le curseur.
+        // la géométrie, le mode d'activation ou la liste des apps cochées qui vient de changer,
+        // pas le curseur.
+        cycleAUneCible = windowManager.cycleAUneCible
+        opaciteCourante = -1
+        updateHover()
+    }
+
+    /// Relit le cache et ne réveille l'affichage que si la réponse a changé.
+    private func majCycleAUneCible() {
+        let cible = windowManager.cycleAUneCible
+        guard cible != cycleAUneCible else { return }
+        cycleAUneCible = cible
         opaciteCourante = -1
         updateHover()
     }
@@ -187,13 +215,17 @@ final class NotchOverlayController: NSObject {
     /// La condition ne se dérive PAS de l'opacité des flèches : en mode « swipe seul » elle vaut
     /// zéro en permanence, et le swipe ne marcherait plus du tout.
     private func majMoniteurScroll() {
-        let voulu = reglages.modeActivation.swipeActif && curseurDansLaZone()
+        // `doitEcouter` garde le monitor attaché tant qu'un geste est en cours, même si le curseur
+        // a débordé de la zone : c'est ce qui empêche de repartir d'un détecteur neuf au milieu
+        // d'un mouvement, et donc d'en tirer une deuxième bascule (cf. `SessionSwipe`).
+        // Rien à parcourir, rien à écouter : un swipe sur un cycle vide ne peut rien produire.
+        let voulu = cycleAUneCible
+            && session.doitEcouter(
+                swipeActif: reglages.modeActivation.swipeActif,
+                curseurDansLaZone: curseurDansLaZone()
+            )
         if voulu, scrollMonitor == nil {
-            // Détecteur neuf à chaque attache : un geste a pu commencer AVANT l'entrée en zone,
-            // ses premiers événements sont partis pendant qu'on n'écoutait pas, et `arme` a pu
-            // rester à faux depuis la bascule précédente — le geste en cours serait alors perdu
-            // en entier. Repartir de zéro le rend comptable dès le premier événement reçu.
-            detecteur = DetecteurSwipe()
+            session.demarre()
             scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
                 self?.handleScroll(event)
             }
@@ -219,7 +251,10 @@ final class NotchOverlayController: NSObject {
         // Flèches désactivées : le panel ne va JAMAIS à l'écran, donc rien de Bouncer ne recouvre
         // la barre des menus. C'est la différence entre « invisible » et « absent », et c'est ce
         // que promet le mode « swipe seul ».
-        let opacite = reglages.modeActivation.flechesActives
+        // Deux raisons de ne rien montrer, et c'est la même : la flèche ne ferait rien. Le mode
+        // « swipe seul », que l'utilisateur a choisi ; et un cycle sans aucune cible, parce qu'il
+        // a tout décoché dans les réglages — `cycle` sort alors sur une liste vide.
+        let opacite = (reglages.modeActivation.flechesActives && cycleAUneCible)
             ? opaciteFleches(curseur: NSEvent.mouseLocation, zone: zone, portee: reglages.porteeApproche)
             : 0
         guard opacite != opaciteCourante else { return }
@@ -240,9 +275,10 @@ final class NotchOverlayController: NSObject {
         // La position du curseur est revérifiée ici plutôt que déduite d'un état latché par le
         // monitor `.mouseMoved` : celui-ci ne se remet pas à jour si le curseur reste immobile
         // pendant qu'une app d'encoche tierce déploie son panneau par-dessus.
-        let decision = detecteur.recoit(
+        let phase = phaseGeste(event)
+        let decision = session.recoit(
             EvenementDefilement(
-                phase: phaseGeste(event),
+                phase: phase,
                 inertie: event.momentumPhase != [],
                 deltaX: event.scrollingDeltaX,
                 deltaY: event.scrollingDeltaY,
@@ -257,6 +293,13 @@ final class NotchOverlayController: NSObject {
         // retient pas (retour de test réel du 2026-09-05).
         if case .bascule = decision {
             windowManager.cycle(forward: true)
+        }
+        // Le geste vient de finir : si le curseur avait débordé de la zone, c'est ici qu'on peut
+        // enfin détacher le monitor. Sinon il resterait attaché jusqu'au prochain mouvement de
+        // souris, ce qui rendrait à moitié l'économie de `majMoniteurScroll`. Différé d'un tour de
+        // boucle : on est DANS le bloc du monitor, et `removeMonitor` le libérerait sous ses pieds.
+        if case .fin = phase {
+            Task { @MainActor [weak self] in self?.majMoniteurScroll() }
         }
     }
 

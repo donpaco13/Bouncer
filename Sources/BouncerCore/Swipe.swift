@@ -118,3 +118,51 @@ public func opaciteFleches(curseur: CGPoint, zone: CGRect, portee: CGFloat) -> C
     guard distance > 0 else { return 1 }
     return max(0, 1 - distance / portee)
 }
+
+/// La DURÉE DE VIE du détecteur, séparée de sa décision.
+///
+/// `NotchOverlay` n'écoute le défilement que curseur dans la zone sensible : il attache le monitor
+/// à l'entrée, le détache à la sortie, et repartait d'un `DetecteurSwipe` NEUF à chaque attache.
+/// Or un geste physique n'a aucune raison de rester dans une bande de 41 pt : un swipe un peu
+/// diagonal en franchit la bordure basse pendant une fraction de seconde. Sortie + entrée EN COURS
+/// DE GESTE, donc détecteur remplacé, donc `arme` remis à vrai — et la fin du même mouvement
+/// produisait une SECONDE bascule.
+///
+/// Le détecteur n'y est pour rien : il ne voit jamais qu'on l'a remplacé, et ses règles (inertie
+/// écartée, une détente par geste) restent exactement celles mesurées le 2026-09-03. Ce qui est
+/// corrigé ici, c'est QUAND on le remplace — jamais pendant un geste.
+public struct SessionSwipe {
+    private var detecteur = DetecteurSwipe()
+
+    /// Vrai entre la phase `.debut` et la phase `.fin` d'un même geste physique. L'inertie ne
+    /// compte pas : elle arrive avec une phase `.aucune`, après que les doigts ont quitté la surface.
+    public private(set) var gesteEnCours = false
+
+    public init() {}
+
+    /// Le monitor de défilement doit-il être attaché ? Curseur dans la zone, OU geste encore en
+    /// cours : un geste commencé dans la zone se termine avec le même détecteur, même si la main
+    /// a débordé entre-temps.
+    public func doitEcouter(swipeActif: Bool, curseurDansLaZone: Bool) -> Bool {
+        swipeActif && (curseurDansLaZone || gesteEnCours)
+    }
+
+    /// Détecteur neuf, à appeler à chaque (ré)attache du monitor : un geste a pu commencer AVANT
+    /// l'entrée en zone, ses premiers événements sont partis pendant qu'on n'écoutait pas, et
+    /// `arme` a pu rester à faux depuis la bascule précédente — le geste en cours serait alors
+    /// perdu en entier. `doitEcouter` garantit que cette remise à neuf n'arrive jamais pendant un
+    /// geste que l'on suivait déjà.
+    public mutating func demarre() {
+        detecteur = DetecteurSwipe()
+        gesteEnCours = false
+    }
+
+    public mutating func recoit(_ e: EvenementDefilement) -> DetecteurSwipe.Decision {
+        switch e.phase {
+        case .debut: gesteEnCours = true
+        case .fin: gesteEnCours = false
+        case .encours, .aucune: break
+        }
+        return detecteur.recoit(e)
+    }
+}
