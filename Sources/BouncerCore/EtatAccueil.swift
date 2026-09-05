@@ -37,3 +37,23 @@ public struct EtatAccueil: Equatable {
             : connues.values.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 }
+
+/// Les cinq écrans du parcours d'accueil, dans l'ordre de lecture.
+///
+/// Ici et non dans la vue pour une raison unique : l'avance et le retour se bornent aux
+/// extrémités, et une borne fausse ne se voit qu'en cliquant « Continuer » sur le DERNIER écran
+/// ou « Retour » sur le premier — deux gestes qu'on ne fait jamais en développant. Les bornes
+/// sont déléguées à `init?(rawValue:)`, qui rend `nil` hors plage : il n'y a pas de `min`/`max`
+/// à écrire, donc pas de décalage d'un cran à écrire de travers.
+public enum EtapeAccueil: Int, CaseIterable, Identifiable, Sendable {
+    case bienvenue
+    case probleme
+    case accessibilite
+    case geste
+    case pret
+
+    public var id: Int { rawValue }
+    public var suivante: EtapeAccueil? { EtapeAccueil(rawValue: rawValue + 1) }
+    public var precedente: EtapeAccueil? { EtapeAccueil(rawValue: rawValue - 1) }
+    public var estDerniere: Bool { suivante == nil }
+}

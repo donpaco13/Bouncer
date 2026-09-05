@@ -35,3 +35,23 @@ struct AccueilTests {
         #expect(!appsEncocheConnues.isEmpty)
     }
 }
+
+/// Le parcours en cinq écrans. Ses deux extrémités sont les seuls endroits où la navigation peut
+/// casser, et ce sont ceux qu'on n'atteint jamais en développant.
+struct ParcoursAccueilTests {
+    @Test func lesCinqEtapesSEnchainentDansLOrdre() {
+        #expect(EtapeAccueil.allCases.map(\.rawValue) == [0, 1, 2, 3, 4])
+        #expect(EtapeAccueil.bienvenue.suivante == .probleme)
+        #expect(EtapeAccueil.geste.suivante == .pret)
+        #expect(EtapeAccueil.pret.precedente == .geste)
+    }
+
+    @Test func lesExtremitesNeDebordentPas() {
+        // Au-delà du dernier écran il n'y a rien : c'est ce `nil` qui fait dire « Utiliser
+        // Bouncer » au bouton plutôt que « Continuer », et qui referme la fenêtre.
+        #expect(EtapeAccueil.pret.suivante == nil)
+        #expect(EtapeAccueil.pret.estDerniere)
+        #expect(EtapeAccueil.bienvenue.precedente == nil)
+        #expect(!EtapeAccueil.bienvenue.estDerniere)
+    }
+}
