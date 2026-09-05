@@ -26,6 +26,14 @@ import SwiftUI
 
 // MARK: - Contrôleur de fenêtre
 
+/// Sous-classe de NSWindow qui intercepte Escape (cancelOperation) pour fermer la fenêtre
+/// proprement, indispensable dans une application d'arrière-plan (LSUIElement) sans menu Fichier.
+private final class FenetreAccueilWindow: NSWindow {
+    override func cancelOperation(_ sender: Any?) {
+        performClose(sender)
+    }
+}
+
 @MainActor
 final class FenetreAccueilController: NSObject, NSWindowDelegate {
     private static let cleVue = "bouncer.accueilVu"
@@ -61,7 +69,7 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
         )
         hote.sizingOptions = .preferredContentSize
 
-        let fenetre = NSWindow(contentViewController: hote)
+        let fenetre = FenetreAccueilWindow(contentViewController: hote)
         fenetre.styleMask = [.titled, .closable, .fullSizeContentView]
         fenetre.title = "Bienvenue dans Bouncer"
         fenetre.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
@@ -135,6 +143,7 @@ struct VueAccueil: View {
                     .font(.system(size: 19, weight: .semibold))
                     .foregroundStyle(.white)
             }
+            .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Bienvenue dans Bouncer")
@@ -186,6 +195,7 @@ struct VueAccueil: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                             .font(.system(size: 13.5))
+                            .accessibilityHidden(true)
                         Text("Autorisation active. Bouncer peut masquer et réafficher vos fenêtres d'encoche.")
                             .font(.system(size: 12.5))
                             .foregroundStyle(.secondary)
@@ -203,6 +213,7 @@ struct VueAccueil: View {
                         }
                         .controlSize(.regular)
                         .buttonStyle(.borderedProminent)
+                        .accessibilityHint("Ouvre la section Accessibilité des Réglages Système pour autoriser Bouncer")
 
                         Text("Cochez Bouncer. Détection en direct sans relancer l'app.")
                             .font(.system(size: 11.5))
@@ -254,6 +265,7 @@ struct VueAccueil: View {
                     Image(systemName: "cursorarrow.click")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                     Text("Astuce : un clic direct sur les flèches ‹ ou › fait aussi tourner le cycle.")
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
@@ -271,11 +283,12 @@ struct VueAccueil: View {
                 .foregroundStyle(.orange)
                 .font(.system(size: 13))
                 .padding(.top, 1)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Aucune app d'encoche installée")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.primary)
 
                 Text("Bouncer n'a rien à arbitrer pour l'instant. Installez au moins une app prise en charge — \(etat.appsAInstaller.formatted(.list(type: .or))) — et elle apparaîtra automatiquement dans le menu.")
                     .font(.system(size: 11.5))
@@ -290,6 +303,7 @@ struct VueAccueil: View {
             RoundedRectangle(cornerRadius: 9, style: .continuous)
                 .strokeBorder(Color.orange.opacity(0.2), lineWidth: 1)
         )
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Pied de page
@@ -300,6 +314,7 @@ struct VueAccueil: View {
                 Circle()
                     .fill(etat.pretAServir ? Color.green : Color.secondary.opacity(0.4))
                     .frame(width: 7.5, height: 7.5)
+                    .accessibilityHidden(true)
                 Text(etat.pretAServir ? "Bouncer est prêt." : "Ce guide reste accessible depuis le menu de l'app.")
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
@@ -311,6 +326,20 @@ struct VueAccueil: View {
                 .keyboardShortcut(.defaultAction)
                 .controlSize(.large)
                 .buttonStyle(.borderedProminent)
+                .accessibilityHint("Ferme ce guide et commence à utiliser Bouncer")
+
+            // Raccourcis clavier pour fermer la fenêtre (Escape et ⌘W) dans une app LSUIElement
+            Button("Fermer le guide", action: fermer)
+                .keyboardShortcut(.cancelAction)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+
+            Button("Fermer le guide avec commande W", action: fermer)
+                .keyboardShortcut("w", modifiers: .command)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 14)
@@ -338,6 +367,7 @@ private struct CarteEtape<Contenu: View>: View {
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(couleurIcone)
                 }
+                .accessibilityHidden(true)
 
                 Text(titre)
                     .font(.system(size: 13.5, weight: .semibold))
@@ -352,6 +382,7 @@ private struct CarteEtape<Contenu: View>: View {
                         .padding(.horizontal, 6.5)
                         .padding(.vertical, 2)
                         .background(Color.green.opacity(0.12), in: Capsule())
+                        .accessibilityLabel("Statut : Actif")
                 }
             }
 
@@ -461,6 +492,8 @@ private struct SimulateurNotchInteractif: View {
         AppSimulee(id: 2, nom: "Vibe Island", sousTitre: "2 notifications en attente", icone: "bell.badge.fill", couleur: .orange),
     ]
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var indexActif: Int = 0
     @State private var positionDoigtsX: CGFloat = 0
     @State private var sensDernierGeste: String = "droite"
@@ -500,15 +533,22 @@ private struct SimulateurNotchInteractif: View {
                         .frame(width: 4.5, height: 4.5)
                         .padding(.top, 6.5)
                 }
+                .accessibilityHidden(true)
 
                 // Flèches latérales ‹ et › (cliquables)
                 HStack(spacing: 142) {
-                    BoutonFlecheEncoche(symbole: "chevron.left") {
+                    BoutonFlecheEncoche(
+                        symbole: "chevron.left",
+                        libelleAccessible: "Flèche gauche : faire avancer le cycle"
+                    ) {
                         basculer(vers: "gauche")
                     }
                     .help("Cliquez pour faire avancer le cycle")
 
-                    BoutonFlecheEncoche(symbole: "chevron.right") {
+                    BoutonFlecheEncoche(
+                        symbole: "chevron.right",
+                        libelleAccessible: "Flèche droite : faire avancer le cycle"
+                    ) {
                         basculer(vers: "droite")
                     }
                     .help("Cliquez pour faire avancer le cycle")
@@ -524,6 +564,7 @@ private struct SimulateurNotchInteractif: View {
                         Image(systemName: app.icone)
                             .font(.system(size: 10.5, weight: .bold))
                             .foregroundStyle(app.couleur)
+                            .accessibilityHidden(true)
 
                         VStack(alignment: .leading, spacing: 0.5) {
                             Text(app.nom)
@@ -548,11 +589,15 @@ private struct SimulateurNotchInteractif: View {
                     .shadow(color: Color.black.opacity(0.4), radius: 5, x: 0, y: 2)
                     .id(indexActif)
                     .transition(
-                        .asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                            removal: .opacity.combined(with: .scale(scale: 1.04))
-                        )
+                        reduceMotion
+                            ? .opacity
+                            : .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.combined(with: .scale(scale: 1.04))
+                            )
                     )
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Application simulée : \(app.nom), \(app.sousTitre)")
 
                     Spacer().frame(height: 3)
 
@@ -564,6 +609,7 @@ private struct SimulateurNotchInteractif: View {
                                 .frame(width: i == indexActif ? 5.5 : 4, height: i == indexActif ? 5.5 : 4)
                         }
                     }
+                    .accessibilityHidden(true)
                 }
 
                 // Doigts de swipe sur le trackpad
@@ -595,6 +641,7 @@ private struct SimulateurNotchInteractif: View {
                     .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8))
                     .padding(.bottom, 7)
                 }
+                .accessibilityHidden(true)
             }
             .frame(height: 122)
             .onHover { survole in
@@ -622,6 +669,8 @@ private struct SimulateurNotchInteractif: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .accessibilityLabel("Simuler un swipe vers la gauche")
+                .accessibilityHint("Fait avancer le cycle à l'application suivante")
 
                 Button {
                     basculer(vers: "droite")
@@ -631,23 +680,30 @@ private struct SimulateurNotchInteractif: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .accessibilityLabel("Simuler un swipe vers la droite")
+                .accessibilityHint("Fait avancer le cycle à l'application suivante")
             }
         }
         .onReceive(timer) { _ in
-            guard !estSurvole else { return }
+            guard !reduceMotion && !estSurvole else { return }
             animerSwipeAutomatique()
         }
     }
 
     private func basculer(vers sens: String) {
         sensDernierGeste = sens
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+        if reduceMotion {
             indexActif = (indexActif + 1) % apps.count
-            positionDoigtsX = sens == "droite" ? 16 : -16
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
-            withAnimation(.easeOut(duration: 0.18)) {
-                positionDoigtsX = 0
+            positionDoigtsX = 0
+        } else {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                indexActif = (indexActif + 1) % apps.count
+                positionDoigtsX = sens == "droite" ? 16 : -16
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                withAnimation(.easeOut(duration: 0.18)) {
+                    positionDoigtsX = 0
+                }
             }
         }
     }
@@ -681,8 +737,11 @@ private struct EncochePhysiqueShape: Shape {
 
 private struct BoutonFlecheEncoche: View {
     let symbole: String
+    let libelleAccessible: String
     let action: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var estFocus: Bool
     @State private var survol: Bool = false
 
     var body: some View {
@@ -697,14 +756,24 @@ private struct BoutonFlecheEncoche: View {
                 )
                 .overlay(
                     Circle()
-                        .strokeBorder(Color.white.opacity(survol ? 0.4 : 0.15), lineWidth: 1)
+                        .strokeBorder(
+                            estFocus ? Color.accentColor : Color.white.opacity(survol ? 0.4 : 0.15),
+                            lineWidth: estFocus ? 2 : 1
+                        )
                 )
-                .scaleEffect(survol ? 1.08 : 1.0)
+                .scaleEffect(reduceMotion ? 1.0 : (survol || estFocus ? 1.08 : 1.0))
         }
         .buttonStyle(.plain)
+        .focused($estFocus)
+        .accessibilityLabel(libelleAccessible)
+        .accessibilityHint("Fait avancer le cycle d'applications")
         .onHover { s in
-            withAnimation(.easeInOut(duration: 0.15)) {
+            if reduceMotion {
                 survol = s
+            } else {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    survol = s
+                }
             }
         }
     }
@@ -723,6 +792,7 @@ private struct PilierGeste: View {
                 Image(systemName: symbole)
                     .font(.system(size: 10.5, weight: .semibold))
                     .foregroundStyle(Color.accentColor)
+                    .accessibilityHidden(true)
 
                 Text(titre)
                     .font(.system(size: 11, weight: .bold))
@@ -743,5 +813,6 @@ private struct PilierGeste: View {
             RoundedRectangle(cornerRadius: 7.5, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
         )
+        .accessibilityElement(children: .combine)
     }
 }
