@@ -35,6 +35,18 @@ final class ControleurAppsDouble: ControleurApps {
     /// Apps qui épinglent leurs fenêtres dans un Space privé : `masquer` rend `false` et
     /// l'écran ne change pas. C'est boringNotch.
     var resistantes: Set<String> = []
+    /// Nombre de sondages `pid(pour:)` pendant lesquels un process TUÉ reste encore là. Absent =
+    /// mort immédiate. `.max` = l'app ne meurt jamais (une feuille « Enregistrer les
+    /// modifications ? » attend l'utilisateur, ou l'app ne répond plus).
+    ///
+    /// Sans ce délai, le double ment sur le seul point où le vrai système ment au code appelant :
+    /// `terminate()` poste un Apple Event et rend `true` aussitôt, bien avant que le process ne
+    /// s'arrête. Un double qui tue sur-le-champ rend intestable tout le chemin du meurtre — et
+    /// c'est très exactement ce qui a laissé passer la relance sur un process mourant.
+    var sondagesAvantMort: [String: Int] = [:]
+
+    /// Les process à qui on a demandé de partir et qui ne sont pas encore partis.
+    private var mourantes: [String: Int] = [:]
 
     private(set) var masquees: Set<String> = []
     private(set) var journal: [ActionControleur] = []
@@ -48,6 +60,10 @@ final class ControleurAppsDouble: ControleurApps {
     func lancer(bundleID: String) async -> Bool {
         journal.append(.lance(bundleID))
         guard installees.contains(bundleID) else { return false }
+        // Un process en train de mourir n'est PAS relancé : `openApplication` rend l'instance
+        // mourante au lieu d'en démarrer une neuve. C'est ce comportement-là qui faisait
+        // disparaître l'app pour de bon quand `allumer` relançait sans attendre la mort.
+        if mourantes[bundleID] != nil { return true }
         if pidsParBundleID[bundleID] == nil {
             prochainPid += 1
             pidsParBundleID[bundleID] = prochainPid
@@ -59,9 +75,18 @@ final class ControleurAppsDouble: ControleurApps {
     func tuer(pid: pid_t) -> Bool {
         journal.append(.tue(pid))
         guard let bundleID = bundleID(de: pid) else { return false }
+        // `true` dès que la demande est partie, mort ou pas : c'est le contrat de `terminate()`,
+        // et c'est précisément pour ça qu'un appelant ne peut pas s'y fier.
+        let delai = sondagesAvantMort[bundleID] ?? 0
+        guard delai == 0 else { mourantes[bundleID] = delai; return true }
+        retirer(bundleID)
+        return true
+    }
+
+    private func retirer(_ bundleID: String) {
+        mourantes.removeValue(forKey: bundleID)
         pidsParBundleID.removeValue(forKey: bundleID)
         masquees.remove(bundleID)
-        return true
     }
 
     func masquer(_ masquee: Bool, pid: pid_t) async -> Bool {
@@ -83,7 +108,14 @@ final class ControleurAppsDouble: ControleurApps {
         return false
     }
 
-    func pid(pour bundleID: String) -> pid_t? { pidsParBundleID[bundleID] }
+    /// Sonder un process mourant le rapproche de sa fin — c'est le seul horloge du double, et
+    /// elle est celle-là même que `quitterEtAttendre` fait tourner.
+    func pid(pour bundleID: String) -> pid_t? {
+        if let restants = mourantes[bundleID], restants != .max {
+            if restants <= 1 { retirer(bundleID) } else { mourantes[bundleID] = restants - 1 }
+        }
+        return pidsParBundleID[bundleID]
+    }
 
     /// Le pendant du vrai : il lève le masquage sans rien mesurer. Un pid inconnu ne fait rien,
     /// comme un `AXUIElementSetAttributeValue` sur un process mort.
@@ -307,5 +339,87 @@ struct BasculeTests {
         #expect(resultat == .lancementImpossible)
         #expect(double.journal == [.lance(boring)])
         #expect(double.fenetreVisibleDansNotch(pid: 100))
+    }
+}
+
+
+// MARK: - Le meurtre est vérifié : jamais d'app perdue, jamais d'app fantôme
+
+/// Ce que garantit l'attente de mort ajoutée à `quitterEtAttendre`. Les trois cas viennent du même
+/// défaut : `tuer` était appelé sans jamais constater que le process était parti.
+@MainActor
+struct MeurtreSurTests {
+    private let vibe = "app.vibeisland.macos"
+    private let boring = "theboringteam.boringnotch"
+
+    private func info(_ bundleID: String, _ support: SupportStatus, pid: pid_t?) -> NotchAppInfo {
+        NotchAppInfo(bundleID: bundleID, name: bundleID, support: support, pid: pid, isHiddenByUs: false)
+    }
+
+    /// Le cas le plus grave : la cible est tuée par le repli de `allumer` puis relancée. Tant que
+    /// la mort n'était pas attendue, la relance retombait sur le process mourant et l'app
+    /// disparaissait pour de bon. Ici la cible doit être VIVANTE et dans l'encoche à l'arrivée.
+    @Test("Le repli de allumer relance vraiment la cible qu'il vient de tuer")
+    func repliAllumerNePerdPasLaCible() async {
+        let double = ControleurAppsDouble(lancees: [vibe: 100], installees: [vibe])
+        // Régissable au catalogue, mais le démasquage ne ramène rien à l'écran : la voie rapide
+        // échoue et bascule sur le repli tuer-puis-relancer.
+        // Un seul sondage négatif : de quoi faire échouer la voie rapide et déclencher le repli.
+        // La relance, elle, repart d'un compteur épuisé — la nouvelle instance apparaît aussitôt.
+        double.sondagesAvantApparition[vibe] = 1
+        // Et surtout : le process met trois sondages à mourir, comme un vrai. Relancer avant
+        // qu'il soit parti ne redémarre rien.
+        double.sondagesAvantMort[vibe] = 3
+
+        let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
+                              delaiMax: .milliseconds(50), trustAccorde: { true })
+        let resultat = await bascule.basculer(vers: info(vibe, .supported, pid: 100), depuis: nil)
+
+        #expect(resultat == .reussie)
+        // La preuve : un pid, donc une app vivante. Et un pid DIFFÉRENT de celui qu'on a tué.
+        let nouveau = double.pid(pour: vibe)
+        #expect(nouveau != nil)
+        #expect(nouveau != 100)
+        #expect(double.journal.contains(.tue(100)))
+        #expect(double.journal.contains(.lance(vibe)))
+    }
+
+    /// Une app qui refuse de quitter ne doit jamais passer pour rangée : elle est toujours dans
+    /// l'encoche, à côté de la nouvelle. Avant, `eteindre` rendait un succès muet et
+    /// `WindowManager` la marquait masquée.
+    @Test("Une précédente qui refuse de quitter est signalée, pas passée sous silence")
+    func precedenteQuiRefuseDeQuitterEstSignalee() async {
+        let double = ControleurAppsDouble(lancees: [boring: 200], installees: [boring, vibe])
+        double.resistantes = [boring]              // pas masquable : la seule sortie est de la quitter
+        double.sondagesAvantMort[boring] = .max    // et elle ne quitte pas
+
+        let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
+                              delaiMax: .milliseconds(30), trustAccorde: { true })
+        let resultat = await bascule.basculer(
+            vers: info(vibe, .testing, pid: nil), depuis: info(boring, .unsupported, pid: 200)
+        )
+
+        #expect(resultat == .precedenteResteEnPlace)
+        // La cible, elle, est bien arrivée : l'échec ne porte que sur la précédente.
+        #expect(double.pid(pour: vibe) != nil)
+        #expect(double.pid(pour: boring) == 200)
+    }
+
+    /// La bascule normale de boringNotch — celle de tous les jours — reste un succès franc, et
+    /// l'app est réellement morte quand on rend la main. Sans quoi `WindowManager` la marquerait
+    /// `isHiddenByUs` sur la foi d'un pid encore vivant.
+    @Test("Une précédente qui quitte pour de bon rend un succès, et son pid a disparu")
+    func precedenteQuitteeEstVraimentMorte() async {
+        let double = ControleurAppsDouble(lancees: [boring: 200], installees: [boring, vibe])
+        double.resistantes = [boring]
+
+        let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
+                              delaiMax: .milliseconds(30), trustAccorde: { true })
+        let resultat = await bascule.basculer(
+            vers: info(vibe, .testing, pid: nil), depuis: info(boring, .unsupported, pid: 200)
+        )
+
+        #expect(resultat == .reussie)
+        #expect(double.pid(pour: boring) == nil)
     }
 }

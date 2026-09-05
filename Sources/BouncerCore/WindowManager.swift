@@ -446,6 +446,15 @@ public final class WindowManager: ObservableObject {
         switch resultat {
         case .reussie:
             appliquerReussite(cible: cible.bundleID, actuelle: actuelle?.bundleID)
+        case .precedenteResteEnPlace:
+            // La cible EST dans l'encoche : cette moitié-là a réussi et doit être enregistrée.
+            // Mais on ne dit rien de la précédente — `actuelle: nil` — parce que la seule chose
+            // qu'`appliquerReussite` sait faire d'elle est la marquer `isHiddenByUs`, et elle ne
+            // l'est pas : elle est toujours à l'écran. Le `refresh()` qui suit la reverra dans
+            // l'encoche et la listera pour ce qu'elle est, une app lancée et visible.
+            appliquerReussite(cible: cible.bundleID, actuelle: nil)
+            let restee = actuelle?.name ?? cible.name
+            echecBascule = "\(restee) n'a pas pu être quittée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Répondez-lui, puis réessayez : Bouncer ne la forcera pas, ce serait perdre votre travail."
         case .lancementImpossible:
             echecBascule = "\(cible.name) n'a pas pu être lancée."
         case .accessibiliteJamaisAccordee:

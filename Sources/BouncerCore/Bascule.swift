@@ -22,6 +22,10 @@ import Foundation
 public enum ResultatBascule: Equatable {
     /// La cible occupe l'encoche, et la précédente a été rangée (masquée ou quittée).
     case reussie
+    /// La cible occupe l'encoche, mais la précédente n'a pas pu être quittée : elle a accepté la
+    /// demande de fermeture sans jamais mourir — une feuille « Enregistrer les modifications ? »
+    /// attend l'utilisateur, ou l'app ne répond plus. Les deux se partagent l'encoche.
+    case precedenteResteEnPlace
     /// La cible n'a pas pu être démarrée — désinstallée, ou lancement refusé par le système.
     case lancementImpossible
     /// La cible s'est lancée mais sa fenêtre n'est jamais apparue dans le délai imparti.
@@ -81,16 +85,55 @@ public struct Bascule {
 
         if actuelle?.bundleID == cible.bundleID {
             if let pid = controleur.pid(pour: cible.bundleID), controleur.fenetreVisibleDansNotch(pid: pid) {
-                await eteindre(cible)
-                return .reussie
+                return await eteindre(cible) ? .reussie : .precedenteResteEnPlace
             }
             return await allumer(cible)
         }
 
         let resultat = await allumer(cible)
         guard resultat == .reussie else { return resultat } // l'actuelle n'a pas été touchée
-        if let actuelle { await eteindre(actuelle) }
-        return .reussie
+        guard let actuelle else { return .reussie }
+        return await eteindre(actuelle) ? .reussie : .precedenteResteEnPlace
+    }
+
+    // MARK: - Quitter, et le vérifier
+
+    /// Demande la fermeture du process et ne rend la main qu'une fois qu'il est VRAIMENT parti.
+    /// `false` s'il est encore là au bout du délai.
+    ///
+    /// **Pourquoi attendre — c'est le cœur de la sûreté du meurtre.** `tuer` repose sur
+    /// `NSRunningApplication.terminate()`, qui poste un Apple Event et rend la main aussitôt : son
+    /// `true` dit que la DEMANDE est partie, pas que l'app est morte. Son propre contrat le disait
+    /// (« sonder pour le savoir ») et aucun des deux appelants ne le sondait. Chacun en payait le
+    /// prix :
+    ///   - `allumer` tuait la cible puis la relançait dans la foulée. `openApplication` sur un
+    ///     process en train de mourir rend l'instance mourante au lieu d'en démarrer une neuve :
+    ///     le sondage ne voyait jamais de fenêtre, la bascule expirait au bout du délai, et
+    ///     **l'app que l'utilisateur venait de demander restait morte, sans relance**. C'est ça,
+    ///     perdre une app.
+    ///   - `eteindre` rendait un succès sans rien vérifier. Une app qui refuse de quitter reste
+    ///     dans l'encoche à côté de la nouvelle, et `WindowManager`, ne voyant qu'un `.reussie`,
+    ///     la marquait `isHiddenByUs` — un état faux, sur une app parfaitement visible.
+    ///
+    /// **Pas de `forceTerminate` en dernier recours.** Une app qui ne quitte pas est le plus
+    /// souvent une app qui a quelque chose à enregistrer. La tuer de force ferait perdre le
+    /// travail de l'utilisateur, c'est-à-dire exactement ce que ce chemin existe pour empêcher.
+    /// On constate, on le dit, et on laisse l'app tranquille.
+    ///
+    /// Sonde `pid(pour:)` plutôt que `NSRunningApplication.isTerminated` : c'est déjà la mesure du
+    /// protocole, elle traverse le double de test, et elle n'ajoute aucune API à la surface.
+    ///
+    /// ponytail: réutilise `delaiMax`, le même plafond que l'attente d'apparition. Une bascule
+    /// peut donc coûter deux fois ce délai dans le pire cas. Si l'attente de mort mérite un
+    /// plafond propre, la mesure à relever est le temps réel de fermeture d'une app d'encoche.
+    private func quitterEtAttendre(bundleID: String, pid: pid_t) async -> Bool {
+        _ = controleur.tuer(pid: pid)
+        let echeance = ContinuousClock.now + delaiMax
+        while controleur.pid(pour: bundleID) != nil {
+            guard ContinuousClock.now < echeance else { return false }
+            try? await Task.sleep(for: intervalleSondage)
+        }
+        return true
     }
 
     // MARK: - Allumer la cible
@@ -111,7 +154,15 @@ public struct Bascule {
             // La quitter pour la relancer par la voie cycle de vie est le seul retour, et c'est
             // le pendant exact du dernier filet de `eteindre`, qui tue déjà quand le masquage
             // mesuré échoue.
-            _ = controleur.tuer(pid: pid)
+            //
+            // On ATTEND la mort avant de relancer : relancer un process encore mourant ne
+            // redémarre rien (cf. `quitterEtAttendre`), et l'app serait perdue. Si elle refuse de
+            // mourir, elle est là sans rien dessiner dans l'encoche — ce que dit très exactement
+            // `.cibleJamaisApparue`. La relancer n'y changerait rien, et l'actuelle, elle, n'a
+            // toujours pas été touchée.
+            guard await quitterEtAttendre(bundleID: cible.bundleID, pid: pid) else {
+                return .cibleJamaisApparue
+            }
         }
 
         // Voie cycle de vie : démarrer, puis attendre que le WindowServer affiche la fenêtre.
@@ -136,9 +187,14 @@ public struct Bascule {
     /// coûterait sa temporisation WindowServer pour rien. Pour les autres, l'échec mesuré du
     /// masquage sert de dernier filet — un verdict peut avoir vieilli, une mise à jour de l'app
     /// peut l'avoir changé, et laisser deux apps dans l'encoche serait pire que la quitter.
-    private func eteindre(_ actuelle: NotchAppInfo) async {
-        guard let pid = controleur.pid(pour: actuelle.bundleID) else { return }
-        if actuelle.support != .unsupported, await controleur.masquer(true, pid: pid) { return }
-        _ = controleur.tuer(pid: pid)
+    ///
+    /// Rend `false` dans le seul cas où l'encoche n'a PAS été libérée : le process a reçu la
+    /// demande de fermeture et il est toujours là. C'est un constat mesuré, du même ordre que
+    /// celui de `masquer`, et c'est tout ce que l'appelant a besoin de savoir — masquée, quittée
+    /// ou déjà arrêtée, les trois autres issues libèrent l'encoche.
+    private func eteindre(_ actuelle: NotchAppInfo) async -> Bool {
+        guard let pid = controleur.pid(pour: actuelle.bundleID) else { return true }
+        if actuelle.support != .unsupported, await controleur.masquer(true, pid: pid) { return true }
+        return await quitterEtAttendre(bundleID: actuelle.bundleID, pid: pid)
     }
 }
