@@ -1,3 +1,4 @@
+import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
 
 /* Landing statique : `next build` écrit un site servable tel quel dans out/.
@@ -9,4 +10,4 @@ const config: NextConfig = {
   images: { unoptimized: true },
 };
 
-export default config;
+export default createNextIntlPlugin("./i18n/request.ts")(config);

@@ -1,7 +1,16 @@
 import type { ReactNode } from "react";
-import type { Dictionary } from "@/content/dictionary";
 
-export type Demo = Dictionary["demo"];
+/** Ce que les panneaux affichent, déjà traduit. Générique par construction :
+    aucune app tierce n'est nommée, parce que le tableau de régissabilité écrit
+    trois écrans plus bas que le cycle entre deux apps n'a jamais pu être
+    vérifié faute d'un second candidat. Nommer une app ici le contredirait. */
+export type Demo = {
+  noms: [string, string, string];
+  agents: string;
+  duree: string;
+  jour: string;
+  heure: string;
+};
 
 /** Les trois panneaux de démo, dans l'ordre du cycle. */
 export const NB_PANNEAUX = 3;

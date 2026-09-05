@@ -5,7 +5,7 @@ exportée en site statique — aucun serveur à faire tourner en production.
 
 ```
 npm install
-npm run dev        # http://localhost:3000
+npm run dev        # http://localhost:3000/fr/ (et /en/)
 npm run build      # écrit out/, servable tel quel
 npm run typecheck
 ```
@@ -16,27 +16,59 @@ La page existait en un seul fichier (`docs/landing/index.html`, dans l'historiqu
 git jusqu'au portage). Elle était bonne, et le portage la reproduit au pixel :
 même arbre DOM, mêmes boîtes, mêmes valeurs.
 
-Ce qui a changé, c'est la **version anglaise à venir**. Dupliquer une page
-statique, c'est garantir qu'une correction ne sera faite que d'un côté. Ici le
-balisage est écrit une fois et le texte vit dans un dictionnaire typé.
+Ce qui a changé, c'est **l'anglais**. Dupliquer une page statique, c'est garantir
+qu'une correction ne sera faite que d'un côté. Ici le balisage est écrit une
+fois, et les deux langues rendent le même arbre — 209 éléments, vérifiés
+identiques d'une langue à l'autre après chaque build.
+
+## Les deux langues
+
+`next-intl` porte les dictionnaires ; le texte vit dans `messages/fr.json` et
+`messages/en.json`. Le **français est la langue de référence** : c'est sa forme
+qui définit les clés, via l'augmentation de `AppConfig` dans `global.d.ts`.
+
+Deux filets, tous les deux au compilateur :
+
+- une clé qui n'existe pas dans `fr.json` ne s'écrit pas dans le code ;
+- `messages/parite.ts` refuse de compiler si une traduction oublie ou renomme
+  une clé. C'est deux lignes, et c'est ce qui empêche les versions de diverger.
+
+Ce qui ne se traduit pas vit dans `content/` : les URL et la commande Homebrew
+(`liens.ts`), le nom et la version des apps testées (`compatibilite.ts`). Y
+dupliquer « 1.0.48 » dans chaque langue, ce serait se garantir qu'une mise à
+jour n'en corrigera qu'une.
+
+### Ce que l'export statique impose
+
+`output: "export"` veut dire pas de proxy, donc pas de négociation de langue au
+serveur. Trois conséquences, et ce ne sont pas des choix :
+
+1. **Le préfixe de langue est obligatoire** (`localePrefix: "always"`). Le
+   français est à `/fr/`, l'anglais à `/en/`.
+2. **`/` est une page d'aiguillage** (`app/(racine)/`) : un rafraîchissement
+   immédiat vers `/fr/`, en chemin relatif pour que le site marche aussi servi
+   depuis un sous-dossier.
+3. **Chaque langue doit être pré-rendue**, d'où `generateStaticParams` et
+   `setRequestLocale` dans `app/(site)/[locale]/`. Sans eux, le rendu bascule en
+   dynamique et le build échoue.
+
+Le sélecteur de langue est une ancre nue, pas le `Link` de `next-intl` : celui-ci
+devient un composant client dès qu'on lui passe une langue et réclame alors un
+`NextIntlClientProvider`. Aucun dictionnaire ne part au navigateur — les scènes
+animées sont des composants client, mais elles reçoivent des chaînes déjà
+résolues.
 
 ## Ajouter une langue
 
 Trois gestes, et le compilateur surveille le reste :
 
-1. `content/en.tsx` — copier `fr.tsx`, traduire les valeurs. Le type
-   `Dictionary` refuse une clé manquante ou renommée : c'est ce qui empêche les
-   deux versions de diverger.
-2. `app/(en)/layout.tsx` et `app/(en)/page.tsx` — copier ceux de `(fr)`, changer
-   `lang="en"`, le dictionnaire importé, et le chemin de la route.
-3. Ajouter `"en"` à `LOCALES` dans `content/dictionary.ts`.
+1. Ajouter son code à `locales` et son nom à `NOMS_LANGUES`, dans
+   `i18n/routing.ts`.
+2. Copier `messages/fr.json`, traduire les valeurs.
+3. Vérifier la nouvelle langue dans `messages/parite.ts`, sur le modèle de
+   l'anglais.
 
-Le français est servi à la racine (`/`), les autres langues sous leur préfixe.
-Chaque langue est un groupe de routes avec sa propre racine, donc son propre
-attribut `lang` — indispensable aux lecteurs d'écran.
-
-Ce qui ne se traduit pas vit dans `content/liens.ts` : URL, commande Homebrew,
-favicon.
+Le sélecteur suppose deux langues : au-delà, il faut lui donner une liste.
 
 ## Où est la mise en forme
 
@@ -69,6 +101,9 @@ Elles sont commentées à l'endroit où elles vivent, mais en résumé :
   régissabilité écrit trois écrans plus bas que le cycle entre deux apps n'a
   jamais pu être vérifié faute d'un second candidat : nommer une app dans une
   démo de bascule le contredirait.
-- **Les deux points d'honnêteté restent tels quels** : Gatekeeper (l'app n'est
-  pas notarisée, macOS dira « n'a pas pu vérifier », pas « endommagée ») et la
-  colonne mesuré / prédit du tableau.
+- **Les deux points d'honnêteté restent tels quels, dans les deux langues** :
+  Gatekeeper (l'app n'est pas notarisée, macOS dira « n'a pas pu vérifier » /
+  « cannot verify », jamais « endommagée » / « is damaged », et le passage par
+  Réglages Système reste ouvert) et la colonne mesuré / prédit du tableau. Nulle
+  part on n'écrit que l'app est « signée » : le certificat est local et ne vaut
+  rien sur une autre machine.
