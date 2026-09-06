@@ -57,8 +57,15 @@ final class ControleurAppsDouble: ControleurApps {
         self.installees = installees.union(lancees.keys)
     }
 
+    /// Ce qui arrive PENDANT le lancement. `NSWorkspace.openApplication` dure plusieurs centaines
+    /// de millisecondes sur une app froide, et c'est très exactement la fenêtre que la QA passe 6
+    /// (D1) a ouverte : un geste suivant y annule la surveillance, sans qu'aucune boucle ne
+    /// repasse ensuite par `dormir()`. Sans ce crochet, l'annulation ne peut pas être placée là.
+    var pendantLeLancement: (@MainActor () -> Void)?
+
     func lancer(bundleID: String) async -> Bool {
         journal.append(.lance(bundleID))
+        pendantLeLancement?()
         guard installees.contains(bundleID) else { return false }
         // Un process en train de mourir n'est PAS relancé : `openApplication` rend l'instance
         // mourante au lieu d'en démarrer une neuve. C'est ce comportement-là qui faisait

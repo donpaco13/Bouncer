@@ -55,6 +55,20 @@ public enum ResultatBascule: Equatable {
     /// doit passer cette précédente à `puisEteindre:`, faute de quoi la relance mettra deux apps
     /// dans l'encoche. Une seule des deux dettes soldée est pire que le défaut d'origine.
     case cibleFermetureEnCours
+    /// La cible EST en place, et la précédente n'a PAS pu être rangée : le droit Accessibilité a
+    /// été retiré entre le geste et la surveillance qui le termine. L'encoche en porte donc deux,
+    /// et ça ne se réparera pas tout seul.
+    ///
+    /// **Pourquoi un verdict à lui et pas un de ses deux voisins (QA passe 6, D2).** `.reussie`
+    /// serait un mensonge : l'encoche en porte deux. `.precedenteFermetureEnCours` en serait un
+    /// autre, et un plus coûteux — il ferait enchaîner à l'appelant une surveillance sur une app
+    /// que PERSONNE n'a tuée, c'est-à-dire l'attente sans plafond d'une mort qui n'a jamais été
+    /// demandée.
+    ///
+    /// Ce que l'utilisateur doit comprendre, et ce que le message dit : il voit deux apps parce
+    /// que le droit a été retiré, et aucun geste de plus ne rangera l'encoche avant qu'il ne le
+    /// rende.
+    case precedenteNonRangeableSansAccessibilite
     /// Rien n'a été tenté : ce process n'a jamais eu le droit Accessibilité, et sans lui la
     /// bascule n'aurait eu que le meurtre du process à offrir. Cf. le garde de `basculer`.
     case accessibiliteJamaisAccordee
@@ -168,21 +182,8 @@ public struct Bascule {
 
     // MARK: - La porte de sortie commune à toutes les boucles
 
-    /// Dort un intervalle de sondage, et rend `false` quand la tâche a été annulée — le seul cas
-    /// où une boucle de ce fichier doit s'arrêter avant sa propre condition.
-    ///
-    /// **Pourquoi une porte unique et pas un garde par boucle.** `try? await Task.sleep` rend la
-    /// main SUR-LE-CHAMP sur une tâche annulée et avale l'erreur : la boucle repart sans avoir
-    /// dormi, à pleine vitesse sur le main actor. La QA (passe 5, D2) l'a mesuré sur la boucle
-    /// d'apparition de `allumer`, la seule des trois où le garde manquait : **29 899 sondages en
-    /// 300 ms contre 23 sans annulation**, soit ~10 000 allers-retours WindowServer et 5 s de main
-    /// actor à 100 % aux durées de production (`delaiMax` = 5 s) — pendant lesquelles ni le menu,
-    /// ni le panel, ni le geste suivant ne répondent. Un garde recopié dans chaque boucle est un
-    /// oubli en attente ; c'est très exactement comme ça que `allumer` avait été oubliée.
-    private func dormir() async -> Bool {
-        do { try await Task.sleep(for: intervalleSondage); return true }
-        catch { return false }
-    }
+    /// La porte de ce fichier : `dormirSondage` à l'intervalle de la bascule.
+    private func dormir() async -> Bool { await dormirSondage(intervalleSondage) }
 
     // MARK: - Quitter, et le vérifier
 
@@ -291,14 +292,23 @@ public struct Bascule {
     /// l'appelant enchaîne une seconde surveillance, `puisRelancer: false`. La chaîne est finie :
     /// ce second tour n'a plus rien à relancer, donc plus rien à éteindre après.
     ///
-    /// **Pas de garde `trustAccorde` / `encocheMesurable` ici, et c'est délibéré (QA passe 5,
-    /// D3).** Ils sont dans `basculer` parce que là, refuser d'agir laisse l'encoche intacte. Ici,
-    /// Bouncer a DÉJÀ tué : refuser laisserait l'app morte. L'écran débranché pendant la
+    /// **Aucun garde d'entrée avant la RELANCE, et c'est délibéré (QA passe 5, D3) ; un garde de
+    /// trust avant l'EXTINCTION, et il est obligatoire (QA passe 6, D2).** Les gardes sont dans
+    /// `basculer` parce que là, refuser d'agir laisse l'encoche intacte. Ici, Bouncer a DÉJÀ tué
+    /// la cible : refuser de la relancer la laisserait morte. L'écran débranché pendant la
     /// surveillance ne doit donc pas empêcher la relance — c'est le seul moyen de rendre l'app à
     /// l'utilisateur — il doit seulement changer ce qu'on lui DIT, et c'est `WindowManager` qui
-    /// s'en charge. Quant au trust : sur un process mort `pid(pour:)` rend `nil`, `allumer` saute
-    /// donc sa voie rapide et ne touche aucune API AX ; `eteindre`, lui, n'est atteint que par une
-    /// bascule qui a déjà franchi le garde.
+    /// s'en charge. Et sur un process mort `pid(pour:)` rend `nil` : `allumer` saute sa voie
+    /// rapide et ne touche aucune API AX.
+    ///
+    /// **L'extinction, elle, n'a pas cette asymétrie, et ce doc-comment l'a affirmée à tort.** Il
+    /// disait qu'`eteindre` « n'est atteint que par une bascule qui a déjà franchi le garde » :
+    /// vrai à l'instant du geste, plus vrai quelques secondes plus tard. Le retrait du droit en
+    /// cours de session est un scénario que le produit modélise DÉJÀ
+    /// (`WindowManager.signalerRevocation`), et le commentaire de `allumer` le nomme lui-même
+    /// comme cause d'entrée dans `.cibleFermetureEnCours` — la branche même qui mène ici. Ne pas
+    /// éteindre coûte un doublon transitoire ; éteindre sans droit TUE, et peut coûter le travail
+    /// non enregistré de l'utilisateur.
     public func poursuivreFermeture(de app: NotchAppInfo, puisRelancer: Bool,
                                     puisEteindre precedente: NotchAppInfo? = nil) async -> ResultatBascule {
         let enCours: ResultatBascule = puisRelancer ? .cibleFermetureEnCours : .precedenteFermetureEnCours
@@ -315,6 +325,24 @@ public struct Bascule {
         let resultat = await allumer(app)
         guard resultat == .reussie else { return resultat }
         guard let precedente else { return .reussie }
+
+        // Le SECOND garde d'annulation, et il ne fait pas doublon avec le premier (QA passe 6,
+        // D1). Entre les deux il y a `allumer` tout entier : `lancer`, c'est-à-dire
+        // `NSWorkspace.openApplication` sur une app froide — plusieurs centaines de
+        // millisecondes — puis un premier sondage de visibilité. Si la fenêtre est là à ce
+        // premier sondage, la boucle rend `.reussie` SANS jamais passer par `dormir()`, la seule
+        // porte qui observe l'annulation. Le reswipe pendant la relance faisait donc tuer la
+        // précédente par une tâche à qui `WindowManager.basculer` venait de dire de s'arrêter —
+        // et si ce geste-là visait justement la précédente, Bouncer tuait l'app qu'il était en
+        // train de lui rendre. Le verdict est de toute façon jeté par `surveiller` ; ce qui
+        // compte ici, c'est de ne pas tuer.
+        guard !Task.isCancelled else { return enCours }
+
+        // Et LE garde du droit, ici SEULEMENT, jamais avant `allumer` — l'asymétrie est tout le
+        // correctif (QA passe 6, D2). Sans droit, `masquer` part dans le vide, le recomptage rend
+        // `false`, et le dernier filet de `eteindre` QUITTE la précédente : c'est mot pour mot ce
+        // que le garde de `basculer` existe pour empêcher, atteint par la porte de derrière.
+        guard trustAccorde() else { return .precedenteNonRangeableSansAccessibilite }
         return await eteindre(precedente)
     }
 
@@ -390,4 +418,27 @@ public struct Bascule {
         return await quitterEtAttendre(bundleID: actuelle.bundleID, pid: pid)
             ? .reussie : .precedenteFermetureEnCours
     }
+}
+
+/// Dort un intervalle de sondage, et rend `false` quand la tâche a été annulée — le seul cas où
+/// une boucle de sondage doit s'arrêter avant sa propre condition.
+///
+/// **Pourquoi une porte unique et pas un garde par boucle.** `try? await Task.sleep` rend la main
+/// SUR-LE-CHAMP sur une tâche annulée et avale l'erreur : la boucle repart sans avoir dormi, à
+/// pleine vitesse sur le main actor. La QA (passe 5, D2) l'a mesuré sur la boucle d'apparition de
+/// `allumer`, la seule des trois où le garde manquait : **29 899 sondages en 300 ms contre 23 sans
+/// annulation**, soit ~10 000 allers-retours WindowServer et 5 s de main actor à 100 % aux durées
+/// de production (`delaiMax` = 5 s) — pendant lesquelles ni le menu, ni le panel, ni le geste
+/// suivant ne répondent. Un garde recopié dans chaque boucle est un oubli en attente ; c'est très
+/// exactement comme ça que `allumer` avait été oubliée.
+///
+/// **Et pourquoi elle est ici, hors de `Bascule` (QA passe 6, §3).** Une QUATRIÈME boucle de
+/// sondage lui échappait : celle de `ControleurAppsSysteme.masquer`, qui gardait son
+/// `try? await Task.sleep` nu. Elle ne voyait jamais de tâche annulable jusqu'à ce que
+/// `poursuivreFermeture(puisEteindre:)` en fasse passer une par `eteindre` — et alors, sur
+/// annulation, ses ~7 tours de 15 ms devenaient 100 ms de boucle serrée sur le main actor. Le même
+/// défaut en plus petit, donc la même porte.
+func dormirSondage(_ intervalle: Duration) async -> Bool {
+    do { try await Task.sleep(for: intervalle); return true }
+    catch { return false }
 }
