@@ -59,6 +59,12 @@ private let systemBundleIDs: Set<String> = [
 // n'a pas d'identité stable, on ne peut ni la relancer ni mémoriser son verdict. Window Server
 // reste donc exclu, par la règle générale plutôt que par son nom d'affichage localisé.
 
+/// Ce qu'un tour de scan a vu dans l'encoche : le résultat brut de `CGWindowList`, filtré.
+///
+/// Nommé — plutôt que laissé en tuple anonyme — parce que c'est devenu une SORTIE DE TEST. Cf.
+/// le paramètre `scan:` de `WindowManager.init`.
+public typealias FenetreEncocheVue = (pid: pid_t, bundleID: String, name: String, cadre: CGRect)
+
 /// `@MainActor` : la classe publie vers SwiftUI et pilote des API AppKit, et le protocole
 /// `ControleurApps` qu'elle utilise porte le même contrat. L'isolation était déjà vraie en
 /// pratique — elle est maintenant vérifiée par le compilateur.
@@ -177,6 +183,31 @@ public final class WindowManager: ObservableObject {
     /// le cas nominal, pas un cas limite.
     private let geometrie: @MainActor () -> (rect: CGRect, ecran: String, cadre: CGRect)?
 
+    /// D'où vient la LISTE des fenêtres d'encoche. `nil` = le vrai scan, `scanNotchApps`.
+    ///
+    /// **Pourquoi cette sortie de test existe, et pourquoi elle est la quatrième après
+    /// `controleur:`, `geometrie:` et `verifierAccessibilite:`.** `geometrie:` suffisait à jouer
+    /// « pas d'encoche », jamais « voici ce qu'il y a dedans » : `scanNotchApps` lit un vrai
+    /// `CGWindowListCopyWindowInfo` et un vrai `NSRunningApplication`, donc en test `apps` restait
+    /// vide, `bundleIDActive` restait `nil`, `actuelle` aussi, et `supportVerdictCache` ne se
+    /// remplissait jamais. Conséquence relevée par la QA passe 5 : **`.cibleFermetureEnCours` et
+    /// `.precedenteFermetureEnCours` n'atteignaient leur `case` dans AUCUN test** — les trois
+    /// défauts de cette passe vivaient précisément là où aucun test ne pouvait aller.
+    ///
+    /// Injecter ce seul point ouvre tout le reste par le chemin normal : les apps entrent dans
+    /// `apps`, le catalogue les apprend, `testSupport` les classe via le contrôleur injecté, et
+    /// `bundleIDActive` désigne une précédente. Rien n'est court-circuité, seule la source de la
+    /// mesure change — exactement le contrat de `geometrie:`.
+    private let scan: (@MainActor (_ zone: CGRect, _ cadreEcran: CGRect) -> [FenetreEncocheVue])?
+
+    /// « Ce pid désigne-t-il encore un process vivant ? », la seconde lecture du vrai système que
+    /// `sonder` fait — celle qui décide, dans `recaler`, si une app absente du scan est masquée ou
+    /// morte. Injectable pour la même raison que `scan` et livrée avec lui : sans elle, un pid de
+    /// test n'appartient à aucun `NSRunningApplication`, donc TOUTE app masquée est relue comme
+    /// morte et sort de la liste au sondage suivant. C'est-à-dire que le seul état que la bascule
+    /// doit produire — « la précédente est rangée, et le modèle le sait » — serait invérifiable.
+    private let processVivant: (pid_t) -> Bool
+
     /// Faux pour le self-test CLI : aucun timer n'est posé, y compris par un réveil. Sans ce
     /// drapeau, une notification système reposait un timer que `startTimer: false` avait
     /// justement refusé.
@@ -195,6 +226,10 @@ public final class WindowManager: ObservableObject {
         controleur: ControleurApps = ControleurAppsSysteme(),
         reglages: Reglages = Reglages(),
         geometrie: @escaping @MainActor () -> (rect: CGRect, ecran: String, cadre: CGRect)? = zoneEncoche,
+        // Injectable pour la même raison que `geometrie` : sans elle, le câblage de la bascule
+        // n'est pas atteignable en test (cf. la propriété `scan`).
+        scan: (@MainActor (_ zone: CGRect, _ cadreEcran: CGRect) -> [FenetreEncocheVue])? = nil,
+        processVivant: @escaping (pid_t) -> Bool = { NSRunningApplication(processIdentifier: $0) != nil },
         demanderAccessibilite: Bool = true,
         verifierAccessibilite: @escaping () -> Bool = { AXIsProcessTrusted() },
         notificationCenter: NotificationCenter = .default,
@@ -207,6 +242,8 @@ public final class WindowManager: ObservableObject {
         self.controleur = controleur
         self.reglages = reglages
         self.geometrie = geometrie
+        self.scan = scan
+        self.processVivant = processVivant
         self.verifierAccessibilite = verifierAccessibilite
         self.notificationCenter = notificationCenter
         sondageActif = startTimer
@@ -534,7 +571,7 @@ public final class WindowManager: ObservableObject {
 
     // MARK: - Scan (portée depuis Spike.swift, réduit à pid -> nom d'app)
 
-    private func scanNotchApps(zone: CGRect, cadreEcran: CGRect) -> [(pid: pid_t, bundleID: String, name: String, cadre: CGRect)] {
+    private func scanNotchApps(zone: CGRect, cadreEcran: CGRect) -> [FenetreEncocheVue] {
         guard
             let list = CGWindowListCopyWindowInfo(
                 [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
@@ -637,7 +674,7 @@ public final class WindowManager: ObservableObject {
             return
         }
         publier(description: "\(ecran) — \(zone)")
-        let discovered = scanNotchApps(zone: zone, cadreEcran: cadreEcran)
+        let discovered = scan?(zone, cadreEcran) ?? scanNotchApps(zone: zone, cadreEcran: cadreEcran)
         publierCadre(discovered.map(\.cadre).reduce(CGRect.null) { $0.union($1) })
         let vuesParBundleID = Dictionary(discovered.map { ($0.bundleID, $0) }, uniquingKeysWith: { premiere, _ in premiere })
 
@@ -659,7 +696,7 @@ public final class WindowManager: ObservableObject {
         apps = Self.recaler(
             apps,
             vues: vuesParBundleID.mapValues(\.pid),
-            processVivant: { NSRunningApplication(processIdentifier: $0) != nil }
+            processVivant: processVivant
         )
 
         // Toute app vue dans le notch entre au catalogue, y compris celles qu'on ne connaissait
@@ -731,7 +768,10 @@ public final class WindowManager: ObservableObject {
     /// relancer deux apps dans la même encoche. Le geste suivant annule celle qui court : c'est
     /// l'arbitrage « le dernier geste de l'utilisateur gagne », et c'est ce qui autorise la
     /// surveillance à être sans plafond sans jamais tourner pour rien.
-    private var surveillanceFermeture: Task<Void, Never>?
+    /// `internal` et pas `private` pour une seule raison : un test de câblage doit pouvoir
+    /// ATTENDRE cette tâche. Elle survit au geste, donc rien dans l'API publique ne dit quand elle
+    /// a fini, et sonder `echecBascule` en boucle courserait la même course que le défaut testé.
+    private(set) var surveillanceFermeture: Task<Void, Never>?
 
     /// La même bascule, attendable — c'est la forme qu'utilise un appelant déjà asynchrone.
     public func basculer(vers bundleID: String) async {
@@ -781,12 +821,21 @@ public final class WindowManager: ObservableObject {
             echecBascule = "\(restee.name) n'est pas encore fermée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Bouncer continue de la surveiller et libérera l'encoche dès qu'elle sera partie ; il ne la forcera jamais, ce serait perdre votre travail."
             surveiller(restee, puisRelancer: false)
         case .cibleFermetureEnCours:
-            // Le seul cas où Bouncer a une DETTE : il a tué la cible pour la relancer et elle
-            // n'est pas encore morte. Rien n'est perdu tant que la surveillance court — et c'est
-            // un message d'attente, pas d'échec, parce que l'issue normale de ce chemin est le
-            // succès quelques centaines de millisecondes plus tard.
-            echecBascule = "\(cible.name) doit être relancée pour revenir dans l'encoche, et elle n'est pas encore fermée. Bouncer la relancera dès qu'elle sera partie. \(repliInchange(actuelle))"
-            surveiller(cible, puisRelancer: true)
+            // Le cas où Bouncer a DEUX dettes, et n'en soldait qu'une (QA passe 5, D1). La
+            // première : il a tué la cible pour la relancer et elle n'est pas encore morte. La
+            // seconde : la bascule s'est arrêtée AVANT d'éteindre la précédente, qui est donc
+            // toujours à l'écran — juste maintenant, faux dès que la relance aboutit. On passe
+            // donc `actuelle` à la surveillance : elle éteindra APRÈS avoir rallumé, dans l'ordre
+            // que la machine à états garantit partout ailleurs.
+            //
+            // Rien n'est perdu tant que la surveillance court, et c'est un message d'attente, pas
+            // d'échec : l'issue normale de ce chemin est le succès quelques centaines de
+            // millisecondes plus tard. Le message dit les deux moitiés, parce que l'utilisateur
+            // voit bien les deux apps pendant ce temps-là et doit savoir que c'est transitoire.
+            let aEteindre = actuelle.flatMap { $0.bundleID == cible.bundleID ? nil : $0 }
+            let attente = "\(cible.name) doit être relancée pour revenir dans l'encoche, et elle n'est pas encore fermée. Bouncer la relancera dès qu'elle sera partie"
+            echecBascule = aEteindre.map { "\(attente), puis rangera \($0.name) — qui reste à l'écran en attendant." } ?? "\(attente)."
+            surveiller(cible, puisRelancer: true, puisEteindre: aEteindre)
         case .lancementImpossible:
             echecBascule = "\(cible.name) n'a pas pu être lancée."
         case .accessibiliteJamaisAccordee:
@@ -816,10 +865,15 @@ public final class WindowManager: ObservableObject {
     /// récupéré la main. Elle ne peut donc pas écrire dans le modèle sans vérifier qu'elle a
     /// encore le droit de parler — `Task.isCancelled` dit qu'un geste suivant a repris la main, et
     /// à partir de là c'est lui qui décide de ce que l'encoche affiche, pas nous.
-    private func surveiller(_ app: NotchAppInfo, puisRelancer: Bool) {
+    /// `puisEteindre` porte la seconde moitié de la dette : la précédente que `basculer` n'a pas
+    /// touchée parce qu'il s'est arrêté sur `.cibleFermetureEnCours`. Cf. le doc-comment de
+    /// `Bascule.poursuivreFermeture`.
+    private func surveiller(_ app: NotchAppInfo, puisRelancer: Bool, puisEteindre precedente: NotchAppInfo? = nil) {
         surveillanceFermeture = Task { [weak self] in
             guard let self else { return }
-            let resultat = await self.bascule.poursuivreFermeture(de: app, puisRelancer: puisRelancer)
+            let resultat = await self.bascule.poursuivreFermeture(
+                de: app, puisRelancer: puisRelancer, puisEteindre: precedente
+            )
             guard !Task.isCancelled else { return }
             self.surveillanceFermeture = nil
             switch resultat {
@@ -827,16 +881,38 @@ public final class WindowManager: ObservableObject {
                 // La mort est constatée. Le message d'attente n'est plus vrai : on l'efface, sans
                 // quoi le triangle d'alerte resterait allumé pour une app partie depuis.
                 echecBascule = nil
-                if puisRelancer { self.appliquerReussite(cible: app.bundleID, actuelle: nil) }
+                // `actuelle: precedente` et plus `nil` : la relance a abouti ET la précédente
+                // vient d'être éteinte, donc le modèle doit enregistrer les deux moitiés. Ne
+                // passer que la cible laissait la précédente marquée visible alors qu'elle est
+                // masquée — et, avant le correctif de `Bascule`, elle l'était VRAIMENT (D1).
+                if puisRelancer { self.appliquerReussite(cible: app.bundleID, actuelle: precedente?.bundleID) }
                 self.refresh()
+            case .precedenteFermetureEnCours:
+                // La relance a abouti, mais la précédente traîne à quitter à son tour. Même dette,
+                // même traitement : on enregistre la moitié qui a réussi et on remet une
+                // surveillance — sans relance cette fois, donc sans rien à éteindre après elle.
+                // La chaîne s'arrête donc ici, elle ne peut pas se rappeler indéfiniment.
+                self.appliquerReussite(cible: app.bundleID, actuelle: nil)
+                if let precedente {
+                    echecBascule = "\(precedente.name) n'est pas encore fermée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Bouncer continue de la surveiller et libérera l'encoche dès qu'elle sera partie ; il ne la forcera jamais, ce serait perdre votre travail."
+                    self.surveiller(precedente, puisRelancer: false)
+                }
             case .lancementImpossible:
                 echecBascule = "\(app.name) s'est bien fermée, mais n'a pas pu être relancée — désinstallée, ou lancement refusé par le système."
             case .cibleJamaisApparue:
-                echecBascule = "\(app.name) s'est relancée sans rien afficher dans l'encoche."
+                // La même distinction que `basculer` fait à son propre `.cibleJamaisApparue`, et
+                // que cette branche-ci avait perdue (QA passe 5, D3). `poursuivreFermeture` ne
+                // repasse par aucun garde d'entrée — c'est délibéré, refuser de relancer
+                // laisserait l'app morte — donc l'écran débranché pendant la surveillance arrive
+                // JUSQU'ICI, et il arrivait sous la forme d'un message qui accuse l'app. Fermer
+                // son capot ne doit pas envoyer l'utilisateur déboguer Vibe Island.
+                echecBascule = geometrie() == nil
+                    ? "Plus aucune encoche détectée — \(app.name) a bien été relancée, mais Bouncer ne peut plus vérifier ce qu'elle y affiche. Rebranchez l'écran à encoche (ou rouvrez le capot)."
+                    : "\(app.name) s'est relancée sans rien afficher dans l'encoche."
             default:
-                // Les deux verdicts « en cours » ne sortent de `poursuivreFermeture` que sur
-                // annulation, et on vient de vérifier qu'il n'y en a pas eu. Les autres ne sont
-                // pas atteignables depuis ce chemin.
+                // `.cibleFermetureEnCours` ne sort de `poursuivreFermeture` que sur annulation, et
+                // on vient de vérifier qu'il n'y en a pas eu. Les autres ne sont pas atteignables
+                // depuis ce chemin.
                 break
             }
         }

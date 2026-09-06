@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Correctif — le doublon dans l'encoche (QA passe 5)</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #181b24; --text: #e2e8f0; --muted: #94a3b8;
+    --border: #2d3748; --accent: #3b82f6; --maj: #f97316; --med: #eab308;
+    --ok: #22c55e; --code: #11141c; --crit: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 2.5rem 1.5rem; max-width: 900px; margin: 0 auto;
+  }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 1.4rem; margin-bottom: 2rem; }
+  h1 { font-size: 1.7rem; color: #fff; margin-bottom: .4rem; }
+  h2 { font-size: 1.2rem; color: #fff; margin: 2.2rem 0 .9rem; }
+  h3 { font-size: 1rem; color: #fff; margin: 1.4rem 0 .4rem; }
+  .meta { color: var(--muted); font-size: .9rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.15rem; margin-bottom: 1.2rem; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: .5rem; }
+  .badge { font-size: .7rem; font-weight: 700; text-transform: uppercase; padding: .18rem .5rem; border-radius: 4px; white-space: nowrap; }
+  .b-maj { background: rgba(249,115,22,.18); color: var(--maj); border: 1px solid var(--maj); }
+  .b-med { background: rgba(234,179,8,.18); color: var(--med); border: 1px solid var(--med); }
+  .b-ok  { background: rgba(34,197,94,.18); color: var(--ok); border: 1px solid var(--ok); }
+  .loc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; color: var(--accent); margin-bottom: .6rem; }
+  p { margin-bottom: .65rem; }
+  ul, ol { margin-left: 1.2rem; margin-bottom: .65rem; }
+  li { margin-bottom: .18rem; }
+  pre { background: var(--code); border: 1px solid var(--border); border-radius: 6px; padding: .7rem; overflow-x: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .79rem; margin-bottom: .65rem; }
+  code { background: var(--code); padding: .1rem .3rem; border-radius: 4px;
+         font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; margin-bottom: .8rem; }
+  th, td { text-align: left; padding: .42rem .55rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+  .ko { color: var(--crit); font-weight: 600; }
+  .go { color: var(--ok); font-weight: 600; }
+  h4 { font-size: .76rem; text-transform: uppercase; color: var(--muted); letter-spacing: .05em; margin: .8rem 0 .2rem; }
+  footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1.2rem; }
+</style>
+
+<header>
+  <h1>Correctif — le doublon dans l'encoche</h1>
+  <p class="meta">
+    Réponse aux trois défauts de <code>docs/rapport-qa-round-5.html</code>, plus la cause qui les
+    portait tous les trois : le câblage de la bascule n'était atteignable par aucun test.
+    Branche <code>agent/worker-surveillance-doublon</code>, sur <code>ac31ef9</code>. 6 septembre 2026.
+  </p>
+</header>
+
+<h2>En une phrase</h2>
+<p>
+  Le correctif de la passe 4 avait rendu la cible et posé une seconde app à côté ; il rend
+  maintenant la cible <em>et</em> range la précédente, parce que la dette suit la relance au lieu
+  de s'arrêter à mi-chemin. Les six réintroductions de défaut font tomber leur test.
+  <strong>149 tests, 0 échec.</strong>
+</p>
+
+<h2>1. Les correctifs</h2>
+
+<div class="card">
+  <div class="head"><span class="head-t"><strong>D1 — la relance range la précédente</strong></span><span class="badge b-maj">Majeur</span></div>
+  <p class="loc">Bascule.swift · <code>poursuivreFermeture(de:puisRelancer:puisEteindre:)</code> — WindowManager.swift · <code>basculer</code>, <code>surveiller</code></p>
+  <p>
+    <code>basculer</code> allume avant d'éteindre et s'arrête au premier verdict qui n'est pas
+    <code>.reussie</code>. <code>.cibleFermetureEnCours</code> passe par ce garde : c'est juste
+    <em>sur le moment</em> — rien n'occupe l'encoche, la cible vient d'être tuée — et faux dès que la
+    relance aboutit. La dette a donc suivi la relance au lieu de s'arrêter là :
+    <code>poursuivreFermeture</code> prend une précédente en paramètre et rejoue les deux moitiés de
+    <code>basculer</code>, dans le même ordre et avec la même garantie.
+  </p>
+<pre>guard puisRelancer else { return .reussie }
+guard !Task.isCancelled else { return enCours }
+let resultat = await allumer(app)
+guard resultat == .reussie else { return resultat }   // on n'éteint jamais avant d'avoir allumé
+guard let precedente else { return .reussie }
+return await eteindre(precedente)</pre>
+  <p>
+    Si cette extinction traîne à son tour, elle rend <code>.precedenteFermetureEnCours</code> et
+    <code>surveiller</code> enchaîne une seconde surveillance, <code>puisRelancer: false</code>. La
+    chaîne est <strong>finie</strong> : ce second tour n'a plus rien à relancer, donc plus rien à
+    éteindre après lui.
+  </p>
+  <p>
+    Le message aussi : il annonçait « TheBoringNotch reste en place », ce qui décrivait un état
+    définitif. Il dit maintenant les deux moitiés — « Bouncer la relancera dès qu'elle sera partie,
+    puis rangera TheBoringNotch — qui reste à l'écran en attendant. »
+  </p>
+</div>
+
+<div class="card">
+  <div class="head"><span><strong>D2 — l'annulation couvre tout le chemin</strong></span><span class="badge b-maj">Majeur</span></div>
+  <p class="loc">Bascule.swift · <code>dormir()</code>, les trois boucles</p>
+  <p>
+    Deux conséquences, deux correctifs, une seule cause : <code>try? await Task.sleep</code> rend la
+    main sur-le-champ sur une tâche annulée et avale l'erreur.
+  </p>
+  <ul>
+    <li><strong>La relance partait quand même.</strong> Le garde était dans la boucle d'attente de
+      mort, pas à la porte de <code>allumer</code>. Il est maintenant sur la frontière exacte : la
+      mort constatée, avant la relance.</li>
+    <li><strong>La boucle d'apparition s'emballait.</strong> Corrigé par une <em>porte unique</em>,
+      <code>dormir() -&gt; Bool</code>, partagée par les trois boucles du fichier — pas un
+      <code>guard !Task.isCancelled</code> recopié dans chacune, qui est un oubli en attente et
+      c'est précisément comme ça que <code>allumer</code> avait été oubliée.</li>
+  </ul>
+  <h4>Mesuré par la contre-épreuve, aux durées de production (<code>delaiMax</code> = 5 s)</h4>
+<pre>sans le garde : 614 582 sondages de visibilité après l'annulation, en 5,001 s
+avec          :           ≤ 2</pre>
+  <p class="meta">
+    La QA avait relevé 29 899 sondages en 300 ms ; le compteur ajouté au double rend le chiffre
+    reproductible et le test échoue sur le <em>compte</em>, pas seulement sur la lenteur.
+  </p>
+</div>
+
+<div class="card">
+  <div class="head"><span><strong>D3 — l'écran débranché n'accuse plus l'app</strong></span><span class="badge b-med">Moyen</span></div>
+  <p class="loc">WindowManager.swift · <code>surveiller</code>, cas <code>.cibleJamaisApparue</code></p>
+  <p>
+    <strong>Aucun garde d'entrée n'a été ajouté à <code>poursuivreFermeture</code>, et c'est
+    délibéré.</strong> Les gardes de <code>basculer</code> refusent d'agir parce que là, ne rien
+    faire laisse l'encoche intacte. Ici Bouncer a <em>déjà tué</em> : refuser laisserait l'app morte.
+    La relance est donc la bonne décision, comme la QA l'a écrit — c'est le message qui était faux.
+  </p>
+  <p>
+    La branche de la surveillance retrouve la distinction que <code>basculer</code> fait au même
+    endroit : <code>geometrie() == nil</code> → « Plus aucune encoche détectée — X a bien été
+    relancée, mais Bouncer ne peut plus vérifier ce qu'elle y affiche. Rebranchez l'écran à encoche
+    (ou rouvrez le capot). »
+  </p>
+</div>
+
+<div class="card">
+  <div class="head"><span><strong>D4 — la sortie de test qui manquait, et qui portait les trois autres</strong></span><span class="badge b-maj">Cause racine</span></div>
+  <p class="loc">WindowManager.swift · <code>init(scan:processVivant:)</code></p>
+  <p>
+    <code>sonder()</code> lisait le vrai système à <strong>deux</strong> endroits, pas un :
+    <code>scanNotchApps</code> (un vrai <code>CGWindowList</code> + un vrai
+    <code>NSRunningApplication</code>) et le <code>processVivant</code> passé à <code>recaler</code>.
+    Le premier laissait <code>apps</code> vide, donc <code>bundleIDActive</code> nil, donc
+    <code>actuelle</code> nil, donc <code>supportVerdictCache</code> jamais rempli — aucun des deux
+    verdicts neufs n'atteignait son <code>case</code>. Le second, plus discret, relit toute app
+    masquée comme morte dès que son pid n'est pas celui d'un vrai process : sans lui, l'état que la
+    bascule doit produire — « la précédente est rangée, et le modèle le sait » — reste invérifiable.
+  </p>
+  <p>
+    Les deux sont injectables, dans le même esprit que <code>geometrie:</code> et
+    <code>controleur:</code>. Rien n'est court-circuité : les apps entrent dans <code>apps</code> par
+    le chemin normal, le catalogue les apprend, <code>testSupport</code> les classe via le contrôleur
+    injecté. Seule la source de la mesure change. <code>surveillanceFermeture</code> passe de
+    <code>private</code> à <code>private(set)</code> pour qu'un test puisse <em>attendre</em> la
+    tâche au lieu de courser la même course que le défaut qu'il teste.
+  </p>
+</div>
+
+<h2>2. Les tests, et ce que chacun interdit</h2>
+<p>
+  <code>Tests/BouncerTests/SurveillanceDoublonTests.swift</code>, 7 tests. Trois au niveau de
+  <code>Bascule</code> aux durées de production, quatre au niveau du <strong>câblage</strong> —
+  ce que <code>WindowManager</code> fait des verdicts, qui n'était atteignable par personne.
+</p>
+
+<h3>Contre-épreuve : chaque défaut réintroduit, un par un</h3>
+<table>
+  <tr><th>Défaut réintroduit</th><th>Test qui tombe</th><th>Ce que le test a vu</th></tr>
+  <tr>
+    <td>D1a — <code>poursuivreFermeture</code> n'éteint plus la précédente</td>
+    <td>La relance d'une cible tuée range la précédente…<br>Une précédente qui traîne après la relance…</td>
+    <td class="ko">fenetreVisibleDansNotch(200) → true<br>final → .reussie (au lieu de .precedenteFermetureEnCours)</td>
+  </tr>
+  <tr>
+    <td>D1b — le câblage ne transmet plus la précédente</td>
+    <td>Câblage : la surveillance range la précédente…</td>
+    <td class="ko">fenetreVisibleDansNotch(200) → true<br>apps[boring].isHiddenByUs → false</td>
+  </tr>
+  <tr>
+    <td>D2a — plus de garde avant <code>allumer</code></td>
+    <td>Une surveillance annulée ne relance pas l'app abandonnée</td>
+    <td class="ko">journal.contains(.lance) → true<br>pid(pour: vibe) → 9001</td>
+  </tr>
+  <tr>
+    <td>D2b — la boucle d'apparition ravale l'annulation</td>
+    <td>Une surveillance annulée pendant la relance ne s'emballe pas</td>
+    <td class="ko">614 582 sondages (attendu ≤ 2), en 5,001 s</td>
+  </tr>
+  <tr>
+    <td>D2c — <code>WindowManager.basculer</code> n'annule plus la surveillance</td>
+    <td>Câblage : le geste suivant annule la surveillance</td>
+    <td class="ko">journal.contains(.lance) → true</td>
+  </tr>
+  <tr>
+    <td>D3 — le message ne distingue plus l'encoche absente</td>
+    <td>Câblage : l'écran débranché n'accuse pas l'app</td>
+    <td class="ko">« sans rien afficher » → présent</td>
+  </tr>
+</table>
+<p class="meta">
+  Six réintroductions, six échecs. Une précision d'honnêteté : le test de câblage D2c épingle le
+  <code>surveillanceFermeture?.cancel()</code> de <code>WindowManager</code>, pas le garde neuf de
+  <code>Bascule</code> — l'annulation y arrive pendant l'attente de mort, moitié du chemin qui était
+  déjà gardée. C'est <em>Une surveillance annulée ne relance pas l'app abandonnée</em> qui épingle le
+  garde neuf, sur une app déjà morte. Les deux sont nécessaires ; aucun ne remplace l'autre.
+</p>
+
+<h3>Déterminisme</h3>
+<p>
+  Les tests d'annulation ne dorment pas en espérant tomber sur la bonne fenêtre. Une
+  <code>Task { }</code> créée depuis un contexte <code>@MainActor</code> ne peut pas démarrer avant
+  que son créateur suspende : <code>tache.cancel()</code> posé juste après la création entre donc
+  dans <code>poursuivreFermeture</code> avec l'annulation déjà vraie, sur une app déjà morte —
+  l'état exact où le garde manquait. Pour l'emballement, l'attente se fait sur un fait
+  (<code>journal.contains(.lance)</code>), pas sur une durée.
+</p>
+
+<h2>3. Ce qui n'a pas été touché, et pourquoi</h2>
+<ul>
+  <li><strong>L'attente sans plafond reste sans plafond.</strong> La QA l'a mesurée à 0,15 % d'un
+    cœur (<code>pid(pour:)</code> à 0,073 ms, 20 fois par seconde). C'est D2 qui coûtait, pas
+    l'attente. Le principe « on ne rend jamais la main sur un process qu'on a tué sans constater sa
+    mort » est intact.</li>
+  <li><strong>Pas de <code>trustAccorde</code> ni d'<code>encocheMesurable</code> dans
+    <code>poursuivreFermeture</code></strong>, cf. D3. Sur un process mort <code>pid(pour:)</code>
+    rend nil, donc <code>allumer</code> saute sa voie rapide et ne touche aucune API AX ;
+    <code>eteindre</code> n'est atteint que par une bascule qui a déjà franchi le garde.</li>
+  <li><strong>Rien sur le panel ni le pied de page</strong> — les deux autres correctifs de la
+    passe 5 tiennent, la QA les a vérifiés.</li>
+</ul>
+
+<h2>4. Ce qui reste ouvert</h2>
+<ul>
+  <li><strong>Bouncer qui quitte pendant la surveillance.</strong> La tâche meurt avec le process et
+    l'app tuée n'est jamais relancée ; <code>restaurerAppsMasquees</code> ne connaît que les apps
+    masquées. Non traité — la QA ne l'avait pas non plus rejoué, et le corriger demande de persister
+    une dette entre deux lancements, ce qui est un autre chantier.</li>
+  <li><strong>L'utilisateur qui relance l'app à la main pendant la surveillance.</strong> Par
+    lecture, <code>pid(pour:)</code> revoit un process et la boucle devient éternelle jusqu'au geste
+    suivant. Inchangé.</li>
+  <li><strong><code>hauteurRangeeSystemeConformeAuReleve</code></strong> reste une assertion
+    matérielle dans une suite unitaire (signalée par la QA, hors périmètre ici).</li>
+</ul>
+
+<footer>
+  <code>swift test</code> : 149 tests, 0 échec. Deux fichiers de production touchés
+  (<code>Bascule.swift</code>, <code>WindowManager.swift</code>), un fichier de test neuf, un
+  compteur ajouté au double. Aucun push : l'intégration revient à god.
+</footer>
+</html>
