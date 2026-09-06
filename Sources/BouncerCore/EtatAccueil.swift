@@ -11,6 +11,7 @@
 // (mesuré, cf. WindowManager.swift). L'accueil ne fait que LIRE le drapeau que WindowManager
 // publie déjà.
 
+import CoreGraphics
 import Foundation
 
 public struct EtatAccueil: Equatable {
@@ -57,3 +58,81 @@ public enum EtapeAccueil: Int, CaseIterable, Identifiable, Sendable {
     public var precedente: EtapeAccueil? { EtapeAccueil(rawValue: rawValue - 1) }
     public var estDerniere: Bool { suivante == nil }
 }
+
+/// Géométrie et seuils de la fenêtre d'accueil.
+///
+/// Mesurés et extraits dans BouncerCore pour qu'un test puisse vérifier les seuils
+/// d'écrêtage et de débordement d'écran sans dépendre de l'affichage de la machine de test
+/// (`visibleFrame.height = 780` sur la machine de référence, ce qui masque tout débordement).
+public enum GeometrieAccueil {
+    public static let largeur: CGFloat = 660
+    public static let hauteurVoulue: CGFloat = 580
+    /// Plancher de hauteur de contenu : 320 pt (comme en passe 1). Un plancher à 460 pt rendait
+    /// la fenêtre plus haute que l'écran dès que visibleFrame.height passait sous 512 pt.
+    public static let plancherHauteur: CGFloat = 320
+    public static let margeRespiration: CGFloat = 24
+    public static let hauteurBarreDeTitre: CGFloat = 28
+    public static let margePastillesHaut: CGFloat = 34
+    public static let hauteurPiedDePage: CGFloat = 115
+
+    /// Hauteur minimale hors contenu (pastilles en haut + boutons et pagination en bas).
+    public static var hauteurFixe: CGFloat {
+        margePastillesHaut + hauteurPiedDePage
+    }
+
+    /// Hauteur utile disponible pour le contenu de l'étape pour une hauteur de fenêtre donnée.
+    public static func hauteurUtile(pourHauteurFenetre hauteur: CGFloat) -> CGFloat {
+        max(0, hauteur - hauteurFixe)
+    }
+
+    /// Calcule la hauteur allouée au contenu de la fenêtre d'accueil en fonction de la hauteur
+    /// visible de l'écran (`visibleFrame.height`).
+    public static func hauteurContenu(
+        visibleFrameHeight: CGFloat,
+        barreDeTitre: CGFloat = hauteurBarreDeTitre,
+        respiration: CGFloat = margeRespiration
+    ) -> CGFloat {
+        let plafond = visibleFrameHeight - barreDeTitre - respiration
+        return max(plancherHauteur, min(hauteurVoulue, plafond))
+    }
+
+    /// Hauteur intrinsèque minimale du contenu de l'étape.
+    ///
+    /// Pour `.bienvenue`, le tracé vectoriel « hello » mesure 187 pt de haut (contre 132 pt pour
+    /// l'ancien tracé dessiné à la main), soit 290 pt de contenu avec les textes et espacements.
+    public static func hauteurMinimaleContenu(pour etape: EtapeAccueil) -> CGFloat {
+        switch etape {
+        case .bienvenue:
+            // hello: 187 + padding bas: 26 + titre: 31 + sous-titre: 46 = 290 pt
+            return 290
+        case .probleme:
+            // illustration: 150 + padding: 28 + titre: 31 + sous-titre: 63 = 272 pt
+            return 272
+        case .accessibilite:
+            // sceau: 72 + padding: 26 + titre: 31 + sous-titre: 46 + bouton/texte: 65 = 240 pt
+            return 240
+        case .geste:
+            // simulateur: 122 + padding: 22 + titre: 31 + sous-titre: 46 + raccourci: 39 = 260 pt
+            return 260
+        case .pret:
+            // sceau: 72 + padding: 22 + titre: 31 + bilan: 44 + apercu: 57 = 226 pt
+            return 226
+        }
+    }
+
+    /// Hauteur totale minimale de la fenêtre requise pour afficher l'étape sans défilement.
+    public static func hauteurMinimaleFenetreSansDefilement(pour etape: EtapeAccueil) -> CGFloat {
+        hauteurFixe + hauteurMinimaleContenu(pour: etape)
+    }
+
+    /// Hauteur minimale de `visibleFrame` nécessaire pour que la fenêtre tienne sans défilement
+    /// (avec barre de titre et 24 pt de respiration).
+    public static func seuilVisibleFrameSansDefilement(
+        pour etape: EtapeAccueil,
+        barreDeTitre: CGFloat = hauteurBarreDeTitre,
+        respiration: CGFloat = margeRespiration
+    ) -> CGFloat {
+        hauteurMinimaleFenetreSansDefilement(pour: etape) + barreDeTitre + respiration
+    }
+}
+
