@@ -2,16 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import type { Signe } from "@/content/demo";
 
-/** Ce que les pilules affichent, déjà traduit. Générique par construction :
-    aucune app tierce n'est nommée ici. Le tableau des méthodes de bascule les
-    nomme, lui, parce qu'il rend compte de mesures ; une démo jouable, non. */
-export type Demo = {
-  noms: [string, string, string];
-  agents: string;
-  duree: string;
-  jour: string;
-  heure: string;
+/** Une app de la scène, texte déjà résolu dans la langue de la page. */
+export type AppDemo = {
+  nom: string;
+  valeur: string;
+  signe: Signe;
 };
 
 /** Les libellés de l'aperçu qui ne sont pas des noms d'app. */
@@ -22,40 +19,43 @@ export type Libelles = {
   bouncerActif: string;
   precedente: string;
   suivante: string;
-  choisir: string;
+  geste: string;
   raccourci: string;
 };
 
-const NB = 3;
-const INDICES = [0, 1, 2] as const;
+/** Au-delà de ce déplacement horizontal, un cliquer-glisser est un swipe. */
+const SEUIL_GESTE = 26;
 
 /**
- * L'APERÇU VIVANT — le haut d'un MacBook, jouable à la souris et au clavier.
+ * L'APERÇU — L'ENCOCHE, ET RIEN D'AUTRE.
  *
- * C'est la première chose qu'on voit, et c'est le produit entier : trois apps
- * d'encoche installées, une seule en scène, et quatre façons d'en changer —
- * le Dock, les flèches sur le boîtier caméra, les flèches du clavier, et le
- * vrai raccourci de Bouncer (⌃⌥⌘B), qui marche ici comme il marchera là-bas.
+ * Un gros plan sur le haut de l'écran, et deux apps d'encoche qui se relaient
+ * dans le même rectangle. Pas de MacBook entier, pas de bureau, pas de Dock
+ * avec des applications alignées en dessous : cette grammaire-là raconte un
+ * couteau suisse, et Bouncer ne fait qu'une chose. Une idée, un geste.
+ *
+ * Le geste est la commande principale, et c'est le vrai : on tire
+ * horizontalement sur la scène, comme on balaie l'encoche à deux doigts. Trois
+ * doublures pour ceux qui ne peuvent pas ou ne veulent pas glisser — les
+ * flèches du boîtier caméra, les flèches du clavier, et le raccourci global
+ * ⌃⌥⌘B, qui marche ici comme il marchera après l'installation.
  *
  * Rien ne se déclenche tout seul. Pas de minuterie, pas de scène qui se joue
- * devant un visiteur passif : la scène ne bouge que quand il la touche. Et
- * l'interrupteur débranche Bouncer pour montrer l'état sans lui — les trois
- * pilules au même endroit, illisibles. Le problème et sa solution tiennent
- * dans le même widget, et c'est le visiteur qui bascule de l'un à l'autre.
+ * devant un visiteur passif. Et l'interrupteur débranche Bouncer pour montrer
+ * l'état sans lui : les deux pilules au même endroit, illisibles. Le problème
+ * et sa solution tiennent dans le même widget.
  */
-export function ApercuVivant({ demo, l }: { demo: Demo; l: Libelles }) {
-  const [actif, setActif] = useState(1);
+export function ApercuVivant({ apps, l }: { apps: AppDemo[]; l: Libelles }) {
+  const nb = apps.length;
+  const [actif, setActif] = useState(0);
+  const [sens, setSens] = useState(1);
   const [bouncer, setBouncer] = useState(true);
   const [touche, setTouche] = useState(false);
+  const depart = useRef<number | null>(null);
 
-  const bascule = (sens: number) => {
-    setActif((i) => (i + sens + NB) % NB);
-    setBouncer(true);
-    setTouche(true);
-  };
-
-  const choisir = (i: number) => {
-    setActif(i);
+  const bascule = (direction: number) => {
+    setSens(direction);
+    setActif((i) => (i + direction + nb) % nb);
     setBouncer(true);
     setTouche(true);
   };
@@ -82,61 +82,72 @@ export function ApercuVivant({ demo, l }: { demo: Demo; l: Libelles }) {
     e.preventDefault();
   };
 
+  /* Le swipe. Un pointeur qui part et qui revient au même endroit est un clic,
+     et un clic avance aussi d'un cran : le visiteur qui n'a pas compris qu'on
+     tirait obtient quand même la démonstration. */
+  const surDebut = (e: React.PointerEvent) => {
+    depart.current = e.clientX;
+  };
+  const surFin = (e: React.PointerEvent) => {
+    const x0 = depart.current;
+    depart.current = null;
+    if (x0 === null) return;
+    /* Les flèches et la piste sont dans la scène et leur clic remonte jusqu'ici.
+       Sans ce garde-fou, un clic dessus avancerait de deux crans. */
+    if ((e.target as HTMLElement).closest("button")) return;
+    const dx = e.clientX - x0;
+    if (Math.abs(dx) < SEUIL_GESTE) bascule(1);
+    else bascule(dx < 0 ? 1 : -1);
+  };
+
   return (
     <figure
-      className="apercu mt-10"
+      className="apercu mt-12"
       data-bouncer={bouncer ? "on" : "off"}
+      style={{ "--sens": sens } as React.CSSProperties}
       onKeyDown={surFleches}
     >
-      <div className="mac">
-        <div className="bureau">
-          <BarreMenus />
+      <div
+        className="ecran"
+        onPointerDown={surDebut}
+        onPointerUp={surFin}
+        onPointerCancel={() => (depart.current = null)}
+      >
+        <BarreMenus />
 
-          {INDICES.map((i) => (
-            <Panneau
-              key={i}
-              i={i}
-              demo={demo}
-              actif={bouncer ? i === actif : true}
-            />
-          ))}
+        {apps.map((app, i) => (
+          <Pilule
+            key={app.nom}
+            i={i}
+            app={app}
+            actif={bouncer ? i === actif : true}
+          />
+        ))}
 
-          <div className="encoche" aria-hidden="true" />
-          <div className="lentille" aria-hidden="true" />
+        <div className="encoche" aria-hidden="true" />
+        <div className="lentille" aria-hidden="true" />
 
-          <button
-            type="button"
-            className="fleche gauche"
-            onClick={() => bascule(-1)}
-            aria-label={l.precedente}
-          >
-            <Chevron sens={-1} />
-          </button>
-          <button
-            type="button"
-            className="fleche droite"
-            onClick={() => bascule(1)}
-            aria-label={l.suivante}
-          >
-            <Chevron sens={1} />
-          </button>
+        <button
+          type="button"
+          className="fleche gauche"
+          onClick={() => bascule(-1)}
+          aria-label={l.precedente}
+        >
+          <Chevron sens={-1} />
+        </button>
+        <button
+          type="button"
+          className="fleche droite"
+          onClick={() => bascule(1)}
+          aria-label={l.suivante}
+        >
+          <Chevron sens={1} />
+        </button>
 
-          <div className="dock">
-            {INDICES.map((i) => (
-              <button
-                key={i}
-                type="button"
-                className="tuile"
-                aria-pressed={bouncer && i === actif}
-                aria-label={`${l.choisir} ${demo.noms[i]}`}
-                title={demo.noms[i]}
-                onClick={() => choisir(i)}
-              >
-                {ICONES[i]}
-              </button>
-            ))}
-          </div>
-        </div>
+        <button type="button" className="piste" onClick={() => bascule(1)}>
+          <SigneDeuxDoigts />
+          {l.geste}
+        </button>
       </div>
 
       <figcaption className="pupitre">
@@ -145,7 +156,7 @@ export function ApercuVivant({ demo, l }: { demo: Demo; l: Libelles }) {
           {bouncer ? (
             <span>
               {touche ? l.enScene : l.invite}{" "}
-              <strong>{demo.noms[actif]}</strong>
+              <strong>{apps[actif].nom}</strong>
             </span>
           ) : (
             <span>{l.debranche}</span>
@@ -177,13 +188,11 @@ export function ApercuVivant({ demo, l }: { demo: Demo; l: Libelles }) {
 /* ------------------------------------------------------------------ pièces */
 
 /** La barre des menus de macOS. La pilule d'app la recouvre en partie : c'est
-    exactement ce qui se passe à l'écran, et ça explique pourquoi deux apps
-    d'encoche ouvertes ensemble se marchent dessus.
+    exactement ce qui se passe à l'écran, et ça explique d'un coup d'œil
+    pourquoi deux apps d'encoche ouvertes ensemble se marchent dessus.
 
     L'heure est 9:41 en dur, l'heure des présentations Apple. Elle ne se
-    traduit pas et elle ne doit surtout pas reprendre celle du panneau
-    calendrier : deux horloges différentes côte à côte se liraient comme un
-    bug. Celle-ci est l'heure du système, celle du panneau est un rendez-vous. */
+    traduit pas. */
 function BarreMenus() {
   return (
     <div className="barre-menus" aria-hidden="true">
@@ -226,50 +235,32 @@ function BarreMenus() {
   );
 }
 
-/** Une pilule d'app d'encoche : une colonne à gauche, le trou de l'encoche au
-    milieu, une colonne à droite. */
-function Panneau({
+/** Une pilule d'app d'encoche : le nom de l'app et son signe à gauche, le trou
+    de l'encoche au milieu, sa valeur du moment à droite. Toutes les pilules
+    occupent la même case — c'est tout le sujet de la page. */
+function Pilule({
   i,
-  demo,
+  app,
   actif,
 }: {
-  i: 0 | 1 | 2;
-  demo: Demo;
+  i: number;
+  app: AppDemo;
   actif: boolean;
 }) {
-  const contenu: [ReactNode, ReactNode][] = [
-    [
-      <>
-        <span className="pastille vive" />
-        <span className="pastille" />
-        <span className="pastille" />
-      </>,
-      <span className="valeur">{demo.agents}</span>,
-    ],
-    [
-      <span className="onde">
-        {[5, 11, 7, 12].map((h, k) => (
-          <i key={k} style={{ height: `${h}px` }} />
-        ))}
-      </span>,
-      <span className="valeur">{demo.duree}</span>,
-    ],
-    [
-      <span className="valeur">{demo.jour}</span>,
-      <span className="valeur">{demo.heure}</span>,
-    ],
-  ];
-  const [gauche, droite] = contenu[i];
-
   return (
     <div
-      className={actif ? "panneau actif" : "panneau"}
-      data-i={i}
+      className={actif ? "pilule actif" : "pilule"}
+      style={{ "--i": i } as React.CSSProperties}
       aria-hidden="true"
     >
-      <span className="g">{gauche}</span>
+      <span className="g">
+        {SIGNES[app.signe]}
+        <span className="nom">{app.nom}</span>
+      </span>
       <span />
-      <span className="d">{droite}</span>
+      <span className="d">
+        <span className="valeur">{app.valeur}</span>
+      </span>
     </div>
   );
 }
@@ -288,48 +279,65 @@ function Chevron({ sens }: { sens: -1 | 1 }) {
   );
 }
 
-/* Trois icônes de Dock, dans l'ordre des pilules : un suivi, un lecteur, un
-   calendrier. Dessinées ici plutôt que chargées : aucune requête réseau, et
-   aucun logo d'app tierce à s'approprier. */
-const ICONES = [
-  <svg key="0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d="M3 17.5 8 11l4 3.2L21 5"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <circle cx="8" cy="11" r="1.9" fill="currentColor" />
-    <circle cx="12" cy="14.2" r="1.9" fill="currentColor" />
-  </svg>,
-  <svg key="1" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d="M9 18V6.4l10-2v11.2"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <circle cx="6.6" cy="18" r="2.6" fill="currentColor" />
-    <circle cx="16.6" cy="15.6" r="2.6" fill="currentColor" />
-  </svg>,
-  <svg key="2" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <rect
-      x="3.2"
-      y="5"
-      width="17.6"
-      height="15"
-      rx="3"
-      stroke="currentColor"
-      strokeWidth="1.9"
-    />
-    <path
-      d="M3.2 10h17.6M8.4 3v4M15.6 3v4"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-    />
-    <circle cx="8.6" cy="14.4" r="1.5" fill="currentColor" />
-  </svg>,
-];
+/** Deux doigts et le va-et-vient qu'ils font. C'est le seul pictogramme de la
+    scène, et il désigne la seule commande. */
+function SigneDeuxDoigts() {
+  return (
+    <svg viewBox="0 0 26 14" width="26" height="14" fill="none" aria-hidden="true">
+      <path
+        d="M8 7h10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M11 3.6 7.4 7l3.6 3.4M15 3.6 18.6 7 15 10.4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="2.6" cy="7" r="1.6" fill="currentColor" />
+      <circle cx="23.4" cy="7" r="1.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+/* Les signes des pilules, dessinés ici plutôt que chargés : aucune requête
+   réseau, et aucun logo d'app tierce à s'approprier. La clé vient de
+   `content/demo.ts` — ajouter une app, c'est ajouter une entrée ici. */
+const SIGNES: Record<Signe, ReactNode> = {
+  onde: (
+    <span className="onde">
+      {[5, 12, 7, 13, 9].map((h, k) => (
+        <i key={k} style={{ height: `${h}px` }} />
+      ))}
+    </span>
+  ),
+  pastilles: (
+    <span className="flex items-center gap-[4px]">
+      <span className="pastille vive" />
+      <span className="pastille" />
+      <span className="pastille" />
+    </span>
+  ),
+  date: (
+    <svg viewBox="0 0 14 14" width="13" height="13" fill="none" aria-hidden="true">
+      <rect
+        x="1"
+        y="2.4"
+        width="12"
+        height="10.6"
+        rx="2.2"
+        stroke="currentColor"
+        strokeWidth="1.3"
+      />
+      <path
+        d="M1 6h12M4.6 1v2.6M9.4 1v2.6"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  ),
+};

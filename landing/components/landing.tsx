@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { COMPATIBILITE } from "@/content/compatibilite";
+import { APPS_APERCU } from "@/content/demo";
 import { COMMANDE_BREW, COMMANDE_VERIF, LIENS } from "@/content/liens";
 import { ApercuVivant } from "./apercu";
 import { BoutonAncre, LigneCommande } from "./actions";
@@ -12,6 +13,7 @@ import { SelecteurLangue } from "./selecteur-langue";
    il est fait. Le lien, lui, prend son URL ici — content/liens.ts est la seule
    source, dans toutes les langues. */
 const fort = (c: ReactNode) => <strong>{c}</strong>;
+const accent = (c: ReactNode) => <span className="accent-degrade">{c}</span>;
 const code = (c: ReactNode) => <code className="font-mono text-sm">{c}</code>;
 const lienVers = (href: string) => (c: ReactNode) => <a href={href}>{c}</a>;
 
@@ -31,17 +33,11 @@ export function Landing() {
 
   /* L'aperçu est un composant client : il reçoit des chaînes déjà résolues,
      donc aucun dictionnaire ne part au navigateur. */
-  const demo = {
-    noms: [t("demo.nom1"), t("demo.nom2"), t("demo.nom3")] as [
-      string,
-      string,
-      string,
-    ],
-    agents: t("demo.agents"),
-    duree: t("demo.duree"),
-    jour: t("demo.jour"),
-    heure: t("demo.heure"),
-  };
+  const apps = APPS_APERCU.map((a) => ({
+    nom: a.nom,
+    valeur: t(`demo.contenus.${a.contenu}.valeur`),
+    signe: a.signe,
+  }));
   const libelles = {
     invite: t("apercu.invite"),
     enScene: t("apercu.enScene"),
@@ -49,7 +45,7 @@ export function Landing() {
     bouncerActif: t("apercu.bouncerActif"),
     precedente: t("apercu.precedente"),
     suivante: t("apercu.suivante"),
-    choisir: t("apercu.choisir"),
+    geste: t("apercu.geste"),
     raccourci: t("apercu.raccourci"),
   };
 
@@ -57,7 +53,7 @@ export function Landing() {
     <>
       <a
         href="#contenu"
-        className="absolute top-0 left-[-9999px] z-20 rounded-br-lg border-0 bg-encre px-[18px] py-[10px] text-white focus:left-0"
+        className="absolute top-0 left-[-9999px] z-20 rounded-br-lg border-0 bg-accent px-[18px] py-[10px] text-white focus:left-0"
       >
         {t("chrome.evitement")}
       </a>
@@ -85,29 +81,30 @@ export function Landing() {
             pas de lire une promesse : on donne l'app à toucher. */}
         <section className="scroll-mt-6 pt-haut-heros pb-pas">
           <div className={m.enveloppe}>
-            <h1 className="mb-[.32em] text-balance text-center text-heros font-semibold leading-[1.03] tracking-heros">
+            <h1 className="titre-degrade mb-[.32em] text-balance text-center text-heros font-semibold leading-[1.03] tracking-heros">
               {t("heros.titreLigne1")}
               <br />
-              {t("heros.titreLigne2")}
+              {t.rich("heros.titreLigne2", { accent })}
             </h1>
             <p className={`${m.chapo} max-w-[33rem]`}>{t("heros.chapo")}</p>
             <div className="mt-[34px] flex flex-wrap items-center justify-center gap-[14px]">
               <BoutonAncre vers="#installer">{t("heros.installer")}</BoutonAncre>
               <a
                 href="#compatibilite"
-                className="border-b-filet text-[.9375rem] text-gris"
+                className="border-b-filet text-[.9375rem] text-gris hover:text-encre"
               >
                 {t("heros.voirCompatibles")}
               </a>
             </div>
 
-            <ApercuVivant demo={demo} l={libelles} />
+            <ApercuVivant apps={apps} l={libelles} />
           </div>
         </section>
 
         {/* --------------------------- LE PROBLÈME ------------------------ */}
         <section className="scroll-mt-6 py-pas">
           <div className={m.enveloppe}>
+            <Surtitre>{t("probleme.surtitre")}</Surtitre>
             <h2 className={m.titre}>{t("probleme.titre")}</h2>
             <div className={`${m.bloc} ${m.corps}`}>
               <p>{t("probleme.para1")}</p>
@@ -122,6 +119,7 @@ export function Landing() {
             caméra, les touches du raccourci, les pastilles du menu. */}
         <section className="scroll-mt-6 py-pas" id="commandes">
           <div className={m.enveloppe}>
+            <Surtitre>{t("commandes.surtitre")}</Surtitre>
             <h2 className={m.titre}>{t("commandes.titre")}</h2>
             <p className={m.chapo}>{t("commandes.chapo")}</p>
 
@@ -150,7 +148,8 @@ export function Landing() {
                 signe={
                   <span className="flex flex-col gap-[3px] text-[.8125rem] text-gris">
                     <span>
-                      <b className="text-encre">●</b> {t("commandes.menuActive")}
+                      <b className="text-accent-vif">●</b>{" "}
+                      {t("commandes.menuActive")}
                     </span>
                     <span>○ {t("commandes.menuAttente")}</span>
                     <span>◐ {t("commandes.menuEnCours")}</span>
@@ -168,13 +167,14 @@ export function Landing() {
             si on ose installer : ce que Bouncer promet, et ce qu'il refuse. */}
         <section className="scroll-mt-6 py-pas" id="moteur">
           <div className={m.enveloppe}>
+            <Surtitre>{t("moteur.surtitre")}</Surtitre>
             <h2 className={m.titre}>{t("moteur.titre")}</h2>
             <p className={m.chapo}>{t("moteur.chapo")}</p>
 
             <div className="mt-12 grid gap-[18px] sm:grid-cols-3">
               {([1, 2, 3] as const).map((n) => (
                 <div key={n} className={`${m.carte} px-6 py-[26px]`}>
-                  <p className="mb-[.2em] text-[2rem] font-semibold tabular-nums tracking-[-.03em] text-encre">
+                  <p className="accent-degrade mb-[.2em] text-[2rem] font-semibold tabular-nums tracking-[-.03em]">
                     {t(`moteur.chiffre${n}`)}
                   </p>
                   <p className="mb-[.7em] text-[.9375rem] font-medium text-encre">
@@ -205,6 +205,7 @@ export function Landing() {
             colonne le porte ligne par ligne. */}
         <section className="scroll-mt-6 py-pas" id="compatibilite">
           <div className={m.enveloppe}>
+            <Surtitre>{t("compatibilite.surtitre")}</Surtitre>
             <h2 className={m.titre}>{t("compatibilite.titre")}</h2>
             <p className={m.chapo}>{t("compatibilite.chapo")}</p>
 
@@ -245,8 +246,8 @@ export function Landing() {
                         <span
                           className={
                             l.preuve === "mesure"
-                              ? "rounded-full bg-encre px-[9px] py-[3px] text-[.75rem] font-medium text-white"
-                              : "rounded-full border border-filet px-[9px] py-[3px] text-[.75rem] text-gris"
+                              ? "rounded-full border border-accent-vif/35 bg-accent-vif/10 px-[9px] py-[3px] text-[.75rem] font-medium text-accent-vif"
+                              : "rounded-full border border-filet px-[9px] py-[3px] text-[.75rem] text-sourdine"
                           }
                         >
                           {t(
@@ -262,7 +263,7 @@ export function Landing() {
               </table>
             </div>
 
-            <p className="mx-auto mt-[18px] max-w-[46rem] text-center text-[.875rem] text-gris">
+            <p className="mx-auto mt-[18px] max-w-[46rem] text-center text-[.875rem] text-sourdine">
               {t("compatibilite.banc")}
             </p>
 
@@ -294,6 +295,7 @@ export function Landing() {
         {/* --------------------------- LES PRÉREQUIS ---------------------- */}
         <section className="scroll-mt-6 py-pas" id="prerequis">
           <div className={m.enveloppe}>
+            <Surtitre>{t("prerequis.surtitre")}</Surtitre>
             <h2 className={m.titre}>{t("prerequis.titre")}</h2>
             <p className={m.chapo}>{t("prerequis.chapo")}</p>
 
@@ -310,6 +312,7 @@ export function Landing() {
         {/* -------------------------- INSTALLATION ------------------------ */}
         <section className="scroll-mt-6 py-pas" id="installer">
           <div className={m.enveloppe}>
+            <Surtitre>{t("installation.surtitre")}</Surtitre>
             <h2 className={m.titre}>{t("installation.titre")}</h2>
             <p className={m.chapo}>{t("installation.chapo")}</p>
 
@@ -365,6 +368,7 @@ export function Landing() {
         {/* ------------------------------- FAQ ---------------------------- */}
         <section className="scroll-mt-6 py-pas" id="questions">
           <div className={m.enveloppe}>
+            <Surtitre>{t("faq.surtitre")}</Surtitre>
             <h2 className={m.titre}>{t("faq.titre")}</h2>
 
             <dl className="mx-auto mt-12 grid max-w-[62rem] gap-x-[42px] gap-y-9 sm:grid-cols-2">
@@ -386,9 +390,10 @@ export function Landing() {
             La page se termine sur l'action, pas sur la dernière réponse de
             la FAQ. Le bouton est le même que celui du héros : il descend à
             la section d'installation, où la commande est déjà copiable. */}
-        <section className="scroll-mt-6 border-t border-filet py-pas">
+        <hr className="filet-fondu mx-auto max-w-[1040px]" />
+        <section className="scroll-mt-6 py-pas">
           <div className={`${m.enveloppe} text-center`}>
-            <h2 className="mx-auto mb-[.4em] max-w-[24ch] text-balance text-[2rem] font-semibold tracking-[-.03em] text-encre">
+            <h2 className="titre-degrade mx-auto mb-[.4em] max-w-[24ch] text-balance text-[2rem] font-semibold tracking-[-.03em]">
               {t("fin.titre")}
             </h2>
             <p className="mx-auto mb-8 max-w-[32rem] text-gris">
@@ -399,7 +404,8 @@ export function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-filet pt-[38px] pb-[52px] text-[.875rem] text-gris [&_a]:border-b-filet [&_a]:text-gris hover:[&_a]:text-encre">
+      <hr className="filet-fondu mx-auto max-w-[1040px]" />
+      <footer className="pt-[38px] pb-[52px] text-[.875rem] text-gris [&_a]:border-b-filet [&_a]:text-gris hover:[&_a]:text-encre">
         <div className={`${m.enveloppe} flex flex-wrap justify-between gap-[18px]`}>
           <span>{t("chrome.piedLigne")}</span>
           <span className="flex gap-[22px]">
@@ -426,10 +432,20 @@ const LIBELLE_BASCULE = {
 } as const;
 
 const COULEUR_BASCULE = {
-  rapide: "font-semibold text-accent",
+  rapide: "font-semibold text-accent-vif",
   relance: "font-semibold text-encre",
-  invisible: "text-gris",
+  invisible: "text-sourdine",
 } as const;
+
+/** Le surtitre d'une section : une petite capitale accentuée, centrée, qui
+    ouvre le bloc. Sur une page sombre, un titre qui commence à froid flotte. */
+function Surtitre({ children }: { children: string }) {
+  return (
+    <p className="mb-0 text-center">
+      <span className="surtitre">{children}</span>
+    </p>
+  );
+}
 
 /** Une carte de la grille : un signe optionnel, un titre, une phrase. C'est la
     seule forme répétée de la page en dehors du texte courant. */
@@ -465,18 +481,18 @@ function SigneSwipe() {
         width="50.4"
         height="32.4"
         rx="5"
-        stroke="var(--color-filet)"
+        stroke="rgb(255 255 255 / .18)"
         strokeWidth="1.6"
       />
       <path
         d="M13 17h26"
-        stroke="var(--color-encre)"
+        stroke="var(--color-accent-vif)"
         strokeWidth="1.6"
         strokeLinecap="round"
       />
       <path
         d="M17 12.5 12.2 17l4.8 4.5M35 12.5l4.8 4.5-4.8 4.5"
-        stroke="var(--color-encre)"
+        stroke="var(--color-accent-vif)"
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -498,7 +514,7 @@ function SigneFleches() {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="h-[18px] w-[54px] rounded-b-[7px] bg-noir" />
+      <span className="h-[18px] w-[54px] rounded-b-[7px] bg-noir ring-1 ring-white/12" />
       <svg viewBox="0 0 9 14" width="9" height="14" fill="none" aria-hidden="true">
         <path
           d="M1.5 1l6 6-6 6"

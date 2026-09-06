@@ -11,37 +11,43 @@
     "piedVersions": "Versions"
   },
   "demo": {
-    "nom1": "Suivi d’agents",
-    "nom2": "Musique",
-    "nom3": "Calendrier",
-    "agents": "4 agents",
-    "duree": "2:41",
-    "jour": "jeu. 14",
-    "heure": "11:00"
+    "contenus": {
+      "musique": {
+        "valeur": "2:41"
+      },
+      "agents": {
+        "valeur": "4 agents"
+      },
+      "calendrier": {
+        "valeur": "jeu. 14 · 11:00"
+      }
+    }
   },
   "apercu": {
-    "invite": "Cliquez une app dans le Dock. En scène :",
-    "enScene": "Dans l’encoche :",
-    "debranche": "Sans Bouncer : trois apps dessinent au même endroit.",
+    "invite": "Balayez l’encoche, ou cliquez. Dans l’encoche :",
+    "enScene": "Dans l’encoche :",
+    "debranche": "Sans Bouncer : les deux apps dessinent au même endroit.",
     "bouncerActif": "Bouncer",
     "precedente": "App d’encoche précédente",
     "suivante": "App d’encoche suivante",
-    "choisir": "Mettre dans l’encoche :",
+    "geste": "Balayez",
     "raccourci": "marche aussi ici"
   },
   "heros": {
     "titreLigne1": "Une encoche.",
-    "titreLigne2": "Une seule app à la fois.",
+    "titreLigne2": "<accent>Une seule app</accent> à la fois.",
     "chapo": "Vos apps d’encoche restent toutes ouvertes. Bouncer décide laquelle se voit, et vous changez d’avis d’un swipe à deux doigts.",
     "installer": "Installer Bouncer",
     "voirCompatibles": "Voir si vos apps sont prises en charge"
   },
   "probleme": {
+    "surtitre": "Le problème",
     "titre": "macOS ne coordonne rien",
     "para1": "Vibe Island, boringNotch, Alcove, Notchy : chacune dessine sa propre pilule sous l’encoche de votre MacBook. Ouvrez-en deux, elles occupent le même rectangle et se superposent. C’est l’état que vous venez de voir en débranchant Bouncer.",
     "para2": "Il n’existe aucune API de coordination et aucune notion d’« app d’encoche active ». <fort>La seule sortie que macOS vous laisse, c’est de quitter l’une pour utiliser l’autre</fort>, puis de la relancer quand vous en avez de nouveau besoin. Bouncer s’en charge, et vite."
   },
   "commandes": {
+    "surtitre": "Le geste",
     "titre": "Quatre façons de changer d’app",
     "chapo": "Vous prenez celle qui tombe sous la main. Elles font toutes la même chose : avancer d’un cran dans le cycle.",
     "swipeTitre": "Le swipe sur l’encoche",
@@ -57,6 +63,7 @@
     "menuEnCours": "bascule en cours"
   },
   "moteur": {
+    "surtitre": "Sous le capot",
     "titre": "Ce qui se passe quand vous basculez",
     "chapo": "Deux voies, choisies automatiquement selon ce que le binaire de chaque app accepte. Vous n’avez rien à régler.",
     "chiffre1": "46 ms",
@@ -74,6 +81,7 @@
     "refusCorps": "Pas d’API privée, pas d’injection dans le WindowServer : ce sont les astuces qui cassent à chaque mise à jour mineure de macOS. Une app qui refuse de quitter n’est jamais tuée de force — elle a peut-être quelque chose à enregistrer. Bouncer le constate et la laisse tranquille."
   },
   "compatibilite": {
+    "surtitre": "Compatibilité",
     "titre": "Est-ce que ça marche avec vos apps ?",
     "chapo": "Quatre apps régies aujourd’hui, mesurées une par une sur une vraie machine. Trois autres attendent un correctif de détection déjà identifié.",
     "legendeTableau": "Matrice de compatibilité des apps d’encoche",
@@ -126,6 +134,7 @@
     "verifierCorps": "Une fois Bouncer installé, cette commande liste les apps qu’il a trouvées sous votre encoche, avec le verdict qu’il leur a donné."
   },
   "prerequis": {
+    "surtitre": "Prérequis",
     "titre": "Ce qu’il vous faut",
     "chapo": "Quatre choses. Vous en avez sans doute déjà trois.",
     "item1Titre": "macOS 14 Sonoma ou plus récent",
@@ -138,6 +147,7 @@
     "item4Corps": "Bouncer est un régisseur, pas un widget d’encoche. Sans app tierce installée, il n’a rien à arbitrer, et il vous le dit dès le guide de démarrage."
   },
   "installation": {
+    "surtitre": "Installation",
     "titre": "Installer",
     "chapo": "Une ligne dans le terminal, ou une archive à glisser.",
     "copier": "Copier",
@@ -159,6 +169,7 @@
     "apres2": "Au premier lancement, un guide de démarrage vous montre où Bouncer se range dans la barre des menus, vérifie l’autorisation Accessibilité en direct et vous fait essayer le geste."
   },
   "faq": {
+    "surtitre": "Questions",
     "titre": "Questions fréquentes",
     "q1": "Mes apps se ferment quand je bascule ?",
     "r1": "Pas sur la voie rapide : l’app est masquée, elle reste en mémoire et revient dans l’état où vous l’aviez laissée. Sur la voie par relance, oui, elle redémarre. Le tableau dit ligne par ligne à quoi vous attendre.",
