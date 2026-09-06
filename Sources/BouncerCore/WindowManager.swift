@@ -197,7 +197,11 @@ public final class WindowManager: ObservableObject {
         geometrie: @escaping @MainActor () -> (rect: CGRect, ecran: String, cadre: CGRect)? = zoneEncoche,
         demanderAccessibilite: Bool = true,
         verifierAccessibilite: @escaping () -> Bool = { AXIsProcessTrusted() },
-        notificationCenter: NotificationCenter = .default
+        notificationCenter: NotificationCenter = .default,
+        // Injectable pour la seule raison qui vaut : les durées de `Bascule` sont des horloges
+        // murales, et un test d'attente de mort qui les paierait aux valeurs du produit
+        // affamerait le main actor partagé par toute la suite.
+        bascule: Bascule? = nil
     ) {
         self.catalogue = catalogue
         self.controleur = controleur
@@ -206,7 +210,7 @@ public final class WindowManager: ObservableObject {
         self.verifierAccessibilite = verifierAccessibilite
         self.notificationCenter = notificationCenter
         sondageActif = startTimer
-        bascule = Bascule(controleur: controleur)
+        self.bascule = bascule ?? Bascule(controleur: controleur)
         accessibilityTrusted = verifierAccessibilite()
         // `demanderAccessibilite: false` pour les tests : la popup système est modale et bloquerait
         // `swift test` sur la machine de qui la lance. Elle reste vraie partout ailleurs, y compris
@@ -720,13 +724,38 @@ public final class WindowManager: ObservableObject {
         Task { await basculer(vers: bundleID) }
     }
 
+    /// La dette ouverte par un `terminate()` dont la mort n'a pas encore été constatée : elle
+    /// survit au geste qui l'a créée, parce que la mort, elle, arrive quand elle arrive.
+    ///
+    /// **Une seule à la fois, et c'est structurel.** Deux surveillances concurrentes pourraient
+    /// relancer deux apps dans la même encoche. Le geste suivant annule celle qui court : c'est
+    /// l'arbitrage « le dernier geste de l'utilisateur gagne », et c'est ce qui autorise la
+    /// surveillance à être sans plafond sans jamais tourner pour rien.
+    private var surveillanceFermeture: Task<Void, Never>?
+
     /// La même bascule, attendable — c'est la forme qu'utilise un appelant déjà asynchrone.
     public func basculer(vers bundleID: String) async {
         // Un second geste pendant la bascule éteindrait l'app que le premier vient d'allumer.
-        // Le menu marque déjà l'entrée en cours ; ici on se contente de refuser le doublon.
-        guard bundleIDEnCoursDeBascule == nil else { return }
+        //
+        // **Et ce refus ne peut pas être muet (QA passe 4, D3).** C'est le silence, pas la durée,
+        // qui faisait resswiper l'utilisateur dans le vide : le menu marque l'entrée en cours,
+        // mais personne n'a le menu ouvert en swipant. On refuse le doublon ET on le dit — le
+        // message allume le triangle de la barre des menus, qui est la seule surface visible sans
+        // ouvrir quoi que ce soit.
+        guard bundleIDEnCoursDeBascule == nil else {
+            if let enCours = infoPourBascule(bundleIDEnCoursDeBascule ?? "") {
+                echecBascule = "Bascule vers \(enCours.name) déjà en cours — patientez, elle vient de recevoir sa demande de fermeture. Un second geste maintenant éteindrait l'app que le premier vient d'allumer."
+            }
+            return
+        }
         guard let cible = infoPourBascule(bundleID) else { return }
         let actuelle = bundleIDActive.flatMap(infoPourBascule)
+
+        // Le geste qui commence prime sur la fermeture qu'on surveillait : sans cette annulation,
+        // la surveillance relancerait tout à l'heure une app que l'utilisateur vient de quitter
+        // des yeux, et l'encoche en porterait deux.
+        surveillanceFermeture?.cancel()
+        surveillanceFermeture = nil
 
         bundleIDEnCoursDeBascule = bundleID
         echecBascule = nil
@@ -736,15 +765,28 @@ public final class WindowManager: ObservableObject {
         switch resultat {
         case .reussie:
             appliquerReussite(cible: cible.bundleID, actuelle: actuelle?.bundleID)
-        case .precedenteResteEnPlace:
+            // Un geste concurrent a pu poser son message « bascule déjà en cours » pendant que
+            // celle-ci courait. Elle a réussi : le triangle d'alerte n'a plus rien à signaler.
+            echecBascule = nil
+        case .precedenteFermetureEnCours:
             // La cible EST dans l'encoche : cette moitié-là a réussi et doit être enregistrée.
             // Mais on ne dit rien de la précédente — `actuelle: nil` — parce que la seule chose
             // qu'`appliquerReussite` sait faire d'elle est la marquer `isHiddenByUs`, et elle ne
             // l'est pas : elle est toujours à l'écran. Le `refresh()` qui suit la reverra dans
             // l'encoche et la listera pour ce qu'elle est, une app lancée et visible.
             appliquerReussite(cible: cible.bundleID, actuelle: nil)
-            let restee = actuelle?.name ?? cible.name
-            echecBascule = "\(restee) n'a pas pu être quittée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Répondez-lui, puis réessayez : Bouncer ne la forcera pas, ce serait perdre votre travail."
+            // `actuelle ?? cible` : dans la branche interrupteur (une seule app au catalogue), la
+            // précédente EST la cible.
+            let restee = actuelle ?? cible
+            echecBascule = "\(restee.name) n'est pas encore fermée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Bouncer continue de la surveiller et libérera l'encoche dès qu'elle sera partie ; il ne la forcera jamais, ce serait perdre votre travail."
+            surveiller(restee, puisRelancer: false)
+        case .cibleFermetureEnCours:
+            // Le seul cas où Bouncer a une DETTE : il a tué la cible pour la relancer et elle
+            // n'est pas encore morte. Rien n'est perdu tant que la surveillance court — et c'est
+            // un message d'attente, pas d'échec, parce que l'issue normale de ce chemin est le
+            // succès quelques centaines de millisecondes plus tard.
+            echecBascule = "\(cible.name) doit être relancée pour revenir dans l'encoche, et elle n'est pas encore fermée. Bouncer la relancera dès qu'elle sera partie. \(repliInchange(actuelle))"
+            surveiller(cible, puisRelancer: true)
         case .lancementImpossible:
             echecBascule = "\(cible.name) n'a pas pu être lancée."
         case .accessibiliteJamaisAccordee:
@@ -765,6 +807,38 @@ public final class WindowManager: ObservableObject {
             echecBascule = geometrie() == nil
                 ? "Plus aucune encoche détectée — la bascule vers \(cible.name) a été abandonnée. \(repliInchange(actuelle))"
                 : "\(cible.name) s'est lancée sans rien afficher dans l'encoche. \(repliInchange(actuelle))"
+        }
+    }
+
+    /// Solde la dette laissée par un `terminate()` dont la mort n'est pas encore constatée.
+    ///
+    /// La tâche vit PLUS LONGTEMPS que le geste : c'est tout l'intérêt, l'utilisateur a déjà
+    /// récupéré la main. Elle ne peut donc pas écrire dans le modèle sans vérifier qu'elle a
+    /// encore le droit de parler — `Task.isCancelled` dit qu'un geste suivant a repris la main, et
+    /// à partir de là c'est lui qui décide de ce que l'encoche affiche, pas nous.
+    private func surveiller(_ app: NotchAppInfo, puisRelancer: Bool) {
+        surveillanceFermeture = Task { [weak self] in
+            guard let self else { return }
+            let resultat = await self.bascule.poursuivreFermeture(de: app, puisRelancer: puisRelancer)
+            guard !Task.isCancelled else { return }
+            self.surveillanceFermeture = nil
+            switch resultat {
+            case .reussie:
+                // La mort est constatée. Le message d'attente n'est plus vrai : on l'efface, sans
+                // quoi le triangle d'alerte resterait allumé pour une app partie depuis.
+                echecBascule = nil
+                if puisRelancer { self.appliquerReussite(cible: app.bundleID, actuelle: nil) }
+                self.refresh()
+            case .lancementImpossible:
+                echecBascule = "\(app.name) s'est bien fermée, mais n'a pas pu être relancée — désinstallée, ou lancement refusé par le système."
+            case .cibleJamaisApparue:
+                echecBascule = "\(app.name) s'est relancée sans rien afficher dans l'encoche."
+            default:
+                // Les deux verdicts « en cours » ne sortent de `poursuivreFermeture` que sur
+                // annulation, et on vient de vérifier qu'il n'y en a pas eu. Les autres ne sont
+                // pas atteignables depuis ce chemin.
+                break
+            }
         }
     }
 

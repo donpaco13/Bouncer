@@ -22,14 +22,27 @@ import Foundation
 public enum ResultatBascule: Equatable {
     /// La cible occupe l'encoche, et la précédente a été rangée (masquée ou quittée).
     case reussie
-    /// La cible occupe l'encoche, mais la précédente n'a pas pu être quittée : elle a accepté la
-    /// demande de fermeture sans jamais mourir — une feuille « Enregistrer les modifications ? »
-    /// attend l'utilisateur, ou l'app ne répond plus. Les deux se partagent l'encoche.
-    case precedenteResteEnPlace
+    /// La cible occupe l'encoche ; la précédente a reçu la demande de fermeture et n'était pas
+    /// encore partie à la fin de la fenêtre de courtoisie. Les deux se partagent l'encoche EN
+    /// ATTENDANT — une feuille « Enregistrer les modifications ? » attend peut-être l'utilisateur.
+    ///
+    /// **Ce n'est pas un verdict final, c'est une main rendue.** L'appelant DOIT enchaîner sur
+    /// `poursuivreFermeture(de:puisRelancer:)` : c'est elle qui constate la mort quand elle
+    /// arrive, si tard soit-elle, et qui rend alors `.reussie`.
+    case precedenteFermetureEnCours
     /// La cible n'a pas pu être démarrée — désinstallée, ou lancement refusé par le système.
     case lancementImpossible
     /// La cible s'est lancée mais sa fenêtre n'est jamais apparue dans le délai imparti.
     case cibleJamaisApparue
+    /// La cible a dû être QUITTÉE pour être relancée (son démasquage ne ramenait plus rien à
+    /// l'écran) et elle n'était pas encore morte à la fin de la fenêtre de courtoisie.
+    ///
+    /// **C'est l'état le plus dangereux du produit, et c'est pour ça qu'il a son propre verdict.**
+    /// Le process a reçu son `terminate()` : l'app est déjà perdue pour l'utilisateur, et seule
+    /// une relance la lui rend. `poursuivreFermeture(de:puisRelancer: true)` est cette relance, et
+    /// l'appelant DOIT l'enchaîner — sans elle, ce verdict décrit une app tuée que rien ne
+    /// ramènera. À traduire par un message d'ATTENTE, jamais par un message d'échec.
+    case cibleFermetureEnCours
     /// Rien n'a été tenté : ce process n'a jamais eu le droit Accessibilité, et sans lui la
     /// bascule n'aurait eu que le meurtre du process à offrir. Cf. le garde de `basculer`.
     case accessibiliteJamaisAccordee
@@ -48,7 +61,9 @@ public struct Bascule {
     private let controleur: any ControleurApps
     private let intervalleSondage: Duration
     private let delaiMax: Duration
-    /// Le plafond de l'attente de mort. Séparé de `delaiMax` : cf. `quitterEtAttendre`.
+    /// La fenêtre de COURTOISIE de l'attente de mort — la limite de ce que le geste de
+    /// l'utilisateur patiente, jamais celle de ce que Bouncer doit à une app qu'il a tuée.
+    /// Séparée de `delaiMax` : cf. `quitterEtAttendre`.
     private let delaiMort: Duration
     /// Injectable au même titre que le contrôleur, et pour la même raison : la machine à états
     /// doit pouvoir être jouée sans droits système réels.
@@ -123,7 +138,7 @@ public struct Bascule {
 
         if actuelle?.bundleID == cible.bundleID {
             if let pid = controleur.pid(pour: cible.bundleID), controleur.fenetreVisibleDansNotch(pid: pid) {
-                return await eteindre(cible) ? .reussie : .precedenteResteEnPlace
+                return await eteindre(cible)
             }
             return await allumer(cible)
         }
@@ -131,13 +146,14 @@ public struct Bascule {
         let resultat = await allumer(cible)
         guard resultat == .reussie else { return resultat } // l'actuelle n'a pas été touchée
         guard let actuelle else { return .reussie }
-        return await eteindre(actuelle) ? .reussie : .precedenteResteEnPlace
+        return await eteindre(actuelle)
     }
 
     // MARK: - Quitter, et le vérifier
 
-    /// Demande la fermeture du process et ne rend la main qu'une fois qu'il est VRAIMENT parti.
-    /// `false` s'il est encore là au bout du délai.
+    /// Demande la fermeture du process et ne rend la main qu'une fois qu'il est VRAIMENT parti —
+    /// ou, au bout de la fenêtre de courtoisie, `false` pour dire « pas ENCORE parti ». Jamais
+    /// « renoncé » : c'est `poursuivreFermeture` qui prend le relais, sans plafond.
     ///
     /// **Pourquoi attendre — c'est le cœur de la sûreté du meurtre.** `tuer` repose sur
     /// `NSRunningApplication.terminate()`, qui poste un Apple Event et rend la main aussitôt : son
@@ -161,33 +177,39 @@ public struct Bascule {
     /// Sonde `pid(pour:)` plutôt que `NSRunningApplication.isTerminated` : c'est déjà la mesure du
     /// protocole, elle traverse le double de test, et elle n'ajoute aucune API à la surface.
     ///
-    /// **Le plafond est celui de la MORT, plus celui de l'apparition — et c'est un correctif.**
-    /// L'attente réutilisait `delaiMax`, soit 5 s, empruntées à une mesure qui n'a rien à voir :
-    /// `delaiMax` borne le démarrage à froid d'une app (spawn du process, init des frameworks,
-    /// première fenêtre posée par le WindowServer), où quelques secondes sont normales. Mourir,
-    /// c'est autre chose, et ça se mesure : relevé du 6 septembre 2026, six fermetures d'une app
-    /// AppKit sans document — la forme exacte d'une app d'encoche, un overlay qui n'a rien à
-    /// enregistrer — entre `terminate()` et la disparition du pid : **26,2 / 27,1 / 28,6 / 30,8 /
-    /// 32,6 / 58,3 ms**. `delaiMort` est posé à 600 ms, soit dix fois le pire cas relevé, et il
-    /// reste sous la seconde que `docs/COMPATIBILITE.md` documente pour la voie cycle de vie
-    /// ENTIÈRE (quitter, relancer, voir la fenêtre revenir).
+    /// **Le plafond n'est PAS un abandon : c'est la limite de ce que le GESTE attend.**
+    /// Ici commence la fenêtre de courtoisie, et elle ne décide que d'une chose — qui patiente,
+    /// l'utilisateur ou Bouncer. Elle ne décide jamais du sort de l'app.
     ///
-    /// Ce que ça coûtait : une app qui refuse de quitter — la feuille « Enregistrer les
-    /// modifications ? », l'app qui ne répond plus — verrouillait le geste 5 s en silence.
-    /// `WindowManager.basculer` refuse tout second geste tant que le premier court, et l'échec
-    /// n'est publié qu'à l'expiration : l'utilisateur swipait, rien ne bougeait, il resswipait,
-    /// rien ne bougeait, cinq secondes durant, à chaque geste. C'est 600 ms désormais, et le
-    /// message d'échec — qui existe déjà et qui est bon — arrive assez tôt pour être une réponse
-    /// au geste plutôt qu'un rapport d'autopsie.
+    /// **Ce que le plafond nu coûtait (QA passe 4, D2).** `fb1bdde` a ramené cette attente de 5 s
+    /// à 600 ms pour une bonne raison — une app qui refuse de quitter verrouillait le geste 5 s en
+    /// silence — mais en gardant l'ABANDON au bout. Or `tuer(pid:)` part AVANT la boucle : quand
+    /// le plafond expire, l'app est déjà tuée et rien ne la relance. Le raisonnement « abandonner,
+    /// c'est le chemin qui ne touche à rien » était faux, et raccourcir le plafond n'a pas fermé
+    /// l'enveloppe du défaut, il l'a rendue huit fois plus étroite — donc huit fois plus facile à
+    /// atteindre. Rejeu sur le double aux durées de production, cible mourant en 620 ms :
+    /// `.cibleJamaisApparue`, journal `[masque(false), tue]`, PAS DE RELANCE.
     ///
-    /// **Et ça ne peut pas reperdre d'app, parce que la sûreté ne vient pas de la durée.** Perdre
-    /// une app, c'était appeler `openApplication` sur un process ENCORE VIVANT. Le garde qui
-    /// l'empêche est la sortie de cette boucle : on ne relance qu'après avoir constaté
-    /// `pid(pour:) == nil`. Raccourcir le plafond ne relance jamais plus tôt sur un mourant — ça
-    /// ne fait qu'abandonner plus tôt, en rendant `false`, c'est-à-dire le chemin qui ne touche
-    /// à rien. La seule chose qu'on échange, c'est le succès d'une app qui mettrait entre 0,6 et
-    /// 5 s à mourir ; aucune n'a été relevée, et l'utilisateur qui la rencontrerait garde son app
-    /// et reçoit un message, au lieu de perdre son geste.
+    /// **Et aucune durée n'aurait suffi**, parce que la mesure qui justifiait les 600 ms était
+    /// trop étroite : refaite sur un bundle AppKit cobaye, elle donne 53,6 à 87,6 ms à vide (le
+    /// maximum dépasse déjà les 58,3 ms annoncés) et **867 à 894 ms dès que l'app a 800 ms de
+    /// travail dans `applicationWillTerminate`** — 0 sur 4 sous le plafond. Une app d'encoche qui
+    /// sauve son état en quittant est exactement ce cas. Un plafond ne borne pas la mort d'un
+    /// process, il borne la patience de celui qui l'attend.
+    ///
+    /// **La règle qui remplace l'abandon : on ne rend jamais la main sur un process qu'on a tué
+    /// sans constater sa mort.** Ce que la fenêtre de courtoisie rend tôt, c'est la main À
+    /// L'UTILISATEUR — le verdict `.cibleFermetureEnCours` / `.precedenteFermetureEnCours` dit
+    /// très exactement ça — et la surveillance, elle, se poursuit sans plafond dans
+    /// `poursuivreFermeture`. Le défaut N3 (5 s de verrou muet par geste raté) est réglé par
+    /// l'endroit où il était : le silence, pas la durée. Cf. `WindowManager.basculer`, qui allume
+    /// le sablier de la barre des menus pendant le geste et publie l'attente ensuite.
+    ///
+    /// 600 ms restent le bon seuil de courtoisie : dix fois le cas à vide mesuré, et sous la
+    /// seconde que `docs/COMPATIBILITE.md` documente pour la voie cycle de vie entière.
+    ///
+    /// Rend `true` si la mort a été constatée DANS la fenêtre de courtoisie — le cas de tous les
+    /// jours, 53 à 88 ms. `false` veut dire « pas encore », jamais « renoncé ».
     private func quitterEtAttendre(bundleID: String, pid: pid_t) async -> Bool {
         _ = controleur.tuer(pid: pid)
         let echeance = ContinuousClock.now + delaiMort
@@ -196,6 +218,38 @@ public struct Bascule {
             try? await Task.sleep(for: intervalleSondage)
         }
         return true
+    }
+
+    /// Reprend la surveillance là où la fenêtre de courtoisie l'a laissée, et finit le travail.
+    ///
+    /// **Sans plafond, et c'est le fond du correctif.** Bouncer a tué ce process ; il lui doit
+    /// d'en constater la mort, quel que soit le temps que ça prend. Un second plafond ne ferait
+    /// que déplacer l'enveloppe du défaut, jamais la fermer — c'est l'erreur qu'on corrige.
+    ///
+    /// **Sa seule sortie est l'annulation, et elle appartient à l'utilisateur.** `Task.isCancelled`
+    /// n'est vrai que lorsqu'un geste suivant a repris la main (`WindowManager.basculer` annule la
+    /// surveillance en cours avant d'en lancer une autre). C'est le bon arbitrage : relancer une
+    /// app que l'utilisateur vient d'abandonner pour une autre en mettrait DEUX dans l'encoche,
+    /// c'est-à-dire le problème même que Bouncer existe pour résoudre. Le dernier geste gagne, et
+    /// l'app tuée reste au catalogue, à un clic.
+    ///
+    /// `puisRelancer` distingue les deux dettes, parce qu'elles ne sont pas de même nature :
+    ///   - la CIBLE a été tuée POUR être relancée (repli de `allumer`) — sans relance elle est
+    ///     perdue, donc on repasse par `allumer`, qui repart cette fois d'un `pid(pour:) == nil`
+    ///     et prend donc la voie cycle de vie sur un process neuf ;
+    ///   - la PRÉCÉDENTE, elle, n'a rien à relancer : sa mort libère l'encoche à elle seule. Ce
+    ///     qu'on doit à l'utilisateur ici, c'est de retirer un message d'échec qui n'est plus
+    ///     vrai — le triangle d'alerte allumé pour une app partie depuis.
+    public func poursuivreFermeture(de app: NotchAppInfo, puisRelancer: Bool) async -> ResultatBascule {
+        let enCours: ResultatBascule = puisRelancer ? .cibleFermetureEnCours : .precedenteFermetureEnCours
+        while controleur.pid(pour: app.bundleID) != nil {
+            // Avant le sommeil, pas après : `try? await Task.sleep` rend la main SUR-LE-CHAMP
+            // quand la tâche est annulée, et sans ce garde la boucle tournerait à vide.
+            guard !Task.isCancelled else { return enCours }
+            try? await Task.sleep(for: intervalleSondage)
+        }
+        guard puisRelancer else { return .reussie }
+        return await allumer(app)
     }
 
     // MARK: - Allumer la cible
@@ -218,12 +272,15 @@ public struct Bascule {
             // mesuré échoue.
             //
             // On ATTEND la mort avant de relancer : relancer un process encore mourant ne
-            // redémarre rien (cf. `quitterEtAttendre`), et l'app serait perdue. Si elle refuse de
-            // mourir, elle est là sans rien dessiner dans l'encoche — ce que dit très exactement
-            // `.cibleJamaisApparue`. La relancer n'y changerait rien, et l'actuelle, elle, n'a
-            // toujours pas été touchée.
+            // redémarre rien (cf. `quitterEtAttendre`), et l'app serait perdue.
+            //
+            // Et si elle n'est pas morte au bout de la fenêtre de courtoisie, on n'abandonne PAS :
+            // le `terminate()` est déjà parti, l'app est déjà perdue pour l'utilisateur, et
+            // renoncer ici la laisserait morte pour de bon (QA passe 4, D2 — cible mourant en
+            // 620 ms). On rend la main à l'utilisateur, et on dit que la fermeture est en cours :
+            // c'est `poursuivreFermeture` qui constatera la mort et relancera, si tard soit-elle.
             guard await quitterEtAttendre(bundleID: cible.bundleID, pid: pid) else {
-                return .cibleJamaisApparue
+                return .cibleFermetureEnCours
             }
         }
 
@@ -250,13 +307,17 @@ public struct Bascule {
     /// masquage sert de dernier filet — un verdict peut avoir vieilli, une mise à jour de l'app
     /// peut l'avoir changé, et laisser deux apps dans l'encoche serait pire que la quitter.
     ///
-    /// Rend `false` dans le seul cas où l'encoche n'a PAS été libérée : le process a reçu la
-    /// demande de fermeture et il est toujours là. C'est un constat mesuré, du même ordre que
-    /// celui de `masquer`, et c'est tout ce que l'appelant a besoin de savoir — masquée, quittée
-    /// ou déjà arrêtée, les trois autres issues libèrent l'encoche.
-    private func eteindre(_ actuelle: NotchAppInfo) async -> Bool {
-        guard let pid = controleur.pid(pour: actuelle.bundleID) else { return true }
-        if actuelle.support != .unsupported, await controleur.masquer(true, pid: pid) { return true }
+    /// Rend `.precedenteFermetureEnCours` dans le seul cas où l'encoche n'est pas ENCORE libérée :
+    /// le process a reçu la demande de fermeture et il est toujours là au bout de la fenêtre de
+    /// courtoisie. C'est un constat mesuré, du même ordre que celui de `masquer` — et un constat
+    /// daté, pas un verdict : la QA a relevé des fermetures à 867-894 ms, qui rendaient ici un
+    /// échec définitif alors que l'app partait quelques centaines de millisecondes plus tard.
+    /// C'est `poursuivreFermeture` qui tranche pour de bon. Masquée, quittée ou déjà arrêtée, les
+    /// trois autres issues libèrent l'encoche sur-le-champ et rendent `.reussie`.
+    private func eteindre(_ actuelle: NotchAppInfo) async -> ResultatBascule {
+        guard let pid = controleur.pid(pour: actuelle.bundleID) else { return .reussie }
+        if actuelle.support != .unsupported, await controleur.masquer(true, pid: pid) { return .reussie }
         return await quitterEtAttendre(bundleID: actuelle.bundleID, pid: pid)
+            ? .reussie : .precedenteFermetureEnCours
     }
 }

@@ -54,10 +54,18 @@ struct BouncerApp: App {
         // L'icône change quand la dernière bascule a échoué : un swipe raté ne bouge rien à
         // l'écran, et le message qui l'explique dort dans un menu que personne n'ouvrira sans
         // raison de le faire.
+        //
+        // Et elle change AUSSI pendant la bascule, parce que c'est là que N3 faisait mal : une app
+        // qui traîne à quitter fait patienter le geste, `basculer` refuse tout second geste, et
+        // jusqu'ici rien à l'écran ne le disait. Le `◐` du menu ne compte pas — personne n'a le
+        // menu ouvert en swipant. La barre des menus, elle, est toujours visible : c'est la seule
+        // surface qui répond au geste sans qu'on ait rien à ouvrir.
         MenuBarExtra(
             "Bouncer",
-            systemImage: windowManager.echecBascule == nil
-                ? "rectangle.on.rectangle" : "exclamationmark.triangle"
+            systemImage: windowManager.bundleIDEnCoursDeBascule != nil
+                ? "hourglass"
+                : (windowManager.echecBascule == nil
+                    ? "rectangle.on.rectangle" : "exclamationmark.triangle")
         ) {
             MenuBarContentView(
                 windowManager: windowManager,
