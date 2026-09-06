@@ -510,7 +510,7 @@ public final class WindowManager: ObservableObject {
     /// garde d'entrée de la bascule refusera tant que le droit n'est pas rendu.
     private func signalerRevocation(precedenteRestee: NotchAppInfo? = nil) {
         if let restee = precedenteRestee {
-            echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer : la nouvelle app est en place, mais \(restee.name) n'a pas pu être rangée. Vous voyez deux apps dans l'encoche car Bouncer refuse de quitter \(restee.name) de force pour préserver votre travail non enregistré. Vos apps restent intactes ; un geste de plus n'y changera rien tant que le droit n'est pas rendu. Rendez-lui l'accès dans les Réglages Système pour ranger l'encoche."
+            echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer : vous avez deux apps dans l'encoche, \(restee.name) est restée à côté de la nouvelle. Bouncer ne la quitte pas de force sans ce droit — vous pourriez y perdre du travail non enregistré. Rendez-lui l'accès dans les Réglages Système ; d'ici là, aucun geste ne rangera l'encoche."
             return
         }
         let coincees = apps.filter(\.isHiddenByUs).map(\.name)

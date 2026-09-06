@@ -201,8 +201,8 @@ struct MessageRevocationTests {
         #expect(message.contains("Accessibilité"))
         #expect(message.contains(boring))
         #expect(message.contains("deux apps dans l'encoche"))
-        #expect(message.contains("refuse de quitter \(boring) de force"))
-        #expect(message.contains("un geste de plus n'y changera rien"))
+        #expect(message.contains("ne la quitte pas de force"))
+        #expect(message.contains("aucun geste ne rangera l'encoche"))
         #expect(message.contains("Réglages Système"))
 
         #expect(!message.contains("quitteront"))
