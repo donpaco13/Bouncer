@@ -510,14 +510,14 @@ public final class WindowManager: ObservableObject {
     /// garde d'entrée de la bascule refusera tant que le droit n'est pas rendu.
     private func signalerRevocation(precedenteRestee: NotchAppInfo? = nil) {
         if let restee = precedenteRestee {
-            echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer : \(restee.name) est restée dans l'encoche à côté de la nouvelle. Bouncer ne la range pas sans ce droit — la quitter de force pourrait vous faire perdre du travail non enregistré. Rendez-lui l'accès dans les Réglages Système ; d'ici là, aucun geste ne rangera l'encoche."
+            echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer : la nouvelle app est en place, mais \(restee.name) n'a pas pu être rangée. Vous voyez deux apps dans l'encoche car Bouncer refuse de quitter \(restee.name) de force pour préserver votre travail non enregistré. Vos apps restent intactes ; un geste de plus n'y changera rien tant que le droit n'est pas rendu. Rendez-lui l'accès dans les Réglages Système pour ranger l'encoche."
             return
         }
         let coincees = apps.filter(\.isHiddenByUs).map(\.name)
-        let sort = coincees.isEmpty
-            ? "Les bascules quitteront les apps au lieu de les masquer."
-            : "\(coincees.joined(separator: ", ")) \(coincees.count > 1 ? "sont masquées" : "est masquée") : une bascule les relancera pour les ramener."
-        echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer. \(sort)"
+        let impactApps = coincees.isEmpty
+            ? "Vos apps ouvertes restent intactes : Bouncer ne touche à rien et ne quittera aucune app."
+            : "\(coincees.joined(separator: ", ")) \(coincees.count > 1 ? "restent masquées" : "reste masquée") en arrière-plan : Bouncer ne touche à rien et ne quittera aucune app."
+        echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer : les bascules ne fonctionnent plus. \(impactApps) Rendez-lui l'accès dans les Réglages Système pour réactiver les bascules."
     }
 
     /// Lève le masquage sur toutes les apps d'encoche connues qui tournent.
@@ -858,7 +858,7 @@ public final class WindowManager: ObservableObject {
             // Le menu affiche déjà sa ligne « ⚠️ Autoriser dans les Réglages… » — `accessibilityTrusted`
             // est faux par définition dans ce cas. Ce message-ci porte ce qu'elle ne dit pas : que
             // le geste qu'on vient de faire n'a rien produit, et pourquoi.
-            echecBascule = "Bouncer n'a pas encore l'accès à l'Accessibilité : sans lui, basculer quitterait \(cible.name) au lieu de la masquer. Autorisez Bouncer dans les Réglages Système, puis réessayez."
+            echecBascule = "Bouncer n'a pas encore l'accès à l'Accessibilité : la bascule vers \(cible.name) est refusée. \(repliInchange(actuelle)) Bouncer ne touche à rien et ne quittera aucune app. Autorisez Bouncer dans les Réglages Système, puis réessayez."
         case .encocheIndisponible:
             // Le geste n'a rien touché : la bascule s'est arrêtée à son garde d'entrée. Le message
             // dit donc l'état, pas un échec de l'app — accuser \(cible.name) d'un capot fermé
