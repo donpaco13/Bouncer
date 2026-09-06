@@ -411,7 +411,10 @@ struct MeurtreSurTests {
     /// Une app qui refuse de quitter ne doit jamais passer pour rangée : elle est toujours dans
     /// l'encoche, à côté de la nouvelle. Avant, `eteindre` rendait un succès muet et
     /// `WindowManager` la marquait masquée.
-    @Test("Une précédente qui refuse de quitter est signalée, pas passée sous silence")
+    ///
+    /// Le verdict dit désormais « pas ENCORE fermée » — la surveillance continue derrière, cf.
+    /// `FermetureLenteTests`. Ce que ce test-ci garde, c'est qu'elle n'est jamais forcée et que la
+    /// bascule ne prétend pas avoir libéré l'encoche.
     func precedenteQuiRefuseDeQuitterEstSignalee() async {
         let double = ControleurAppsDouble(lancees: [boring: 200], installees: [boring, vibe])
         double.resistantes = [boring]              // pas masquable : la seule sortie est de la quitter
@@ -424,8 +427,8 @@ struct MeurtreSurTests {
             vers: info(vibe, .testing, pid: nil), depuis: info(boring, .unsupported, pid: 200)
         )
 
-        #expect(resultat == .precedenteResteEnPlace)
-        // La cible, elle, est bien arrivée : l'échec ne porte que sur la précédente.
+        #expect(resultat == .precedenteFermetureEnCours)
+        // La cible, elle, est bien arrivée : l'attente ne porte que sur la précédente.
         #expect(double.pid(pour: vibe) != nil)
         #expect(double.pid(pour: boring) == 200)
     }

@@ -132,9 +132,13 @@ struct EncocheAbsenteTests {
 /// 2026 sur une app AppKit sans document — la forme d'une app d'encoche : 26 à 58 ms entre
 /// `terminate()` et la disparition du pid. `delaiMort` = 600 ms, dix fois le pire cas.
 ///
-/// Et la sûreté ne bouge pas d'un pouce, parce qu'elle n'a jamais tenu à la durée : on ne relance
-/// qu'après avoir constaté `pid(pour:) == nil`. Un plafond plus court abandonne plus tôt, il ne
-/// relance jamais plus tôt sur un mourant. Les deux derniers tests le vérifient.
+/// **Et ce raisonnement-là était faux** — c'est le défaut D2 de la QA passe 4, corrigé depuis.
+/// « Un plafond plus court abandonne plus tôt, c'est le chemin qui ne touche à rien » : non, le
+/// `tuer(pid:)` part AVANT la boucle d'attente, donc abandonner laisse une app TUÉE que rien ne
+/// relance. Le plafond ne décide plus du sort de l'app, seulement de la patience du geste : la
+/// surveillance se poursuit sans plafond dans `poursuivreFermeture`, et c'est `FermetureLenteTests`
+/// qui en tient la preuve. Ce que les tests ci-dessous gardent, et qui reste vrai, c'est la
+/// propriété N3 : le GESTE rend la main en moins d'une seconde, jamais en cinq.
 @MainActor
 struct AttenteDeMortTests {
     @Test("Une précédente qui ne meurt jamais est signalée en moins d'une seconde, pas en cinq")
@@ -148,7 +152,7 @@ struct AttenteDeMortTests {
         )
         let ecoule = ContinuousClock.now - debut
 
-        #expect(resultat == .precedenteResteEnPlace)
+        #expect(resultat == .precedenteFermetureEnCours)
         #expect(ecoule < .seconds(2))              // 5 s avant le correctif
         // Et l'attente a bien eu lieu : le correctif borne le sondage, il ne le supprime pas.
         #expect(ecoule > .milliseconds(400))
@@ -168,7 +172,9 @@ struct AttenteDeMortTests {
         )
         let ecoule = ContinuousClock.now - debut
 
-        #expect(resultat == .cibleJamaisApparue)
+        // « Pas encore fermée », et non « jamais apparue » : Bouncer a tué cette app, il ne peut
+        // pas la déclarer perdue. `WindowManager` enchaîne sur la surveillance prolongée.
+        #expect(resultat == .cibleFermetureEnCours)
         #expect(ecoule < .seconds(2))                        // 5 s avant le correctif
         #expect(double.journal.contains(.lance(vibe)) == false) // pas de relance sur un mourant
         #expect(double.pid(pour: boring) == 200)             // l'actuelle n'a pas été touchée
