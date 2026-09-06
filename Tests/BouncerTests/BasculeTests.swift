@@ -371,11 +371,15 @@ struct MeurtreSurTests {
         // qu'il soit parti ne redémarre rien.
         double.sondagesAvantMort[vibe] = 3
 
-        // Deux secondes, pas cinquante millisecondes : le délai est du temps RÉEL sur un acteur
-        // principal partagé avec le reste de la suite, qui tourne en parallèle. Un test voisin
-        // qui touche AppKit pour la première fois le bloque ~60 ms (mesuré) et faisait expirer
-        // ce délai-ci. Le chemin nominal rend la main en ~4 ms de toute façon — seul le pire
-        // cas s'allonge. Les tests qui ATTENDENT l'expiration gardent, eux, leur délai court.
+        // Deux secondes, pas cinquante millisecondes. Ce test attend un SUCCÈS, pas une
+        // expiration, et son budget était une horloge murale sur un acteur principal partagé
+        // avec le reste de la suite, qui tourne en parallèle. Deux workers ont mesuré la même
+        // cause indépendamment : la PREMIÈRE touche d'AppKit par un test voisin bloque le main
+        // actor ~60 ms, et la première construction d'un vrai `WindowManager`
+        // (`AXIsProcessTrusted()` + `CGWindowList`) ~90 ms — une seule fois par processus, mais
+        // suffisamment pour faire expirer ce délai-ci sur une lenteur qui n'est pas la sienne.
+        // La boucle sort dès que la cible est là : le chemin nominal rend la main en ~4 ms et le
+        // budget large ne coûte rien. Les tests qui ATTENDENT l'expiration gardent leur délai court.
         let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
                               delaiMax: .seconds(2), trustAccorde: { true })
         let resultat = await bascule.basculer(vers: info(vibe, .supported, pid: 100), depuis: nil)

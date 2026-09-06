@@ -1,6 +1,6 @@
 //
 // main.swift — point d'entrée. `--self-test` fait tourner WindowManager en CLI (un seul
-// refresh() synchrone, table imprimée sur stdout) sans passer par la boucle SwiftUI/MenuBarExtra :
+// sondage synchrone, table imprimée sur stdout) sans passer par la boucle SwiftUI/MenuBarExtra :
 // utile pour vérifier la détection + le cycle masquer/réafficher depuis ce binaire précis, puisque
 // l'autorisation Accessibilité se donne par binaire, pas par processus parent (cf. SPIKE_RESULTS.md).
 
@@ -13,7 +13,7 @@ if CommandLine.arguments.contains("--self-test") {
     // le déclare au compilateur au lieu d'introduire une hop asynchrone dans un chemin CLI.
     MainActor.assumeIsolated {
     let wm = WindowManager(startTimer: false)
-    // `refresh()` lance le test de support dans une tâche : sans pomper la boucle principale, la
+    // Le sondage de construction lance le test de support dans une tâche : sans pomper la boucle principale, la
     // table s'imprimerait avec « Test en cours… » partout et ne mesurerait rien. On rend la main
     // dès que tous les verdicts sont tombés, et au plus tard au bout de 15 s (le pire cas connu
     // est une app par cycle de vie, ~1 s, mais une app qui ne répond pas fait attendre le timeout
