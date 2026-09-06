@@ -106,6 +106,26 @@ public func zoneEncoche() -> (rect: CGRect, ecran: String, cadre: CGRect)? {
     return (rect, ecranNotch.localizedName, frame)
 }
 
+/// Hauteur de la rangée de la barre des menus réservée par le système (`frame.maxY - visibleFrame.maxY`).
+///
+/// Relevé du 2026-09-06 (défaut D1 de la QA passe 4) :
+/// Sur un écran à encoche, la rangée réservée par macOS fait 35 pt (34 pt dessinés), alors que le
+/// boîtier caméra (`safeAreaInsets.top`) ne fait que 29 pt.
+///
+/// Interroge en priorité l'écran portant l'encoche, puis `main`, puis le premier écran disponible.
+/// Repli de référence : 35 pt (la valeur réservée standard sur MacBook avec encoche).
+public func hauteurBarreDesMenus(ecran: NSScreen? = nil) -> CGFloat {
+    let s = ecran
+        ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+        ?? NSScreen.main
+        ?? NSScreen.screens.first
+    if let s {
+        let reserve = s.frame.maxY - s.visibleFrame.maxY
+        if reserve > 0 { return reserve }
+    }
+    return 35
+}
+
 /// Le boîtier caméra tel qu'on le DESSINE, quand on ne peut pas dessiner le vrai.
 ///
 /// Les aperçus (`ApercuGeste` dans les réglages, `SimulateurNotchInteractif` dans le guide) figurent
@@ -191,11 +211,14 @@ public func zoneSurvol(encoche: CGRect, marge: CGFloat) -> CGRect {
 /// Les flèches restent calées sur le BOÎTIER en X — l'acquis de T156, qu'on ne perd pas : posées
 /// aux bornes de la fenêtre d'encoche, elles atterrissaient à 118 pt dans le bandeau de statut.
 ///
-/// ponytail: descente d'exactement une rangée. Les flèches se posent donc sur ce qui vit sous
-/// l'encoche — l'île de l'app tierce le plus souvent, d'où la pastille de contraste
-/// (`flechesPoseesSurUneAppTierce`). Descendre plus les éloignerait du boîtier qu'elles bordent.
-public func bandeFleches(survol: CGRect) -> CGRect {
-    survol.offsetBy(dx: 0, dy: -survol.height)
+/// ponytail: descente de la hauteur réelle de la rangée de la barre des menus (et non de celle du
+/// boîtier caméra). Relevé D1 du 2026-09-06 : le boîtier fait 29 pt mais la rangée réserve 35 pt
+/// (`NSScreen.frame.maxY - visibleFrame.maxY`). Descendre de 29 pt laissait le panel dans la rangée
+/// sur 5 pt et les flèches sur 1,5 pt, privant Arc de clics bas sur « Window » et « Help ».
+/// Descendre de la hauteur réservée par le système garantit que le panel et ses contrôles sortent
+/// intégralement de la barre des menus.
+public func bandeFleches(survol: CGRect, hauteurRangee: CGFloat = hauteurBarreDesMenus()) -> CGRect {
+    survol.offsetBy(dx: 0, dy: -hauteurRangee)
 }
 
 /// Ce que Bouncer ÉCOUTE : la bande des flèches, détendue de 6 pt en haut et en bas (elle fait
