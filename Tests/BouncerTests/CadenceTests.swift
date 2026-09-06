@@ -31,8 +31,8 @@ struct CadenceTests {
         let periodes = (4...12).map {
             WindowManager.periodeDeRepos(base: base, toursImmobiles: $0, accessibiliteAccordee: true)
         }
-        #expect(periodes.prefix(4) == [4, 8, 16, 30])
-        #expect(periodes.allSatisfy { $0 <= 30 }, "au-delà de 30 s, un changement non notifié dormirait trop longtemps")
+        #expect(periodes.prefix(3) == [4, 8, 8])
+        #expect(periodes.allSatisfy { $0 <= 8 }, "au-delà de 8 s, la géométrie de l'encoche aurait trop de retard")
         #expect(zip(periodes, periodes.dropFirst()).allSatisfy { $0 <= $1 }, "la cadence ne doit jamais réaccélérer toute seule")
     }
 
@@ -49,8 +49,41 @@ struct CadenceTests {
     func plafondValableSurTouteLaPlageDeReglage() {
         for socle in Reglages.Domaine.intervalles {
             let repos = WindowManager.periodeDeRepos(base: socle, toursImmobiles: 99, accessibiliteAccordee: true)
-            #expect(repos <= 30)
+            #expect(repos <= max(socle, 8))
             #expect(repos >= socle, "ralentir ne doit jamais rendre le sondage plus rapide que ce qui est réglé")
         }
+    }
+
+    @Test("Le réveil ne se déclenche pas sur une simple traversée")
+    @MainActor
+    func simpleTraverseeNeReveillePas() async throws {
+        let suite = "CadenceTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let wm = WindowManager(
+            startTimer: false,
+            catalogue: CatalogueApps(defaults: defaults, resolveur: { _ in nil }),
+            controleur: ControleurAppsDouble(),
+            reglages: Reglages(defaults: defaults),
+            geometrie: { nil },
+            demanderAccessibilite: false,
+            notificationCenter: NotificationCenter()
+        )
+        wm.delaiArretCurseur = 0.05
+        wm.definirToursImmobilesPourTest(5)
+        #expect(wm.toursImmobiles == 5)
+
+        // Traversée rapide : le curseur entre puis sort immédiatement
+        wm.curseurDansZone(true)
+        wm.curseurDansZone(false)
+
+        // Attendre que le délai soit écoulé
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(wm.toursImmobiles == 5, "une simple traversée ne doit pas casser la cadence de repos")
+
+        // En revanche, un curseur qui s'arrête dans la zone doit réveiller
+        wm.curseurDansZone(true)
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(wm.toursImmobiles == 1, "un curseur qui s'arrête dans la zone doit réveiller le sondage")
     }
 }

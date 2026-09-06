@@ -360,10 +360,13 @@ final class NotchOverlayController: NSObject {
         // Le curseur qui entre dans la zone est le signal le plus sûr que l'utilisateur va agir,
         // et c'est le seul que le système ne poste nulle part : une app d'encoche qui détruit sa
         // fenêtre sans quitter son process n'émet aucune notification, seul le sondage la voit.
-        // On resonde donc au bord montant — une fois par entrée, pas à chaque pixel parcouru.
+        // Distingue « le curseur passe » de « le curseur s'arrête » : une simple traversée vers la
+        // barre des menus ou les onglets ne réveille pas le sondage.
         let dansLaZone = curseurDansLaZone()
-        if dansLaZone, !curseurEtaitDansLaZone { windowManager.reveiller() }
-        curseurEtaitDansLaZone = dansLaZone
+        if dansLaZone != curseurEtaitDansLaZone {
+            windowManager.curseurDansZone(dansLaZone)
+            curseurEtaitDansLaZone = dansLaZone
+        }
 
         // Flèches désactivées : le panel ne va JAMAIS à l'écran, donc rien de Bouncer ne recouvre
         // la barre des menus. C'est la différence entre « invisible » et « absent », et c'est ce

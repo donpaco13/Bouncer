@@ -117,7 +117,7 @@ public final class Reglages: ObservableObject {
         /// sens, alors que le seul arbitrage est « réactivité contre travail à vide ».
         ///
         /// Ces cinq valeurs sont la période RAPIDE, celle qui vaut tant que quelque chose bouge.
-        /// Au repos, `WindowManager` espace lui-même le sondage jusqu'à 30 s et le ramène à la
+        /// Au repos, `WindowManager` espace lui-même le sondage jusqu'à 8 s et le ramène à la
         /// période réglée au premier réveil (cf. l'addendum de `docs/PERFORMANCE.md`) : ce
         /// réglage arbitre la réactivité, plus le travail à vide, qui est déjà traité.
         /// Le défaut reste 2 s — c'est cette période qui fait avancer l'accueil tout seul au

@@ -159,4 +159,35 @@ struct EtatReelTests {
 
         #expect(wm.echecBascule == message)
     }
+
+    // MARK: - Défaut N6 : l'octroi de l'Accessibilité préserve les apps masquées
+
+    @Test("Une app masquée survit à l'octroi de l'Accessibilité")
+    func appMasqueeSurvitALOctroiDAccessibilite() {
+        var trusted = false
+        let suite = "EtatReelTests.N6.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let wm = WindowManager(
+            startTimer: false,
+            catalogue: CatalogueApps(defaults: defaults, resolveur: { _ in nil }),
+            controleur: ControleurAppsDouble(),
+            reglages: Reglages(defaults: defaults),
+            geometrie: { nil },
+            demanderAccessibilite: false,
+            verifierAccessibilite: { trusted }
+        )
+        #expect(!wm.accessibilityTrusted)
+
+        wm.injecterAppPourTest(masquee(vibe, pid: 100))
+        wm.injecterAppPourTest(NotchAppInfo(bundleID: boring, name: boring, support: .supported, pid: 200, isHiddenByUs: false))
+        #expect(wm.apps.count == 2)
+
+        trusted = true
+        wm.refreshTrustState()
+
+        #expect(wm.accessibilityTrusted)
+        #expect(wm.apps.contains(where: { $0.bundleID == vibe && $0.isHiddenByUs }))
+        #expect(!wm.apps.contains(where: { $0.bundleID == boring }))
+    }
 }
