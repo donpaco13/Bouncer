@@ -71,28 +71,47 @@ public func construireEntreesMenu(
         return bundleID == active ? .active : .inactive
     }
 
-    var entrees = apps.map { app in
-        EntreeMenu(
-            bundleID: app.bundleID,
-            nom: app.name,
-            etat: etat(app.bundleID),
-            detail: app.estLancee
-                ? app.support.consequencePourUtilisateur
-                : "Arrêtée — sera relancée"
+    let appsParID = Dictionary(apps.map { ($0.bundleID, $0) }, uniquingKeysWith: { first, _ in first })
+    let nomsCatalogue = Dictionary(installees.map { ($0.bundleID, $0.nom) }, uniquingKeysWith: { first, _ in first })
+
+    var bundleIDsTraites = Set<String>()
+    var entrees: [EntreeMenu] = []
+
+    // Le catalogue est la source de vérité pour le nom canonique et l'ordre des apps installées
+    for installee in installees {
+        bundleIDsTraites.insert(installee.bundleID)
+        let app = appsParID[installee.bundleID]
+        let lancee = app?.estLancee ?? false
+        entrees.append(
+            EntreeMenu(
+                bundleID: installee.bundleID,
+                nom: installee.nom,
+                etat: etat(installee.bundleID),
+                detail: lancee
+                    ? app!.support.consequencePourUtilisateur
+                    : "Arrêtée — sera relancée"
+            )
         )
     }
 
-    let deja = Set(entrees.map(\.bundleID))
-    entrees += installees
-        .filter { !deja.contains($0.bundleID) }
-        .map {
+    // Apps observées en cours d'exécution qui ne figureraient pas dans le catalogue
+    for app in apps where !bundleIDsTraites.contains(app.bundleID) {
+        bundleIDsTraites.insert(app.bundleID)
+        let nom = nomsCatalogue[app.bundleID] ?? app.name
+        entrees.append(
             EntreeMenu(
-                bundleID: $0.bundleID,
-                nom: $0.nom,
-                etat: etat($0.bundleID),
-                detail: "Arrêtée — sera relancée"
+                bundleID: app.bundleID,
+                nom: nom,
+                etat: etat(app.bundleID),
+                detail: app.estLancee
+                    ? app.support.consequencePourUtilisateur
+                    : "Arrêtée — sera relancée"
             )
-        }
+        )
+    }
 
-    return entrees.sorted { $0.nom.localizedStandardCompare($1.nom) == .orderedAscending }
+    return entrees.sorted {
+        let cmp = $0.nom.localizedStandardCompare($1.nom)
+        return cmp == .orderedSame ? $0.bundleID < $1.bundleID : cmp == .orderedAscending
+    }
 }

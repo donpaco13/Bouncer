@@ -116,4 +116,53 @@ struct MenuTests {
         )
         #expect(entrees.allSatisfy { $0.etat == .inactive })
     }
+
+    /// N5 — Quitter une app ne doit changer ni son nom dans le menu ni l'ordre du cycle.
+    /// Relevé sur la machine : kCGWindowOwnerName = "TheBoringNotch", bundle = "boringNotch".
+    @Test func quitterUneAppGardeLeMemeNomEtLeMemeOrdre() {
+        let catalogue = [
+            installee("com.cyclop.app", "Cyclop"),
+            installee("company.gh.notch", "gh-notch"),
+            installee("theboringteam.boringnotch", "boringNotch"),
+            installee("app.vibeisland.macos", "Vibe Island"),
+        ]
+
+        // Scénario 1 : boringNotch est lancée (kCGWindowOwnerName renvoie "TheBoringNotch")
+        let appsLancees = [
+            app("theboringteam.boringnotch", "TheBoringNotch", support: .unsupported, pid: 4567),
+            app("app.vibeisland.macos", "Vibe Island", pid: 1234),
+        ]
+        let entreesLancees = construireEntreesMenu(
+            apps: appsLancees,
+            installees: catalogue,
+            active: "app.vibeisland.macos",
+            enCoursDeBascule: nil
+        )
+
+        // Scénario 2 : boringNotch est arrêtée (absente de apps)
+        let appsArretees = [
+            app("app.vibeisland.macos", "Vibe Island", pid: 1234),
+        ]
+        let entreesArretees = construireEntreesMenu(
+            apps: appsArretees,
+            installees: catalogue,
+            active: "app.vibeisland.macos",
+            enCoursDeBascule: nil
+        )
+
+        // Le nom de l'app reste le nom canonique du catalogue dans les deux cas
+        #expect(entreesLancees.first(where: { $0.bundleID == "theboringteam.boringnotch" })?.nom == "boringNotch")
+        #expect(entreesArretees.first(where: { $0.bundleID == "theboringteam.boringnotch" })?.nom == "boringNotch")
+
+        // Les noms et les positions dans le menu et le cycle sont strictement identiques
+        #expect(entreesLancees.map(\.nom) == entreesArretees.map(\.nom))
+        #expect(entreesLancees.map(\.bundleID) == entreesArretees.map(\.bundleID))
+        #expect(entreesLancees.map(\.bundleID) == [
+            "theboringteam.boringnotch",
+            "com.cyclop.app",
+            "company.gh.notch",
+            "app.vibeisland.macos",
+        ])
+    }
 }
+

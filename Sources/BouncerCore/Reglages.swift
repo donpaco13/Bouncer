@@ -279,6 +279,16 @@ public final class Reglages: ObservableObject {
         if exclue { bundleIDsExclus.insert(bundleID) } else { bundleIDsExclus.remove(bundleID) }
     }
 
+    /// Exclusions qui ne correspondent à aucune des entrées fournies.
+    public func exclusionsOrphelines(dans entrees: [EntreeMenu]) -> [String] {
+        BouncerCore.exclusionsOrphelines(entrees: entrees, exclus: bundleIDsExclus)
+    }
+
+    /// Retire une exclusion.
+    public func retirerExclusion(_ bundleID: String) {
+        exclusion(bundleID, exclue: false)
+    }
+
     private static func borne(_ valeur: CGFloat?, dans domaine: ClosedRange<CGFloat>, sinon defaut: CGFloat) -> CGFloat {
         guard let valeur, valeur.isFinite else { return defaut }
         return min(max(valeur, domaine.lowerBound), domaine.upperBound)
@@ -296,3 +306,14 @@ public final class Reglages: ObservableObject {
 public func bundleIDsCyclables(entrees: [EntreeMenu], exclus: Set<String>) -> [String] {
     entrees.map(\.bundleID).filter { !exclus.contains($0) }
 }
+
+/// Exclusions enregistrées qui ne correspondent à aucune app détectée dans le menu.
+///
+/// Une app exclue par le passé qui n'est plus installée ou que le filtre n'accepte plus
+/// reste stockée dans les préférences. Cette fonction les isole pour les rendre visibles
+/// et retirables dans les réglages.
+public func exclusionsOrphelines(entrees: [EntreeMenu], exclus: Set<String>) -> [String] {
+    let connus = Set(entrees.map(\.bundleID))
+    return exclus.filter { !connus.contains($0) }.sorted()
+}
+
