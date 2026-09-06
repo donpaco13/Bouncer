@@ -620,16 +620,25 @@ public final class WindowManager: ObservableObject {
             // est faux par définition dans ce cas. Ce message-ci porte ce qu'elle ne dit pas : que
             // le geste qu'on vient de faire n'a rien produit, et pourquoi.
             echecBascule = "Bouncer n'a pas encore l'accès à l'Accessibilité : sans lui, basculer quitterait \(cible.name) au lieu de la masquer. Autorisez Bouncer dans les Réglages Système, puis réessayez."
+        case .encocheIndisponible:
+            // Le geste n'a rien touché : la bascule s'est arrêtée à son garde d'entrée. Le message
+            // dit donc l'état, pas un échec de l'app — accuser \(cible.name) d'un capot fermé
+            // enverrait l'utilisateur la déboguer pour rien.
+            echecBascule = "Plus aucun écran à encoche détecté — la bascule vers \(cible.name) n'a pas été tentée. \(repliInchange(actuelle)) Rebranchez l'écran à encoche (ou rouvrez le capot) et réessayez."
         case .cibleJamaisApparue:
-            let repli = actuelle.map { "\($0.name) reste en place." } ?? "L'encoche est inchangée."
             // Une bascule qui traverse un changement d'écrans sonde une encoche qui n'existe
             // plus : elle expire donc au bout du délai, sans que la cible y soit pour quoi que ce
-            // soit. Accuser l'app d'un débranchement d'écran envoie l'utilisateur la déboguer
-            // pour rien.
+            // soit. Le garde d'entrée couvre l'encoche déjà absente au moment du geste ; ce
+            // test-ci reste pour l'encoche qui disparaît PENDANT, entre le garde et le sondage.
             echecBascule = zoneEncoche() == nil
-                ? "Plus aucune encoche détectée — la bascule vers \(cible.name) a été abandonnée. \(repli)"
-                : "\(cible.name) s'est lancée sans rien afficher dans l'encoche. \(repli)"
+                ? "Plus aucune encoche détectée — la bascule vers \(cible.name) a été abandonnée. \(repliInchange(actuelle))"
+                : "\(cible.name) s'est lancée sans rien afficher dans l'encoche. \(repliInchange(actuelle))"
         }
+    }
+
+    /// Ce que devient l'encoche quand la bascule n'a rien tenté ou a échoué avant d'agir.
+    private func repliInchange(_ actuelle: NotchAppInfo?) -> String {
+        actuelle.map { "\($0.name) reste en place." } ?? "L'encoche est inchangée."
     }
 
     /// L'app telle que la bascule doit la connaître. Une app arrêtée n'est pas dans `apps` — c'est

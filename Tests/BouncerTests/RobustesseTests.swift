@@ -32,7 +32,9 @@ struct RobustesseTests {
 
         let bascule = Bascule(
             controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
-            trustAccorde: { true }   // le droit a été accordé, puis retiré : la connexion AX existe
+            delaiMort: .milliseconds(30),
+            trustAccorde: { true },  // le droit a été accordé, puis retiré : la connexion AX existe
+            encocheMesurable: { true }
         )
         #expect(await bascule.basculer(vers: info(vibe, .supported, pid: 100), depuis: nil) == .reussie)
 
@@ -52,7 +54,9 @@ struct RobustesseTests {
 
         let bascule = Bascule(
             controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
-            trustAccorde: { true }   // le droit a été accordé, puis retiré : la connexion AX existe
+            delaiMort: .milliseconds(30),
+            trustAccorde: { true },  // le droit a été accordé, puis retiré : la connexion AX existe
+            encocheMesurable: { true }
         )
         let resultat = await bascule.basculer(
             vers: info(vibe, .supported, pid: 100), depuis: info(boring, .supported, pid: 200)
@@ -71,7 +75,7 @@ struct RobustesseTests {
         // app n'a pu passer `testSupport`, donc toutes valent `.testing`.
         let bascule = Bascule(
             controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
-            trustAccorde: { false }
+            delaiMort: .milliseconds(30), trustAccorde: { false }, encocheMesurable: { true }
         )
 
         let resultat = await bascule.basculer(
@@ -125,7 +129,7 @@ struct RobustesseTests {
         let double = ControleurAppsDouble(lancees: [vibe: 100])
         let bascule = Bascule(
             controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
-            trustAccorde: { true }
+            delaiMort: .milliseconds(30), trustAccorde: { true }, encocheMesurable: { true }
         )
         let seule = info(vibe, .supported, pid: 100)
 

@@ -33,6 +33,10 @@ public enum ResultatBascule: Equatable {
     /// Rien n'a été tenté : ce process n'a jamais eu le droit Accessibilité, et sans lui la
     /// bascule n'aurait eu que le meurtre du process à offrir. Cf. le garde de `basculer`.
     case accessibiliteJamaisAccordee
+    /// Rien n'a été tenté : plus aucun écran connecté ne porte d'encoche, donc la seule mesure sur
+    /// laquelle la bascule s'appuie — « cette fenêtre est-elle dans l'encoche ? » — n'a plus de
+    /// réponse. Cf. le garde de `basculer`.
+    case encocheIndisponible
 }
 
 /// La séquence de bascule, indépendante de toute vraie app : tout passe par `ControleurApps`.
@@ -44,18 +48,27 @@ public struct Bascule {
     private let controleur: any ControleurApps
     private let intervalleSondage: Duration
     private let delaiMax: Duration
+    /// Le plafond de l'attente de mort. Séparé de `delaiMax` : cf. `quitterEtAttendre`.
+    private let delaiMort: Duration
     /// Injectable au même titre que le contrôleur, et pour la même raison : la machine à états
     /// doit pouvoir être jouée sans droits système réels.
     private let trustAccorde: @MainActor () -> Bool
+    /// Même raison, même forme : les tests doivent pouvoir jouer « l'écran à encoche vient d'être
+    /// débranché » sans débrancher d'écran.
+    private let encocheMesurable: @MainActor () -> Bool
 
     public init(controleur: any ControleurApps,
                 intervalleSondage: Duration = .milliseconds(50),
                 delaiMax: Duration = .seconds(5),
-                trustAccorde: @escaping @MainActor () -> Bool = accessibiliteDejaAccordee) {
+                delaiMort: Duration = .milliseconds(600),
+                trustAccorde: @escaping @MainActor () -> Bool = accessibiliteDejaAccordee,
+                encocheMesurable: @escaping @MainActor () -> Bool = { zoneEncoche() != nil }) {
         self.controleur = controleur
         self.intervalleSondage = intervalleSondage
         self.delaiMax = delaiMax
+        self.delaiMort = delaiMort
         self.trustAccorde = trustAccorde
+        self.encocheMesurable = encocheMesurable
     }
 
     /// Fait passer l'encoche de `actuelle` à `cible`.
@@ -82,6 +95,31 @@ public struct Bascule {
         // C'est `WindowManager` qui traduit ce verdict en message, sur le canal `echecBascule`
         // qui fait déjà passer l'icône de la barre des menus en alerte.
         guard trustAccorde() else { return .accessibiliteJamaisAccordee }
+
+        // LE second garde, posé au même endroit et pour la même raison.
+        //
+        // **La condition exacte.** `zoneEncoche()` cherche un `NSScreen` dont
+        // `safeAreaInsets.top > 0` ; sans lui, elle rend `nil`. Ce n'est pas un cas exotique :
+        // écran à encoche débranché ou capot fermé, écrans pas encore réénumérés au réveil, Mac
+        // sans encoche piloté sur un écran externe. Bouncer tourne pendant tout ça.
+        //
+        // **Ce que ça cassait.** `fenetreVisibleDansNotch` part de `zoneEncoche()` et rend `false`
+        // dès qu'elle est `nil` — pour TOUS les pids, sans distinguer « mesurée absente » de « pas
+        // mesurable ». La voie rapide de `allumer` lisait ce `false` comme « le démasquage n'a rien
+        // ramené », c'est-à-dire comme son pire scénario, et appliquait son dernier recours : tuer
+        // la cible pour la relancer. Puis la relance sondait la même géométrie absente, expirait au
+        // bout du délai, et rendait `.cibleJamaisApparue`. Résultat : **chaque geste tuait puis
+        // relançait l'app d'encoche de l'utilisateur**, en échouant à chaque fois. La garantie
+        // affichée du produit — allumer avant d'éteindre, jamais d'encoche vide — n'y survivait pas,
+        // parce qu'elle suppose une encoche où mesurer.
+        //
+        // **Pourquoi bloquer plutôt que dégrader vers le masquage.** Sans géométrie, aucune issue
+        // n'est vérifiable : `allumer` ne peut pas constater que la cible est arrivée, `eteindre`
+        // ne peut pas constater que la précédente est partie. Une bascule dont on ne peut rien
+        // mesurer n'est pas une bascule dégradée, c'est un geste aveugle sur les process de
+        // l'utilisateur. On ne tente rien, on le dit, et l'encoche — celle qui reviendra au
+        // rebranchement — est laissée exactement dans l'état où l'utilisateur l'avait.
+        guard encocheMesurable() else { return .encocheIndisponible }
 
         if actuelle?.bundleID == cible.bundleID {
             if let pid = controleur.pid(pour: cible.bundleID), controleur.fenetreVisibleDansNotch(pid: pid) {
@@ -123,12 +161,36 @@ public struct Bascule {
     /// Sonde `pid(pour:)` plutôt que `NSRunningApplication.isTerminated` : c'est déjà la mesure du
     /// protocole, elle traverse le double de test, et elle n'ajoute aucune API à la surface.
     ///
-    /// ponytail: réutilise `delaiMax`, le même plafond que l'attente d'apparition. Une bascule
-    /// peut donc coûter deux fois ce délai dans le pire cas. Si l'attente de mort mérite un
-    /// plafond propre, la mesure à relever est le temps réel de fermeture d'une app d'encoche.
+    /// **Le plafond est celui de la MORT, plus celui de l'apparition — et c'est un correctif.**
+    /// L'attente réutilisait `delaiMax`, soit 5 s, empruntées à une mesure qui n'a rien à voir :
+    /// `delaiMax` borne le démarrage à froid d'une app (spawn du process, init des frameworks,
+    /// première fenêtre posée par le WindowServer), où quelques secondes sont normales. Mourir,
+    /// c'est autre chose, et ça se mesure : relevé du 6 septembre 2026, six fermetures d'une app
+    /// AppKit sans document — la forme exacte d'une app d'encoche, un overlay qui n'a rien à
+    /// enregistrer — entre `terminate()` et la disparition du pid : **26,2 / 27,1 / 28,6 / 30,8 /
+    /// 32,6 / 58,3 ms**. `delaiMort` est posé à 600 ms, soit dix fois le pire cas relevé, et il
+    /// reste sous la seconde que `docs/COMPATIBILITE.md` documente pour la voie cycle de vie
+    /// ENTIÈRE (quitter, relancer, voir la fenêtre revenir).
+    ///
+    /// Ce que ça coûtait : une app qui refuse de quitter — la feuille « Enregistrer les
+    /// modifications ? », l'app qui ne répond plus — verrouillait le geste 5 s en silence.
+    /// `WindowManager.basculer` refuse tout second geste tant que le premier court, et l'échec
+    /// n'est publié qu'à l'expiration : l'utilisateur swipait, rien ne bougeait, il resswipait,
+    /// rien ne bougeait, cinq secondes durant, à chaque geste. C'est 600 ms désormais, et le
+    /// message d'échec — qui existe déjà et qui est bon — arrive assez tôt pour être une réponse
+    /// au geste plutôt qu'un rapport d'autopsie.
+    ///
+    /// **Et ça ne peut pas reperdre d'app, parce que la sûreté ne vient pas de la durée.** Perdre
+    /// une app, c'était appeler `openApplication` sur un process ENCORE VIVANT. Le garde qui
+    /// l'empêche est la sortie de cette boucle : on ne relance qu'après avoir constaté
+    /// `pid(pour:) == nil`. Raccourcir le plafond ne relance jamais plus tôt sur un mourant — ça
+    /// ne fait qu'abandonner plus tôt, en rendant `false`, c'est-à-dire le chemin qui ne touche
+    /// à rien. La seule chose qu'on échange, c'est le succès d'une app qui mettrait entre 0,6 et
+    /// 5 s à mourir ; aucune n'a été relevée, et l'utilisateur qui la rencontrerait garde son app
+    /// et reçoit un message, au lieu de perdre son geste.
     private func quitterEtAttendre(bundleID: String, pid: pid_t) async -> Bool {
         _ = controleur.tuer(pid: pid)
-        let echeance = ContinuousClock.now + delaiMax
+        let echeance = ContinuousClock.now + delaiMort
         while controleur.pid(pour: bundleID) != nil {
             guard ContinuousClock.now < echeance else { return false }
             try? await Task.sleep(for: intervalleSondage)
