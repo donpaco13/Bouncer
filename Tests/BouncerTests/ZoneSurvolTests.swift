@@ -95,8 +95,14 @@ struct ZoneSurvolTests {
     private var ecran: CGRect { CGRect(x: 0, y: 0, width: 1352, height: 878) }
 
     @Test func sansFenetreDEncocheLaGeometrieNeBougePas() {
+        // Sans fenêtre, la zone écoutée ne dépend que du boîtier : la rangée de la barre des
+        // menus, la bande des flèches qui vit une rangée plus bas (`bandeFleches`, depuis que le
+        // panel a quitté la barre des menus) et les 6 pt de détente. Rien de la fenêtre, rien du
+        // plancher — c'est ce que ce test verrouille, et pas une valeur.
         let bande = zoneSurvol(encoche: boitier, marge: marge)
-        #expect(zoneSwipe(bande: bande, fenetre: nil) == bande.insetBy(dx: 0, dy: -6))
+        let attendu = bande.union(bandeFleches(survol: bande)).insetBy(dx: 0, dy: -6)
+        #expect(zoneSwipe(bande: bande, fenetre: nil) == attendu)
+        #expect(zoneSwipe(bande: bande, fenetre: nil).width == bande.width)
     }
 
     @Test func laZoneEcouteeCouvreLesDeuxGestesMesures() {
