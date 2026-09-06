@@ -25,9 +25,17 @@
 // derrière le matériel, et y attendre le curseur revenait à demander de viser une cible
 // invisible — mesuré : sur deux minutes d'usage réel, 342 événements de scroll et pas un seul
 // avec le curseur dans cette bande. Le panel couvre donc le boîtier PLUS `margeLaterale` points
-// de chaque côté, pris sur les aires auxiliaires (les parties visibles de la barre des menus), et
-// les flèches se logent dans ces marges — mesurées libres d'icônes de statut, cf. `zoneSurvol`. Calcul dans `zoneSurvol` /
-// `abscissesFleches` (BouncerCore), verrouillé par `ZoneSurvolTests`.
+// de chaque côté en X, et les flèches se logent dans ces marges.
+//
+// EN Y, LE PANEL VIT UNE RANGÉE SOUS LA BARRE DES MENUS, et c'est le correctif du 2026-09-06.
+// L'idée qu'il restait des marges « libres » dans la barre était fausse : la moitié droite l'était
+// (les icônes de statut sont alignées à droite et macOS les arrête au boîtier), la gauche jamais —
+// les TITRES de menus appartiennent à l'app au premier plan et leur emprise change avec elle
+// (relevés `kAXMenuBar` : Munder Difflin 362, Finder 489, Arc 819 sur le même écran de 1352). Un
+// panel posé dans cette rangée volait le clic de « Window » à gauche et de « Help » à droite, à
+// toutes les marges du domaine. Le raisonnement complet, les relevés et le choix de borner en Y
+// plutôt qu'en X vivent dans `bandeFleches` (BouncerCore) ; `BarreDesMenusTests` le verrouille.
+// Calcul dans `zoneSurvol` / `bandeFleches` / `abscissesFleches` (BouncerCore).
 //
 // Le panel (NSPanel transparent) n'existe que pour porter ces flèches et leur donner une cible de
 // clic : il est construit une seule fois puis ordonné à l'écran (`orderFrontRegardless()`)
@@ -149,16 +157,27 @@ final class NotchOverlayController: NSObject {
         reglages.ancrageZone == .fenetreEncoche ? windowManager.cadreFenetresEncoche : nil
     }
 
-    /// Cadre du panel : de quoi loger une flèche de part et d'autre du BOÎTIER, et rien de plus.
+    /// Cadre du panel : de quoi loger une flèche de part et d'autre du BOÎTIER, une rangée SOUS
+    /// la barre des menus.
     ///
-    /// Le panel est une vraie fenêtre posée sur la barre des menus, au niveau `statusBar + 10` :
-    /// tout ce qu'il couvre, il peut le voler. Il se cale donc sur la seule portion de barre que
-    /// la mesure montre libre — les marges du boîtier (cf. `zoneSurvol`) —, jamais sur les bornes
-    /// de la fenêtre de l'app d'encoche, qui l'emmenaient dans le bandeau des icônes de statut.
+    /// Le panel est une vraie fenêtre au niveau `statusBar + 10` : tout ce qu'il couvre, il peut
+    /// le voler. Il n'y a AUCUNE portion de la rangée de la barre des menus dont on puisse dire
+    /// qu'elle est libre — l'emprise des titres de menus appartient à l'app au premier plan et
+    /// change avec elle (Munder Difflin 362, Finder 489, Arc 819 sur le même écran), les icônes
+    /// de statut tiennent l'autre bout. Le panel sort donc de la rangée, ce qui règle les deux
+    /// côtés d'un coup et sans rien avoir à relire. Le raisonnement complet et les relevés vivent
+    /// dans `bandeFleches` (BouncerCore), où un test les regarde.
     ///
-    /// La zone ÉCOUTÉE, elle, suit toujours la fenêtre en largeur (`zoneSwipe`) : c'est un test
-    /// géométrique, pas une fenêtre, donc l'agrandir ne recouvre rien et ne vole rien.
+    /// La zone ÉCOUTÉE, elle, part de la rangée (`zoneSurvol`) et suit la fenêtre en largeur
+    /// (`zoneSwipe`) : c'est un test géométrique, pas une fenêtre, donc l'agrandir ne recouvre
+    /// rien et ne vole rien.
     private func cadrePanel() -> CGRect? {
+        bandeSurvol().map { bandeFleches(survol: $0) }
+    }
+
+    /// La bande de référence, à hauteur de barre des menus : c'est d'elle que part la zone écoutée
+    /// (`zoneSwipe`), et le panel s'en déduit en descendant d'une rangée.
+    private func bandeSurvol() -> CGRect? {
         guard let (encoche, _, _) = zoneEncoche() else { return nil }
         return zoneSurvol(encoche: encoche, marge: reglages.margeLaterale)
     }
@@ -166,12 +185,13 @@ final class NotchOverlayController: NSObject {
     /// (Re)positionne le panel sur la zone actuelle. Pas d'encoche détectée -> pas de
     /// panel, pas de crash (appelé aussi au changement de configuration d'écrans).
     @objc private func rebuild() {
-        guard let zone = cadrePanel() else {
+        guard let survol = bandeSurvol() else {
             zoneSensible = nil
             teardownPanel()
             return
         }
-        zoneSensible = zoneSwipe(bande: zone, fenetre: fenetreDeReference())
+        let zone = bandeFleches(survol: survol)
+        zoneSensible = zoneSwipe(bande: survol, fenetre: fenetreDeReference())
         if let panel {
             panel.setFrame(zone, display: true)
             arrowsView?.frame = NSRect(origin: .zero, size: zone.size)
@@ -192,7 +212,7 @@ final class NotchOverlayController: NSObject {
         // la géométrie, le mode d'activation ou la liste des apps cochées qui vient de changer,
         // pas le curseur.
         cycleAUneCible = windowManager.cycleAUneCible
-        cadreFenetreSuivi = fenetreDeReference()
+        cadreFenetreSuivi = windowManager.cadreFenetresEncoche
         opaciteCourante = -1
         updateHover()
     }
@@ -213,9 +233,17 @@ final class NotchOverlayController: NSObject {
     }
 
     /// Relit les deux caches et ne réveille l'affichage que si l'un d'eux a changé.
+    ///
+    /// Le cadre suivi est le cadre MESURÉ (`cadreFenetresEncoche`), jamais celui que filtre le
+    /// réglage d'ancrage : en ancrage « boîtier seul », `fenetreDeReference()` rend `nil` en
+    /// permanence, donc plus aucun changement de fenêtre ne passait cette garde — alors que
+    /// `flechesPoseesSurUneAppTierce` lit le cadre mesuré, lui, et que la pastille de contraste
+    /// en dépend. Elle restait périmée jusqu'au prochain changement de réglage ou d'écran (défaut
+    /// R4 de la QA du 2026-09-06). Une garde ne peut pas surveiller une source et en rafraîchir
+    /// une autre.
     private func majSuiviApps() {
         let cible = windowManager.cycleAUneCible
-        let cadre = fenetreDeReference()
+        let cadre = windowManager.cadreFenetresEncoche
         guard cible != cycleAUneCible || cadre != cadreFenetreSuivi else { return }
         cycleAUneCible = cible
         cadreFenetreSuivi = cadre
@@ -254,8 +282,10 @@ final class NotchOverlayController: NSObject {
         // ne retient que les clics sur les flèches (`hitTest`) — le reste de la bande reste
         // cliquable normalement. Cette promesse a été cassée une fois, quand le panel s'est mis à
         // faire 768 pt et à poser ses chevrons sur les icônes de statut : ce n'est pas `hitTest`
-        // qui l'a rompue, c'est la géométrie. Elle tient maintenant parce que le panel ne couvre
-        // que les marges du boîtier, mesurées libres (cf. `zoneSurvol`, BouncerCore).
+        // qui l'a rompue, c'est la géométrie. Et `hitTest` ne pouvait rien pour la moitié gauche
+        // du même défaut — un curseur posé sur « Window » est DANS le panel, donc l'opacité de
+        // révélation vaut 1,00 et le bouton prend le clic. Elle tient maintenant parce que le
+        // panel a quitté la rangée de la barre des menus (cf. `bandeFleches`, BouncerCore).
         p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
 
         let arrows = NotchArrowsView(frame: NSRect(origin: .zero, size: zone.size), margeLaterale: reglages.margeLaterale)

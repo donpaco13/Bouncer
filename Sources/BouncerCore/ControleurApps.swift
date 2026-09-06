@@ -121,7 +121,12 @@ public var boitierEncocheReference: CGSize {
     zoneEncoche()?.rect.size ?? CGSize(width: 166, height: 29)
 }
 
-/// Cadre de l'overlay de survol : le boîtier caméra, plus une marge VISIBLE de chaque côté.
+/// Bande de référence : le boîtier caméra, plus une marge VISIBLE de chaque côté.
+///
+/// Ce n'est PLUS le cadre du panel — celui-ci se déduit d'ici en descendant d'une rangée
+/// (`bandeFleches`), depuis qu'on a mesuré que la barre des menus n'a aucune portion libre à
+/// gauche. Cette bande reste la référence de la zone ÉCOUTÉE (`zoneSwipe`), qui elle a le droit
+/// d'y vivre : c'est un test géométrique, pas une fenêtre, donc elle ne recouvre rien.
 ///
 /// `zoneEncoche()` décrit le boîtier lui-même — tout ce qui sépare `auxiliaryTopLeftArea.maxX` de
 /// `auxiliaryTopRightArea.minX`. Cette bande n'est pas affichable : c'est la caméra, pas de l'écran.
@@ -153,6 +158,46 @@ public func zoneSurvol(encoche: CGRect, marge: CGFloat) -> CGRect {
     encoche.insetBy(dx: -marge, dy: 0)
 }
 
+/// Le cadre du PANEL, c'est-à-dire la seule surface où Bouncer prend des clics : la bande de
+/// survol, descendue d'une rangée SOUS la barre des menus.
+///
+/// **Ce que ça corrige, mesuré le 2026-09-06 (relevés `kAXMenuBar`, Arc au premier plan).** Tant
+/// que le panel vivait DANS la rangée de la barre des menus, il volait des clics quelle que soit
+/// la marge, et des deux côtés :
+///
+/// ```
+/// marge 44  : panel 549→803 · flèche G 560→582 -> Arc « Window » 512→584   CLIC VOLÉ
+///                           · flèche D 770→792 -> Arc « Help »   768→819   CLIC VOLÉ
+/// marge 96  : panel 497→855 · les deux MÊMES menus volés
+/// ```
+///
+/// Le correctif précédent (T156) n'avait borné que le côté droit, et seulement contre le bandeau
+/// des icônes de statut — le seul obstacle qu'il avait mesuré. Or la barre des menus a DEUX
+/// occupants, et le premier ne tient pas en place : l'emprise des titres de menus appartient à
+/// l'app au premier plan et change avec elle. Relevé le même jour, même écran (1352 pt de large,
+/// boîtier 593→759) : Munder Difflin s'arrête à 362, le Finder à 489, Arc à 819 — Arc déborde le
+/// boîtier, macOS reprenant la pose de ses titres à droite de la caméra. Le dégagement de gauche
+/// va donc de 231 pt à 9 pt selon l'app active, et 9 pt ne logent pas un chevron de 22.
+///
+/// **Pourquoi une borne en Y et pas deux bornes en X.** Une condition géométrique non bornée est
+/// un demi-plan, et ce fichier a déjà cassé trois fois pour avoir été borné d'un seul côté (la
+/// zone du geste, la flèche droite, la flèche gauche). Borner en X demanderait de relire
+/// `kAXMenuBar` à chaque activation d'app ET à chaque changement de menus DANS une app — une
+/// mesure qui se périme entre deux clics, donc un vol de clic à chaque fois qu'elle traîne. La
+/// borne en Y n'a pas de côté : la rangée de la barre des menus est le seul endroit où vivent les
+/// titres et les icônes de statut, et un panel qui n'y entre pas ne peut rien y prendre, pour
+/// n'importe quelle app, sans rien relire.
+///
+/// Les flèches restent calées sur le BOÎTIER en X — l'acquis de T156, qu'on ne perd pas : posées
+/// aux bornes de la fenêtre d'encoche, elles atterrissaient à 118 pt dans le bandeau de statut.
+///
+/// ponytail: descente d'exactement une rangée. Les flèches se posent donc sur ce qui vit sous
+/// l'encoche — l'île de l'app tierce le plus souvent, d'où la pastille de contraste
+/// (`flechesPoseesSurUneAppTierce`). Descendre plus les éloignerait du boîtier qu'elles bordent.
+public func bandeFleches(survol: CGRect) -> CGRect {
+    survol.offsetBy(dx: 0, dy: -survol.height)
+}
+
 /// Ce que Bouncer ÉCOUTE : la bande des flèches, détendue de 6 pt en haut et en bas (elle fait
 /// ~29 pt, difficile à survoler pile), réunie à la fenêtre d'encoche mais BORNÉE en hauteur.
 ///
@@ -180,10 +225,18 @@ public func zoneSurvol(encoche: CGRect, marge: CGFloat) -> CGRect {
 /// Le plafond est posé sur le geste le plus BAS réellement mesuré, pas au jugé : cf.
 /// `descenteMaxZoneSwipe`.
 public func zoneSwipe(bande: CGRect, fenetre: CGRect?) -> CGRect {
-    let base = bande.insetBy(dx: 0, dy: -6)
+    // La bande des flèches est comprise sans condition : depuis qu'elle est descendue d'une
+    // rangée (`bandeFleches`), un curseur qui va CHERCHER une flèche sort de la rangée de la
+    // barre des menus. S'il sortait du même coup de la zone écoutée, le panel se retirerait sous
+    // la main — et en mode « boîtier seul », où `fenetre` vaut nil, il n'y aurait rien d'autre
+    // pour rattraper la descente.
+    let base = bande.union(bandeFleches(survol: bande)).insetBy(dx: 0, dy: -6)
     guard let fenetre, !fenetre.isEmpty else { return base }
     let elargi = base.union(fenetre)
-    let plancher = base.minY - descenteMaxZoneSwipe
+    // Le plafond se mesure depuis la RANGÉE de la barre des menus, pas depuis le bas de `base` :
+    // c'est de là que partait le relevé des 120 pt, et l'ancrer sur `base` ferait descendre la
+    // zone d'une rangée de plus à chaque fois qu'on descend les flèches.
+    let plancher = bande.minY - descenteMaxZoneSwipe
     guard elargi.minY < plancher else { return elargi }
     return CGRect(x: elargi.minX, y: plancher, width: elargi.width, height: elargi.maxY - plancher)
 }
