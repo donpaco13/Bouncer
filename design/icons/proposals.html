@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Island Switch — Propositions d'icônes (générées)</title>
+<style>
+  :root{
+    --bg:#0c0d0e; --panel:#151719; --panel-border:#252829;
+    --ink:#eceeef; --ink-dim:#9aa0a3; --ink-faint:#5f6567;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
+    padding:56px 40px 90px;}
+  header{max-width:1000px; margin:0 auto 48px;}
+  header h1{font-size:26px; font-weight:650; letter-spacing:-0.01em; margin:0 0 10px;}
+  header p{color:var(--ink-dim); font-size:14px; line-height:1.6; margin:0 0 6px; max-width:800px;}
+  header .meta{color:var(--ink-faint); font-size:12px; margin-top:14px;}
+  h2.batch{max-width:1100px; margin:64px auto 20px; font-size:15px; text-transform:uppercase;
+    letter-spacing:0.08em; color:var(--ink-faint); font-weight:650;}
+  .grid{max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:24px;}
+  .card{background:var(--panel); border:1px solid var(--panel-border); border-radius:16px; padding:16px; text-align:center;}
+  .card img{width:100%; border-radius:14px; display:block; background:#000;}
+  .card h3{font-size:13.5px; margin:12px 0 4px; font-weight:650;}
+  .card p{font-size:11.5px; color:var(--ink-dim); margin:0; line-height:1.5;}
+  .tag{display:inline-block; font-size:10px; color:var(--ink-faint); border:1px solid var(--panel-border);
+    border-radius:100px; padding:2px 8px; margin-top:8px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Island Switch — Propositions d'icônes</h1>
+  <p>9 icônes générées via le CLI <code>higgsfield</code> (GPT Image 2 et Nano Banana Pro), 1024×… jusqu'à 4K, aucune n'est dessinée à la main. Chaque direction traduit l'idée produit : le notch comme interrupteur, plusieurs couches dont une seule est visible à la fois.</p>
+  <p class="meta">Batch A : première passe, palette claire/chaude. Batch B : demande directe de repasser en noir premium, sobre, élégant — terme correct « notch » (pas « Dynamic Island », qui est une fonctionnalité iPhone, pas macOS).</p>
+</header>
+
+<h2 class="batch">Batch A — GPT Image 2 &amp; Nano Banana Pro, palette chaude</h2>
+<div class="grid">
+  <div class="card">
+    <img src="renders/01-switch-gpt.png" alt="Interrupteur à bascule">
+    <h3>1 · Interrupteur</h3>
+    <p>Un rocker switch en forme de pilule, écho direct du notch au-dessus.</p>
+    <span class="tag">GPT Image 2</span>
+  </div>
+  <div class="card">
+    <img src="renders/02-layers-gpt.png" alt="Couches de verre dépoli">
+    <h3>2 · Couches</h3>
+    <p>Trois panneaux de verre dépoli empilés sous le notch, un seul net.</p>
+    <span class="tag">GPT Image 2</span>
+  </div>
+  <div class="card">
+    <img src="renders/03-iris-nanobanana.png" alt="Iris d'objectif">
+    <h3>3 · Iris</h3>
+    <p>Diaphragme mécanique dont l'ouverture forme la pilule du notch.</p>
+    <span class="tag">Nano Banana Pro</span>
+  </div>
+  <div class="card">
+    <img src="renders/04-carousel-gpt.png" alt="Carrousel de jetons">
+    <h3>4 · Carrousel</h3>
+    <p>Rolodex de jetons dans une rainure en forme de notch, un seul éclairé.</p>
+    <span class="tag">GPT Image 2</span>
+  </div>
+  <div class="card">
+    <img src="renders/05-filmstrip-nanobanana.png" alt="Visionneuse de diapositives">
+    <h3>5 · Visionneuse</h3>
+    <p>Pile de diapositives qui défile, une seule éclairée dans la fente du notch.</p>
+    <span class="tag">Nano Banana Pro</span>
+  </div>
+</div>
+
+<h2 class="batch">Batch B — Nano Banana Pro, noir premium (direction demandée en direct)</h2>
+<div class="grid">
+  <div class="card">
+    <img src="renders/06-switch-black-nanobanana.png" alt="Interrupteur noir premium">
+    <h3>6 · Interrupteur — noir</h3>
+    <p>Onyx mat et liseré laiton, presque invisible jusqu'au reflet.</p>
+    <span class="tag">Nano Banana Pro · 4K</span>
+  </div>
+  <div class="card">
+    <img src="renders/07-layers-black-nanobanana.png" alt="Couches noir premium">
+    <h3>7 · Couches — noir</h3>
+    <p>Verre fumé quasi noir, chaque couche ne révèle qu'un fin liseré de couleur.</p>
+    <span class="tag">Nano Banana Pro · 4K</span>
+  </div>
+  <div class="card">
+    <img src="renders/08-iris-black-nanobanana.png" alt="Iris noir premium">
+    <h3>8 · Iris — noir</h3>
+    <p>Diaphragme gunmetal, anneau laiton en filet. La plus aboutie du lot.</p>
+    <span class="tag">Nano Banana Pro · 4K</span>
+  </div>
+  <div class="card">
+    <img src="renders/09-carousel-black-nanobanana.png" alt="Carrousel noir premium">
+    <h3>9 · Carrousel — noir</h3>
+    <p>Rainure noire, jeton central chauffé d'une lueur cuivrée.</p>
+    <span class="tag">Nano Banana Pro · 4K</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -101,6 +101,7 @@ final class ControleurAppsDouble: ControleurApps {
     }
 
     func fenetreVisibleDansNotch(pid: pid_t) -> Bool {
+        guard encocheMesurable else { return false }
         guard let bundleID = bundleID(de: pid), !masquees.contains(bundleID) else { return false }
         let restants = sondagesAvantApparition[bundleID] ?? 0
         guard restants > 0 else { return true }
@@ -129,6 +130,16 @@ final class ControleurAppsDouble: ControleurApps {
     /// l'écran ne bouge pas, dans les DEUX sens. C'est ce que `resistantes` ne simule pas — une
     /// app résistante refuse le masquage mais se laisse démasquer.
     var accessibiliteRevoquee = false
+
+    /// À `false`, plus aucun écran connecté ne porte d'encoche — capot fermé, écran débranché,
+    /// écrans pas encore réénumérés au réveil.
+    ///
+    /// Le double copie ici le vrai `ControleurAppsSysteme` au point exact où il fait mal :
+    /// `fenetreVisibleDansNotch` part de `zoneEncoche()` et rend `false` dès qu'elle est `nil` —
+    /// pour TOUS les pids, sans jamais distinguer « mesurée absente » de « pas mesurable ». Les
+    /// process, eux, sont toujours là : `pid(pour:)` et `masquer` continuent de répondre. C'est
+    /// cet écart-là qui envoyait la voie rapide de `allumer` sur son dernier recours.
+    var encocheMesurable = true
 
     private func bundleID(de pid: pid_t) -> String? {
         pidsParBundleID.first(where: { $0.value == pid })?.key
@@ -247,7 +258,10 @@ struct BasculeTests {
     private func bascule(_ double: ControleurAppsDouble, delaiMax: Duration = .seconds(2)) -> Bascule {
         Bascule(
             controleur: double, intervalleSondage: .milliseconds(1), delaiMax: delaiMax,
-            trustAccorde: { true }
+            delaiMort: .milliseconds(30), trustAccorde: { true },
+            // Comme `trustAccorde` : sans injection, ces tests dépendraient de l'écran de la
+            // machine qui les exécute. Le garde a ses propres tests, dans `EncocheAbsenteTests`.
+            encocheMesurable: { true }
         )
     }
 
@@ -381,7 +395,8 @@ struct MeurtreSurTests {
         // La boucle sort dès que la cible est là : le chemin nominal rend la main en ~4 ms et le
         // budget large ne coûte rien. Les tests qui ATTENDENT l'expiration gardent leur délai court.
         let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
-                              delaiMax: .seconds(2), trustAccorde: { true })
+                              delaiMax: .seconds(2), delaiMort: .seconds(1),
+                              trustAccorde: { true }, encocheMesurable: { true })
         let resultat = await bascule.basculer(vers: info(vibe, .supported, pid: 100), depuis: nil)
 
         #expect(resultat == .reussie)
@@ -403,7 +418,8 @@ struct MeurtreSurTests {
         double.sondagesAvantMort[boring] = .max    // et elle ne quitte pas
 
         let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
-                              delaiMax: .milliseconds(30), trustAccorde: { true })
+                              delaiMax: .milliseconds(30), delaiMort: .milliseconds(30),
+                              trustAccorde: { true }, encocheMesurable: { true })
         let resultat = await bascule.basculer(
             vers: info(vibe, .testing, pid: nil), depuis: info(boring, .unsupported, pid: 200)
         )
@@ -424,7 +440,8 @@ struct MeurtreSurTests {
 
         // Délai généreux, pour la raison expliquée plus haut : ce test attend un SUCCÈS.
         let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
-                              delaiMax: .seconds(2), trustAccorde: { true })
+                              delaiMax: .seconds(2), delaiMort: .milliseconds(30),
+                              trustAccorde: { true }, encocheMesurable: { true })
         let resultat = await bascule.basculer(
             vers: info(vibe, .testing, pid: nil), depuis: info(boring, .unsupported, pid: 200)
         )
