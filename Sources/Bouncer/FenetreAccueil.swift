@@ -158,19 +158,29 @@ private enum Nuit {
 /// `o`. Un seul sous-chemin : c'est ce qui permet à `trim(from:to:)` de le révéler comme une main
 /// qui écrit, dans l'ordre où on l'écrirait. Deux sous-chemins et le trim les avancerait de front.
 ///
-/// Les points sont posés dans un repère de dessin fixe (`repere`, origine en haut à gauche,
-/// ligne de base à y = 296, hauteur d'x à y = 152, hampes à y = 44) puis mis à l'échelle du rect
-/// reçu. Le cadrage passe par la boîte englobante réelle du chemin plutôt que par des marges
-/// devinées : les points de contrôle débordent des points d'ancrage, et une boîte estimée à la
-/// main recentrait le mot de travers.
+/// Le tracé n'est pas dessiné à la main : c'est la vectorisation du lettrage « hello » d'Apple
+/// publiée par Michal Tynior (https://github.com/mtynior/AppleHello, MIT), transposée du repère
+/// normalisé 0…1 vers un repère 0…1000. La différence n'est pas cosmétique : un tracé posé point
+/// par point casse la tangente à chaque raccord, et le trait se met à craqueler dès qu'on
+/// l'anime. Ici les 21 cubiques sont G1-continues (rupture de tangente ≤ 0,1° partout), donc le
+/// trait coule.
+///
+/// Le cadrage passe par la boîte englobante réelle du chemin (`Path.boundingRect`, qui ignore les
+/// points de contrôle) plutôt que par des marges devinées, et l'échelle est isotrope : le
+/// lettrage se déforme si on l'étire sur les deux axes indépendamment.
 struct TraceHello: Shape {
+    /// Côté du repère de dessin. Les points ci-dessous sont exprimés dedans.
+    private static let repere: CGFloat = 1000
+
     /// Épaisseur prévue du trait, en unités du repère de dessin. Sert à réserver la place que le
     /// trait déborde de la boîte englobante — sinon les extrémités arrondies sont rognées.
-    static let epaisseurRepere: CGFloat = 22
+    /// Calée à l’œil sur un rendu hors app (16 est maigre, 28 bouche les contre-formes du `e` et du
+    /// `o`) : à 20, le trait a du poids et les yeux des lettres restent ouverts.
+    static let epaisseurRepere: CGFloat = 20
 
     func path(in rect: CGRect) -> Path {
         let brut = Self.trace()
-        let boite = brut.boundingRect.insetBy(dx: -Self.epaisseurRepere / 2, dy: -Self.epaisseurRepere / 2)
+        let boite = Self.boite
         guard boite.width > 0, boite.height > 0 else { return brut }
 
         let echelle = min(rect.width / boite.width, rect.height / boite.height)
@@ -183,46 +193,53 @@ struct TraceHello: Shape {
         return brut.applying(transformation)
     }
 
+    /// Boîte englobante du tracé, trait compris. Calculée une fois : `path(in:)` est rappelée à
+    /// chaque image de l'animation, et refaire la boîte à chaque fois ne sert à rien.
+    private static let boite: CGRect = trace().boundingRect
+        .insetBy(dx: -epaisseurRepere / 2, dy: -epaisseurRepere / 2)
+
+    /// Rapport largeur/hauteur du tracé, trait compris. Sert à donner au cadre exactement la forme
+    /// du mot : toute autre proportion laisserait `min()` rétrécir le lettrage pour rien.
+    static var proportion: CGFloat { boite.width / boite.height }
+
     /// Épaisseur de trait à appliquer pour un rendu de largeur `largeur`, dans la même proportion
     /// que dans le repère de dessin. Écrit ici pour que le trait grossisse avec le mot.
     static func epaisseur(pourLargeur largeur: CGFloat) -> CGFloat {
-        let boite = trace().boundingRect.insetBy(dx: -epaisseurRepere / 2, dy: -epaisseurRepere / 2)
-        return max(1.5, epaisseurRepere * largeur / boite.width)
+        max(1.5, epaisseurRepere * largeur / boite.width)
     }
 
     private static func trace() -> Path {
         var p = Path()
-        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x, y: y) }
+        let k = repere
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * k, y: y * k) }
 
-        // h — montée de la hampe, boucle du haut, jambage, épaule.
-        p.move(to: pt(58, 296))
-        p.addCurve(to: pt(118, 46), control1: pt(66, 220), control2: pt(86, 90))
-        p.addCurve(to: pt(96, 128), control1: pt(150, 20), control2: pt(132, 90))
-        p.addCurve(to: pt(146, 296), control1: pt(86, 178), control2: pt(140, 298))
-        p.addCurve(to: pt(234, 292), control1: pt(154, 130), control2: pt(232, 138))
-        // Liaison h → e : le creux arrondi sur la ligne de base, jamais un angle.
-        p.addCurve(to: pt(296, 246), control1: pt(250, 316), control2: pt(272, 282))
+        // h — hampe, boucle du haut, jambage, épaule.
+        p.move(to: pt(0.18942, 0.64916))
+        p.addCurve(to: pt(0.27418, 0.51669), control1: pt(0.27418, 0.51669), control2: pt(0.23809, 0.59394))
+        p.addCurve(to: pt(0.30536, 0.34281), control1: pt(0.30196, 0.45722), control2: pt(0.31651, 0.37724))
+        p.addCurve(to: pt(0.24651, 0.67414), control1: pt(0.26479, 0.21753), control2: pt(0.24062, 0.67407))
+        p.addCurve(to: pt(0.28192, 0.51110), control1: pt(0.25240, 0.67420), control2: pt(0.25206, 0.54125))
+        p.addCurve(to: pt(0.32367, 0.53984), control1: pt(0.31178, 0.48094), control2: pt(0.32230, 0.52111))
+        p.addCurve(to: pt(0.31839, 0.63550), control1: pt(0.32589, 0.57011), control2: pt(0.31687, 0.61804))
         // e — montée, retour par-dessus (l'œil se ferme au croisement), puis la panse.
-        p.addCurve(to: pt(344, 152), control1: pt(300, 200), control2: pt(310, 152))
-        p.addCurve(to: pt(274, 234), control1: pt(388, 172), control2: pt(344, 218))
-        p.addCurve(to: pt(412, 244), control1: pt(282, 292), control2: pt(364, 320))
+        p.addCurve(to: pt(0.43599, 0.55398), control1: pt(0.32473, 0.70854), control2: pt(0.42787, 0.63682))
+        p.addCurve(to: pt(0.38340, 0.61147), control1: pt(0.44471, 0.46492), control2: pt(0.36830, 0.46917))
+        p.addCurve(to: pt(0.44180, 0.66942), control1: pt(0.38895, 0.66377), control2: pt(0.42346, 0.67724))
         // l — hampe, boucle, descente qui s'aplatit sur la ligne de base.
-        p.addCurve(to: pt(492, 44), control1: pt(440, 200), control2: pt(466, 88))
-        p.addCurve(to: pt(466, 138), control1: pt(524, 16), control2: pt(506, 94))
-        p.addCurve(to: pt(528, 296), control1: pt(452, 220), control2: pt(520, 298))
-        // l — le second, décalé de 78 pt.
-        p.addCurve(to: pt(606, 44), control1: pt(546, 286), control2: pt(580, 88))
-        p.addCurve(to: pt(580, 138), control1: pt(638, 16), control2: pt(620, 94))
-        p.addCurve(to: pt(642, 296), control1: pt(566, 220), control2: pt(634, 298))
-        // o — montée jusqu'au sommet, petite boucle de retournement, puis la panse dans le sens
-        // inverse des aiguilles, refermée en haut à droite.
-        p.addCurve(to: pt(760, 168), control1: pt(668, 296), control2: pt(746, 208))
-        p.addCurve(to: pt(698, 232), control1: pt(740, 148), control2: pt(696, 184))
-        p.addCurve(to: pt(750, 300), control1: pt(698, 270), control2: pt(722, 300))
-        p.addCurve(to: pt(802, 232), control1: pt(780, 300), control2: pt(802, 270))
-        p.addCurve(to: pt(768, 174), control1: pt(802, 196), control2: pt(790, 174))
-        // Le délié de sortie, qui passe par-dessus le o.
-        p.addCurve(to: pt(884, 194), control1: pt(802, 170), control2: pt(848, 176))
+        p.addCurve(to: pt(0.55200, 0.38575), control1: pt(0.50813, 0.64115), control2: pt(0.55363, 0.49671))
+        p.addCurve(to: pt(0.49571, 0.60864), control1: pt(0.54988, 0.24203), control2: pt(0.47856, 0.38729))
+        p.addCurve(to: pt(0.57499, 0.64351), control1: pt(0.50232, 0.69393), control2: pt(0.55841, 0.66619))
+        // l — le second.
+        p.addCurve(to: pt(0.64978, 0.36314), control1: pt(0.60564, 0.60157), control2: pt(0.65966, 0.48059))
+        p.addCurve(to: pt(0.59745, 0.62607), control1: pt(0.63947, 0.24062), control2: pt(0.56181, 0.44249))
+        p.addCurve(to: pt(0.65480, 0.65717), control1: pt(0.60934, 0.68733), control2: pt(0.64502, 0.66660))
+        // o — montée, panse fermée en revenant sur soi, puis le délié de sortie.
+        p.addCurve(to: pt(0.70474, 0.51817), control1: pt(0.67802, 0.63480), control2: pt(0.68550, 0.55360))
+        p.addCurve(to: pt(0.76896, 0.56010), control1: pt(0.72906, 0.47340), control2: pt(0.76738, 0.50686))
+        p.addCurve(to: pt(0.70263, 0.65105), control1: pt(0.77246, 0.67742), control2: pt(0.72159, 0.67749))
+        p.addCurve(to: pt(0.70448, 0.51817), control1: pt(0.68627, 0.62823), control2: pt(0.68244, 0.56022))
+        p.addCurve(to: pt(0.77530, 0.52099), control1: pt(0.71954, 0.48942), control2: pt(0.74363, 0.48871))
+        p.addCurve(to: pt(0.80807, 0.51063), control1: pt(0.78825, 0.53419), control2: pt(0.79935, 0.53183))
 
         return p
     }
@@ -231,8 +248,9 @@ struct TraceHello: Shape {
 /// Le mot « hello » qui s'écrit. `trim` avance la fin du tracé de 0 à 1 : le trait naît sous une
 /// main invisible plutôt que d'apparaître d'un bloc.
 private struct SignatureHello: View {
+    /// Largeur du mot, trait compris. La hauteur en découle : le cadre épouse le tracé, sinon
+    /// l'échelle isotrope rétrécit le lettrage pour tenir dans la plus petite des deux mesures.
     var largeur: CGFloat = 300
-    var hauteur: CGFloat = 120
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var avancement: CGFloat = 0
@@ -245,7 +263,7 @@ private struct SignatureHello: View {
             .stroke(style: StrokeStyle(lineWidth: epaisseur, lineCap: .round, lineJoin: .round))
             .foregroundStyle(Nuit.encre)
             .shadow(color: Color(red: 0.55, green: 0.72, blue: 1).opacity(0.45), radius: epaisseur * 2.2)
-            .frame(width: largeur, height: hauteur)
+            .frame(width: largeur, height: largeur / TraceHello.proportion)
             .onAppear {
                 guard !reduceMotion else {
                     avancement = 1
@@ -334,7 +352,7 @@ struct VueAccueil: View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
 
-            SignatureHello(largeur: 320, hauteur: 132)
+            SignatureHello(largeur: 320)
                 .padding(.bottom, 26)
 
             TitreEtape("Bienvenue dans Bouncer")
