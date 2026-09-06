@@ -371,8 +371,13 @@ struct MeurtreSurTests {
         // qu'il soit parti ne redémarre rien.
         double.sondagesAvantMort[vibe] = 3
 
+        // Deux secondes, pas cinquante millisecondes : le délai est du temps RÉEL sur un acteur
+        // principal partagé avec le reste de la suite, qui tourne en parallèle. Un test voisin
+        // qui touche AppKit pour la première fois le bloque ~60 ms (mesuré) et faisait expirer
+        // ce délai-ci. Le chemin nominal rend la main en ~4 ms de toute façon — seul le pire
+        // cas s'allonge. Les tests qui ATTENDENT l'expiration gardent, eux, leur délai court.
         let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
-                              delaiMax: .milliseconds(50), trustAccorde: { true })
+                              delaiMax: .seconds(2), trustAccorde: { true })
         let resultat = await bascule.basculer(vers: info(vibe, .supported, pid: 100), depuis: nil)
 
         #expect(resultat == .reussie)
@@ -413,8 +418,9 @@ struct MeurtreSurTests {
         let double = ControleurAppsDouble(lancees: [boring: 200], installees: [boring, vibe])
         double.resistantes = [boring]
 
+        // Délai généreux, pour la raison expliquée plus haut : ce test attend un SUCCÈS.
         let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
-                              delaiMax: .milliseconds(30), trustAccorde: { true })
+                              delaiMax: .seconds(2), trustAccorde: { true })
         let resultat = await bascule.basculer(
             vers: info(vibe, .testing, pid: nil), depuis: info(boring, .unsupported, pid: 200)
         )

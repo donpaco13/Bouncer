@@ -451,9 +451,8 @@ private final class NotchArrowsView: NSView {
         }
     }
 
-    /// 22 pt et non 14 : une cible de clic de 14 pt dans une marge de 44 était petite pour rien,
-    /// et la pastille — quand elle est nécessaire — doit rester lisible sur une pochette d'album.
-    var tailleFleche: CGFloat { min(bounds.height - 4, 22) }
+    /// Le côté du chevron. Le calcul vit dans BouncerCore, où un test le voit (`tailleFleche`).
+    var tailleFleche: CGFloat { BouncerCore.tailleFleche(hauteurBande: bounds.height) }
 
     init(frame frameRect: NSRect, margeLaterale: CGFloat) {
         self.margeLaterale = margeLaterale
@@ -517,21 +516,27 @@ private final class NotchArrowsView: NSView {
     }
 
     private func layoutArrows() {
-        let size = tailleFleche
-        let y = (bounds.height - size) / 2
-        let x = abscissesFleches(largeurOverlay: bounds.width, marge: margeLaterale, taille: size)
+        let cadres = cadresFleches(overlay: bounds.size, marge: margeLaterale)
         // Le décalage est SIGNÉ par côté : la flèche gauche sort vers la gauche, la droite vers la
         // droite. Un décalage commun les ferait glisser toutes les deux du même côté, ce qui se
         // lit comme un défaut d'alignement et pas comme un déploiement.
-        leftButton.frame = NSRect(x: x.gauche - revelation.decalage, y: y, width: size, height: size)
-        rightButton.frame = NSRect(x: x.droite + revelation.decalage, y: y, width: size, height: size)
+        leftButton.frame = cadres.gauche.offsetBy(dx: -revelation.decalage, dy: 0)
+        rightButton.frame = cadres.droite.offsetBy(dx: revelation.decalage, dy: 0)
         for button in [leftButton, rightButton] {
-            button.layer?.cornerRadius = size / 2
+            guard let calque = button.layer else { continue }
+            calque.cornerRadius = cadres.gauche.width / 2
             // L'échelle se pose sur le calque et autour de son centre : redimensionner le `frame`
             // décalerait aussi la cible de clic, et une cible qui change de taille pendant qu'on
             // la vise est une cible qu'on rate.
-            button.layer?.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-            button.layer?.transform = CATransform3DMakeScale(revelation.echelle, revelation.echelle, 1)
+            //
+            // Centrer l'ancre ne suffit PAS à laisser le calque en place : AppKit garde sa
+            // `position` sur l'origine du cadre, si bien que déplacer l'ancre déplace le dessin
+            // d'une demi-taille vers le bas — et le bord bas du panel en écrêtait le reste. C'est
+            // le défaut des « flèches à moitié coupées » ; `ancreAuCentre` (BouncerCore) recale la
+            // position dans la foulée, et n'a aucun effet sur le cadre de la vue, donc aucun sur
+            // la cible de clic.
+            ancreAuCentre(calque, cadreVue: button.frame)
+            calque.transform = CATransform3DMakeScale(revelation.echelle, revelation.echelle, 1)
         }
     }
 

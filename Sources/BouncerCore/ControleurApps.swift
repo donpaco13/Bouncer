@@ -204,6 +204,57 @@ public func zoneSwipe(bande: CGRect, fenetre: CGRect?) -> CGRect {
 /// hauteur DESSINÉE de cette île, pas celle de son canevas.
 private let descenteMaxZoneSwipe: CGFloat = 120
 
+/// Côté du chevron dessiné dans une bande de `hauteurBande` points.
+///
+/// 22 pt et non 14 : une cible de clic de 14 pt dans une marge de 44 était petite pour rien, et la
+/// pastille — quand elle est nécessaire — doit rester lisible sur une pochette d'album. Les 4 pt
+/// retirés sont la respiration au-dessus et en dessous : la bande fait 29 pt sur la machine de
+/// référence, le chevron 22, il reste 3,5 pt de chaque côté.
+public func tailleFleche(hauteurBande: CGFloat) -> CGFloat {
+    min(hauteurBande - 4, 22)
+}
+
+/// Les deux cadres des flèches dans le repère de l'overlay : chacune centrée dans sa marge, et
+/// centrée en hauteur dans la bande.
+///
+/// Ce calcul vivait dans `NotchArrowsView.layoutArrows`, donc nulle part où un test puisse le
+/// regarder. Il en est sorti le jour où les chevrons se sont retrouvés à moitié coupés à l'écran
+/// (cf. `ancreAuCentre`) : la géométrie était juste, le DESSIN ne l'était pas, et aucun test ne
+/// pouvait le dire tant que rien de tout ça ne franchissait les bornes de la vue.
+public func cadresFleches(overlay: CGSize, marge: CGFloat) -> (gauche: CGRect, droite: CGRect) {
+    let taille = tailleFleche(hauteurBande: overlay.height)
+    let y = (overlay.height - taille) / 2
+    let x = abscissesFleches(largeurOverlay: overlay.width, marge: marge, taille: taille)
+    return (
+        CGRect(x: x.gauche, y: y, width: taille, height: taille),
+        CGRect(x: x.droite, y: y, width: taille, height: taille)
+    )
+}
+
+/// Centre le point d'ancrage du calque d'une vue AppKit SANS le déplacer.
+///
+/// Une échelle de révélation doit grandir autour du centre du chevron, sinon il se déploie vers le
+/// coin haut-droit. Le réflexe est de poser `anchorPoint = (0.5, 0.5)` sur le calque, et c'est
+/// exactement ce qui coupait les flèches en deux — constaté en réel le 2026-09-06 : « les flèches
+/// sont à moitié coupées, on dirait qu'il y a une limite et qu'on ne peut pas afficher des
+/// éléments en dessous de cette hauteur ».
+///
+/// AppKit tient le calque d'une vue avec `anchorPoint = (0, 0)` et `position = frame.origin`, et
+/// il ne recalcule PAS `position` quand on déplace l'ancre — ni au moment du changement, ni à la
+/// pose suivante du cadre. MESURÉ : un bouton de 22×22 posé à (11 ; 3,5) dans une bande de 29 pt
+/// garde `position = (11 ; 3,5)` et se retrouve DESSINÉ à (0 ; −7,5), décalé d'une demi-taille
+/// vers le bas et vers la gauche. Ses 7,5 pt du bas tombent sous le bord du panel, qui ne fait que
+/// la hauteur du boîtier : ils sont écrêtés par la fenêtre, sans erreur ni log.
+///
+/// La vue, elle, n'avait pas bougé d'un point : `hitTest` répondait toujours au bon endroit, ce
+/// qui explique que ni un test de géométrie ni un relevé de cadre n'aient pu le voir. Recaler
+/// `position` sur le centre du cadre remet le dessin là où la vue l'annonce, et ne touche à AUCUNE
+/// cible de clic.
+@MainActor public func ancreAuCentre(_ calque: CALayer, cadreVue: CGRect) {
+    calque.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+    calque.position = CGPoint(x: cadreVue.midX, y: cadreVue.midY)
+}
+
 /// Abscisses des deux flèches dans le repère de l'overlay, centrées chacune dans sa marge — donc
 /// hors du boîtier caméra ET hors de la fenêtre d'encoche par construction, ce que verrouille
 /// `ZoneSurvolTests`.

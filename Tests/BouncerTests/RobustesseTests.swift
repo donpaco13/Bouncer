@@ -30,8 +30,12 @@ struct RobustesseTests {
         #expect(await double.masquer(true, pid: 100))          // Bouncer l'a masquée quand il pouvait
         double.accessibiliteRevoquee = true                    // l'utilisateur décoche Bouncer
 
+        // Deux secondes, pas cinquante millisecondes : le délai est du temps RÉEL sur un acteur
+        // principal partagé avec le reste de la suite, qui tourne en parallèle. Un test voisin qui
+        // touche AppKit pour la première fois le bloque ~60 ms (mesuré). Le chemin nominal rend la
+        // main en quelques millisecondes ; seul le pire cas s'allonge.
         let bascule = Bascule(
-            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
+            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .seconds(2),
             trustAccorde: { true }   // le droit a été accordé, puis retiré : la connexion AX existe
         )
         #expect(await bascule.basculer(vers: info(vibe, .supported, pid: 100), depuis: nil) == .reussie)
@@ -123,8 +127,9 @@ struct RobustesseTests {
         #expect(prochaineCible(dans: ["a"], depuis: nil, forward: true) == "a")
 
         let double = ControleurAppsDouble(lancees: [vibe: 100])
+        // Délai généreux, pour la raison expliquée plus haut : ce test attend deux SUCCÈS.
         let bascule = Bascule(
-            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .milliseconds(50),
+            controleur: double, intervalleSondage: .milliseconds(1), delaiMax: .seconds(2),
             trustAccorde: { true }
         )
         let seule = info(vibe, .supported, pid: 100)
