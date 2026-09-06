@@ -183,7 +183,8 @@ struct AnnulationDeLaSurveillanceTests {
 @MainActor
 func gestionnaire(
     _ double: ControleurAppsDouble, ecran: EcranSimule, suite: String,
-    defaults: UserDefaults, dansLEncoche: [String], bascule: Bascule
+    defaults: UserDefaults, dansLEncoche: [String], bascule: Bascule,
+    verifierAccessibilite: (() -> Bool)? = nil
 ) -> WindowManager {
     WindowManager(
         startTimer: false,
@@ -205,7 +206,7 @@ func gestionnaire(
         // la sortie de test, `recaler` relit toute app masquée comme morte et la sort de la liste.
         processVivant: { pid in double.pidsParBundleID.values.contains(pid) },
         demanderAccessibilite: false,
-        verifierAccessibilite: { true },
+        verifierAccessibilite: verifierAccessibilite ?? { true },
         bascule: bascule
     )
 }
