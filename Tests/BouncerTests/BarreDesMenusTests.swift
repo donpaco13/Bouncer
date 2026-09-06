@@ -24,8 +24,14 @@ struct BarreDesMenusTests {
 
     /// Écran interne de la machine de référence.
     private let ecran = CGRect(x: 0, y: 0, width: 1352, height: 878)
-    /// Boîtier caméra : la bande non affichable, 593→759, haute de toute la rangée.
+    /// Boîtier caméra : la zone non affichable du capteur, 593→759, haute de 29 pt (`safeAreaInsets.top`).
     private let boitier = CGRect(x: 593, y: 849, width: 166, height: 29)
+    /// Hauteur de la rangée de la barre des menus réservée par macOS (35 pt, mesurée via
+    /// `frame.maxY - visibleFrame.maxY`, 34 pt dessinés). Le boîtier caméra ne fait que 29 pt,
+    /// mais la rangée s'étend 6 pt plus bas (843→878 au lieu de 849→878).
+    private let hauteurRangee: CGFloat = 35
+    /// Ordonnée minimale de la rangée de la barre des menus dans le repère de l'écran (878 - 35 = 843).
+    private var minYRangee: CGFloat { ecran.maxY - hauteurRangee }
     /// `min(hauteurBande - 4, 22)` — la taille réelle du chevron dans une bande de 29 pt.
     private let taille: CGFloat = 22
 
@@ -38,7 +44,7 @@ struct BarreDesMenusTests {
     /// 819 — les deux cibles que les flèches volaient.
     private var titresDeMenus: [(app: String, segments: [CGRect])] {
         func rangee(_ minX: CGFloat, _ maxX: CGFloat) -> CGRect {
-            CGRect(x: minX, y: boitier.minY, width: maxX - minX, height: boitier.height)
+            CGRect(x: minX, y: minYRangee, width: maxX - minX, height: hauteurRangee)
         }
         return [
             ("Munder Difflin", [rangee(0, 362)]),
@@ -50,7 +56,7 @@ struct BarreDesMenusTests {
     /// Le bandeau des icônes de statut, aligné à droite. Relevé CGWindowList (`layer` 25) ramené
     /// sur l'écran interne : bord gauche à 910.
     private var bandeauStatut: CGRect {
-        CGRect(x: 910, y: boitier.minY, width: ecran.maxX - 910, height: boitier.height)
+        CGRect(x: 910, y: minYRangee, width: ecran.maxX - 910, height: hauteurRangee)
     }
 
     /// Tout ce que Bouncer n'a pas le droit de recouvrir, des deux côtés du boîtier.
@@ -108,12 +114,12 @@ struct BarreDesMenusTests {
     /// être satisfaite d'un seul côté, là où deux bornes en X demandent de relire `kAXMenuBar` à
     /// chaque activation d'app.
     @Test func lePanelNEntrePasDansLaRangeeDeLaBarreDesMenus() {
-        let rangee = CGRect(x: ecran.minX, y: boitier.minY, width: ecran.width, height: boitier.height)
+        let rangee = CGRect(x: ecran.minX, y: minYRangee, width: ecran.width, height: hauteurRangee)
         for marge in stride(from: Reglages.Domaine.marge.lowerBound,
                             through: Reglages.Domaine.marge.upperBound, by: 4) {
             let panel = bandeFleches(survol: zoneSurvol(encoche: boitier, marge: marge))
             #expect(!panel.intersects(rangee), "marge \(marge) : panel \(panel) dans la rangée")
-            #expect(panel.maxY <= boitier.minY)
+            #expect(panel.maxY <= minYRangee)
         }
     }
 
@@ -124,9 +130,9 @@ struct BarreDesMenusTests {
     /// X, et à une rangée de lui en Y — assez près pour qu'on les lise comme ses flèches.
     @Test func lesFlechesBordentToujoursLeBoitier() {
         let panel = bandeFleches(survol: zoneSurvol(encoche: boitier, marge: 44))
-        #expect(panel.minY == boitier.minY - boitier.height)
+        #expect(panel.minY == boitier.minY - hauteurRangee)
         for fleche in cadresFlechesEcran(marge: 44, retrait: 0) {
-            #expect(abs(fleche.midY - boitier.minY) <= boitier.height,
+            #expect(abs(fleche.midY - boitier.minY) <= hauteurRangee,
                     "flèche \(fleche) trop loin du boîtier")
         }
         // Une de chaque côté, jamais les deux du même.
@@ -148,6 +154,11 @@ struct BarreDesMenusTests {
             // Et elle couvre toujours la rangée elle-même : c'est là que le geste se pose.
             #expect(zone.contains(CGPoint(x: boitier.midX, y: boitier.midY)))
         }
+    }
+
+    /// La mesure système `hauteurBarreDesMenus()` correspond bien à la rangée réservée (35 pt).
+    @Test func hauteurRangeeSystemeConformeAuReleve() {
+        #expect(hauteurBarreDesMenus() == 35)
     }
 
     // MARK: - Outillage
