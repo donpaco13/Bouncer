@@ -2,31 +2,44 @@
 
 /* ---------------------------------------------------------------------------
    Jetons de design. Passés dans @theme, Tailwind en fait des utilitaires :
-   bg-papier, text-gris, py-pas, text-titre, ease-courbe…
+   bg-nuit, text-gris, py-pas, text-titre, ease-courbe…
+
+   LA PAGE EST SOMBRE, ET UN SEUL ACCENT LA TRAVERSE. Le vert #0F6E5C est la
+   couleur du produit et elle ne bouge pas — mais posée sur du quasi-noir elle
+   plafonne à 2,2:1 de contraste, illisible en texte. D'où le doublet, et c'est
+   la seule vraie décision de couleur de la page :
+
+     --color-accent      la MATIÈRE : remplissages, dégradés, halos, boutons.
+     --color-accent-vif  le MÊME vert remonté en clarté, pour le TEXTE et les
+                         traits fins. Même teinte (168°), lisible à 11:1.
+
+   Écrire un lien en #0F6E5C sur ce fond serait un bug d'accessibilité, pas un
+   parti pris. Toute nouvelle occurrence de l'accent choisit son camp.
    --------------------------------------------------------------------------- */
 @theme {
-  --color-papier: #ffffff;
-  --color-encre: #1a1a1c;
-  --color-gris: #6b6b70;
-  --color-filet: #e6e6e8;
+  --color-nuit: #08090c;
+  --color-voile: #0d0f13;
+  --color-encre: #f2f3f6;
+  --color-gris: #969aa4;
+  --color-sourdine: #7b8089;
+  --color-filet: #1c1f26;
   --color-noir: #000000;
   --color-accent: #0f6e5c;
-  --color-marqueur: #b4b4ba;
-  --color-fond-carte: #fcfcfd;
+  --color-accent-vif: #4fd1b4;
 
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
     "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 
   /* le pas vertical entre deux sections */
-  --spacing-pas: clamp(76px, 9vh, 118px);
-  --spacing-haut-heros: clamp(44px, 6vh, 76px);
+  --spacing-pas: clamp(84px, 10vh, 132px);
+  --spacing-haut-heros: clamp(52px, 7vh, 88px);
 
-  --text-heros: clamp(2.7rem, 6.6vw, 5.1rem);
-  --text-titre: clamp(2.1rem, 4.6vw, 3.3rem);
-  --text-chapo: clamp(1.1rem, 1.9vw, 1.35rem);
-  --tracking-heros: -0.04em;
-  --tracking-titre: -0.032em;
+  --text-heros: clamp(2.85rem, 7vw, 5.4rem);
+  --text-titre: clamp(2.1rem, 4.6vw, 3.35rem);
+  --text-chapo: clamp(1.075rem, 1.85vw, 1.3rem);
+  --tracking-heros: -0.045em;
+  --tracking-titre: -0.034em;
 
   --ease-courbe: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
@@ -34,31 +47,66 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    background: var(--color-nuit);
   }
   body {
-    background: var(--color-papier);
+    position: relative;
+    background: var(--color-nuit);
     color: var(--color-encre);
     font-family: var(--font-sans);
     font-size: 17px;
-    line-height: 1.6;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+
+  /* L'aurore. Une seule tache d'accent, très diluée, posée au-dessus du bord
+     haut de la page — exactement là où l'encoche se trouve sur la machine. Elle
+     ne se répète nulle part ailleurs : c'est le seul endroit de la page où la
+     couleur a le droit d'être une ambiance plutôt qu'une information. */
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 720px;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(
+        ellipse 62% 46% at 50% -6%,
+        rgb(15 110 92 / 0.44) 0%,
+        transparent 62%
+      ),
+      radial-gradient(
+        ellipse 90% 60% at 50% -14%,
+        rgb(255 255 255 / 0.05) 0%,
+        transparent 58%
+      );
+  }
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
+
   a {
-    color: var(--color-accent);
+    color: var(--color-accent-vif);
     text-decoration: none;
-    border-bottom: 1px solid rgb(15 110 92 / 0.28);
+    border-bottom: 1px solid rgb(79 209 180 / 0.3);
   }
   a:hover {
-    border-bottom-color: var(--color-accent);
+    border-bottom-color: var(--color-accent-vif);
   }
   :focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-accent-vif);
     outline-offset: 3px;
     border-radius: 3px;
   }
   p {
-    margin: 0 0 1.1em;
+    margin: 0 0 1.15em;
+  }
+  ::selection {
+    background: rgb(15 110 92 / 0.55);
+    color: #fff;
   }
   @media (max-width: 640px) {
     body {
@@ -67,54 +115,165 @@
   }
 }
 
+@layer components {
+  /* -------------------------------------------------------------------------
+     LE TRAVAIL SUR LES TEXTES
+
+     Trois traitements, pas un de plus. Sur fond sombre, un titre en blanc plein
+     paraît surexposé sur sa dernière ligne : le dégradé vertical lui rend la
+     hiérarchie que le papier donnait à l'encre. Le second traitement pose
+     l'accent sur UN groupe de mots par page. Le troisième est le surtitre, qui
+     remplace le filet horizontal pour ouvrir une section.
+     ------------------------------------------------------------------------- */
+
+  /* Blanc en haut, gris clair en bas : la lettre garde du relief sans jamais
+     descendre sous 7:1 de contraste sur le fond de page. */
+  .titre-degrade {
+    background: linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #dfe2e8 52%,
+      #a9aeb8 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    /* Chrome coupe les jambages des lettres clippées : on rend la place. */
+    padding-bottom: 0.06em;
+  }
+
+  /* L'accent, une fois. Diagonale douce du vert vif vers le vert produit. */
+  .accent-degrade {
+    background: linear-gradient(100deg, #7ce6cd 0%, #4fd1b4 52%, #2ab093 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Le surtitre : petite capitale espacée, accent vif, précédée d'un tiret qui
+     fait office de filet. C'est ce qui donne son rythme à une page sombre — un
+     titre sans amorce y flotte. */
+  .surtitre {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.15em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-accent-vif);
+  }
+  .surtitre::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-accent-vif));
+  }
+
+  /* Un filet de section qui s'éteint sur ses bords : sur du noir, un trait net
+     d'un bord à l'autre découpe la page en tranches. Celui-ci la respire. */
+  .filet-fondu {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-filet) 18%,
+      var(--color-filet) 82%,
+      transparent
+    );
+  }
+
+  /* La surface de carte : un voile blanc de 4 % qui s'éteint vers le bas, un
+     liseré d'un pixel, rien d'autre. Pas d'ombre portée — sur du noir, une
+     ombre ne fait qu'un halo sale. */
+  .surface {
+    border-radius: 14px;
+    border: 1px solid rgb(255 255 255 / 0.07);
+    background: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.045) 0%,
+      rgb(255 255 255 / 0.012) 100%
+    );
+  }
+
+  /* Le bouton plein : le vert produit en matière, éclairé d'un liseré haut. */
+  .bouton {
+    background: linear-gradient(160deg, #17836d 0%, #0f6e5c 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.22) inset,
+      0 8px 24px -12px rgb(15 110 92 / 0.9);
+  }
+  .bouton:hover {
+    background: linear-gradient(160deg, #1c9a80 0%, #12816b 100%);
+  }
+}
+
 /* ---------------------------------------------------------------------------
-   L'APERÇU VIVANT — le haut d'un MacBook, jouable.
+   L'APERÇU — L'ENCOCHE, ET RIEN D'AUTRE.
 
-   Tout le reste de la page est écrit en utilitaires Tailwind dans le JSX. Ce
-   bloc-ci ne l'est pas, et volontairement : ces règles sont un système couplé,
-   piloté par une seule variable (--lg-encoche) qui décide à la fois de la
-   largeur du rectangle noir, des colonnes de la grille du panneau, de la
-   hauteur de la barre des menus et de la position des deux flèches. Éclaté en
-   classes utilitaires, ce lien disparaît et la géométrie se met à diverger.
-   Une forme, un bloc.
+   Le cadrage EST le message. Pas de MacBook entier, pas de bureau, pas de Dock
+   avec des applications en dessous : cette grammaire-là promet un couteau
+   suisse, et Bouncer ne fait qu'une chose. On garde donc le seul rectangle qui
+   compte — le haut de l'écran, recadré sur l'encoche — et l'image s'éteint en
+   bas dans le fond de la page, pour dire « c'est un gros plan » sans avoir à
+   dessiner une machine.
 
-   Rien ici ne bouge tout seul. Chaque changement d'état vient d'un clic, d'une
-   touche ou d'un survol du visiteur — c'est la promesse de l'aperçu : on voit
-   le produit répondre, pas une démo qui se joue devant nous.
+   Ce bloc n'est pas écrit en utilitaires Tailwind, et volontairement : ces
+   règles sont un système couplé, piloté par une variable unique
+   (--lg-encoche) qui décide à la fois de la largeur du rectangle noir, des
+   colonnes de la grille de la pilule, de la hauteur de la barre des menus et
+   de la position des deux flèches. Éclaté en classes, ce lien disparaît et la
+   géométrie diverge. Une forme, un bloc.
+
+   Rien ne bouge tout seul. Chaque changement d'état vient d'un geste, d'un
+   clic ou d'une touche du visiteur.
    --------------------------------------------------------------------------- */
 @layer components {
   .apercu {
-    --lg-encoche: 172px;
-    --h-barre: 28px;
+    --lg-encoche: 180px;
+    --h-barre: 30px;
+    --sens: 1;
     margin: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
+    gap: 20px;
   }
 
-  /* la coque : châssis, écran, papier peint */
-  .mac {
+  /* LE GROS PLAN : le haut de l'écran, et sa lumière qui meurt vers le bas. */
+  .ecran {
     position: relative;
-    width: min(820px, 94vw);
-    aspect-ratio: 16 / 6.4;
-    padding: 9px 9px 0;
-    border-radius: 22px 22px 6px 6px;
-    background: linear-gradient(#3a3a3f, #232326);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.14) inset,
-      0 24px 60px -28px rgb(0 0 0 / 0.45),
-      0 2px 8px rgb(0 0 0 / 0.08);
-  }
-  .bureau {
-    position: relative;
-    height: 100%;
-    border-radius: 14px 14px 0 0;
+    width: min(720px, 94vw);
+    height: clamp(112px, 14vh, 140px);
+    border-radius: 18px 18px 0 0;
     overflow: hidden;
+    touch-action: pan-y;
+    cursor: ew-resize;
     background:
-      radial-gradient(120% 90% at 12% 0%, #14524a 0%, transparent 58%),
-      radial-gradient(110% 80% at 88% 12%, #2b2350 0%, transparent 60%),
-      linear-gradient(160deg, #0d2f3d, #101126 70%, #1a1330);
+      radial-gradient(
+        58% 118% at 50% 0%,
+        rgb(15 110 92 / 0.26) 0%,
+        transparent 64%
+      ),
+      linear-gradient(180deg, #161a21 0%, #0d1015 46%, var(--color-nuit) 100%);
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.08) inset,
+      0 1px 0 rgb(255 255 255 / 0.14) inset;
+  }
+  /* Le liseré latéral s'éteint lui aussi : le cadre ne doit pas se refermer en
+     bas, sinon on relit une petite fenêtre au lieu d'un gros plan. */
+  .ecran::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      transparent 34%,
+      var(--color-nuit) 100%
+    );
   }
 
   /* la barre des menus, que la pilule d'app recouvre en partie */
@@ -126,11 +285,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 13px;
-    font-size: 11px;
+    padding: 0 14px;
+    font-size: 11.5px;
     line-height: 1;
-    color: rgb(255 255 255 / 0.82);
-    background: rgb(255 255 255 / 0.07);
+    color: rgb(255 255 255 / 0.62);
+    background: rgb(255 255 255 / 0.05);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
   }
@@ -138,14 +297,15 @@
   .barre-menus .etat {
     display: flex;
     align-items: center;
-    gap: 13px;
+    gap: 14px;
   }
   .barre-menus .fort {
     font-weight: 600;
+    color: rgb(255 255 255 / 0.86);
   }
   .barre-menus svg {
     display: block;
-    opacity: 0.85;
+    opacity: 0.8;
   }
 
   /* l'encoche et les pilules d'app : la géométrie commune */
@@ -157,7 +317,7 @@
     width: var(--lg-encoche);
     height: var(--h-barre);
     background: var(--color-noir);
-    border-radius: 0 0 13px 13px;
+    border-radius: 0 0 14px 14px;
     z-index: 3;
   }
   .lentille {
@@ -168,96 +328,111 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #14141a;
-    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06);
+    background: #101016;
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.07);
     z-index: 4;
   }
 
-  .panneau {
+  /* LA PILULE. Une par app, toutes au même endroit — c'est le sujet. Celle qui
+     est en scène est nette et centrée ; l'autre est sortie du côté d'où le
+     geste vient. Le relais se lit donc dans le sens du mouvement. */
+  .pilule {
     position: absolute;
     top: 0;
     left: 50%;
-    transform: translateX(-50%);
-    width: calc(var(--lg-encoche) * 2.15);
+    width: calc(var(--lg-encoche) * 2.55);
     height: var(--h-barre);
-    background: #0c0c10;
-    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.07);
-    border-radius: 0 0 15px 15px;
+    background: linear-gradient(180deg, #0b0c10 0%, #08090c 100%);
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.08),
+      0 10px 26px -16px rgb(0 0 0 / 0.9);
+    border-radius: 0 0 16px 16px;
     z-index: 2;
     display: grid;
     grid-template-columns: 1fr var(--lg-encoche) 1fr;
     align-items: center;
-    color: #fff;
-    font-size: 11px;
+    color: rgb(255 255 255 / 0.88);
+    font-size: 11.5px;
     line-height: 1;
     opacity: 0;
+    transform: translateX(calc(-50% + var(--sens) * -22px)) scale(0.965);
     pointer-events: none;
     transition:
-      opacity 0.42s var(--ease-courbe),
-      transform 0.42s var(--ease-courbe);
+      opacity 0.34s var(--ease-courbe),
+      transform 0.34s var(--ease-courbe);
   }
-  .panneau.actif {
+  .pilule.actif {
     opacity: 1;
+    transform: translateX(-50%) scale(1);
   }
-  .panneau .g {
-    padding-left: 15px;
+  .pilule .g {
+    padding-left: 16px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
+    min-width: 0;
   }
-  .panneau .d {
-    padding-right: 15px;
+  .pilule .d {
+    padding-right: 16px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     justify-content: flex-end;
+  }
+  .pilule .nom {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .pastille {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #fff;
-    opacity: 0.55;
+    background: rgb(255 255 255 / 0.4);
   }
   .pastille.vive {
-    background: #2fd0a8;
-    opacity: 1;
+    background: var(--color-accent-vif);
   }
   .onde {
     display: flex;
     align-items: flex-end;
     gap: 2px;
-    height: 12px;
+    height: 13px;
   }
   .onde i {
     width: 2px;
-    background: #fff;
-    opacity: 0.75;
     border-radius: 1px;
+    background: var(--color-accent-vif);
+    opacity: 0.85;
   }
   .valeur {
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.01em;
-    opacity: 0.9;
+    color: rgb(255 255 255 / 0.7);
   }
 
-  /* Bouncer débranché : les trois pilules dessinent au même endroit. Les
-     valeurs se chevauchent et deviennent illisibles — ce n'est pas un effet,
-     c'est ce que macOS affiche quand deux apps d'encoche tournent ensemble. */
-  .apercu[data-bouncer="off"] .panneau {
+  /* BOUNCER DÉBRANCHÉ. Les pilules dessinent toutes au même endroit, à des
+     largeurs voisines : les bords se coupent, les valeurs se superposent. Ce
+     n'est pas un effet de style, c'est ce que macOS affiche quand deux apps
+     d'encoche tournent ensemble. */
+  .apercu[data-bouncer="off"] .pilule {
     opacity: 1;
-    background: rgb(12 12 16 / 0.6);
+    transform: translateX(-50%) scale(1);
+    background: rgb(11 12 16 / 0.72);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.07);
   }
-  .apercu[data-bouncer="off"] .panneau[data-i="1"] {
-    width: calc(var(--lg-encoche) * 2.34);
-    transform: translateX(calc(-50% + 15px));
-  }
-  .apercu[data-bouncer="off"] .panneau[data-i="2"] {
-    width: calc(var(--lg-encoche) * 1.96);
-    transform: translateX(calc(-50% - 13px));
+  /* Chaque pilule tient son rang (--i) de son ordre dans `content/demo.ts` :
+     la largeur et le décalage en dérivent, et la scène supporte donc un
+     troisième larron sans qu'on retouche une règle. */
+  .apercu[data-bouncer="off"] .pilule {
+    width: calc(var(--lg-encoche) * (2.78 - var(--i) * 0.42));
+    transform: translateX(calc(-50% + 19px - var(--i) * 36px));
   }
 
-  /* les flèches, sur le boîtier caméra, au survol de l'écran */
+  /* Les flèches, sur le boîtier caméra, au survol de l'écran. Elles doublent le
+     geste pour la souris et pour le clavier ; elles ne le remplacent pas. */
   .fleche {
     position: absolute;
     top: 0;
@@ -267,21 +442,27 @@
     background: transparent;
     border: 0;
     cursor: pointer;
-    color: #fff;
+    color: rgb(255 255 255 / 0.92);
     display: grid;
     place-items: center;
     opacity: 0;
+    /* Elles s'allument PAR-DESSUS la pilule, comme dans l'app : un voile sombre
+       leur rend leur lisibilité sans les déplacer ailleurs qu'au bon endroit. */
+    border-radius: 0 0 9px 9px;
+    background: rgb(6 7 9 / 0.78);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
     transition: opacity 0.22s var(--ease-courbe);
   }
   .fleche.gauche {
-    left: calc(50% - var(--lg-encoche) / 2 - 32px);
+    left: calc(50% - var(--lg-encoche) / 2 - 30px);
   }
   .fleche.droite {
-    right: calc(50% - var(--lg-encoche) / 2 - 32px);
+    right: calc(50% - var(--lg-encoche) / 2 - 30px);
   }
-  .mac:hover .fleche,
+  .ecran:hover .fleche,
   .fleche:focus-visible {
-    opacity: 0.9;
+    opacity: 1;
   }
   @media (hover: none) {
     .fleche {
@@ -293,100 +474,68 @@
     height: 14px;
   }
 
-  /* le Dock : c'est par là que le visiteur commande la bascule */
-  .dock {
+  /* LE GESTE. La seule commande de la scène, sous l'encoche, à l'endroit exact
+     où la main passe. On la tire horizontalement — c'est le swipe à deux doigts
+     transposé à la souris — et un clic simple avance aussi d'un cran. */
+  .piste {
     position: absolute;
-    bottom: 12px;
     left: 50%;
+    top: calc(var(--h-barre) + 28px);
     transform: translateX(-50%);
     z-index: 5;
-    display: flex;
-    gap: 10px;
-    padding: 9px 11px;
-    border-radius: 18px;
-    background: rgb(255 255 255 / 0.13);
-    border: 1px solid rgb(255 255 255 / 0.18);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-  }
-  .tuile {
-    position: relative;
-    width: 46px;
-    height: 46px;
-    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 16px;
     border: 0;
-    border-radius: 12px;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    color: #fff;
-    background: linear-gradient(#4b4b6a, #2c2c44);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.18) inset,
-      0 3px 8px rgb(0 0 0 / 0.28);
+    border-radius: 999px;
+    cursor: ew-resize;
+    color: rgb(255 255 255 / 0.72);
+    font-family: inherit;
+    font-size: 12.5px;
+    line-height: 1;
+    white-space: nowrap;
+    background: rgb(255 255 255 / 0.055);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     transition:
-      transform 0.18s var(--ease-courbe),
-      filter 0.18s var(--ease-courbe);
+      background 0.2s var(--ease-courbe),
+      color 0.2s var(--ease-courbe);
   }
-  .tuile:nth-child(2) {
-    background: linear-gradient(#1f6f63, #10453f);
+  .piste:hover {
+    background: rgb(255 255 255 / 0.09);
+    color: #fff;
   }
-  .tuile:nth-child(3) {
-    background: linear-gradient(#7a4a5f, #46283a);
-  }
-  .tuile:hover {
-    transform: translateY(-4px);
-    filter: brightness(1.12);
-  }
-  /* le point de l'app en scène, comme le point du Dock sous une app ouverte */
-  .tuile::after {
-    content: "";
-    position: absolute;
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: #fff;
-    opacity: 0;
-  }
-  .tuile[aria-pressed="true"]::after {
-    opacity: 0.9;
-  }
-  .tuile[aria-pressed="true"] {
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.22) inset,
-      0 0 0 2px rgb(255 255 255 / 0.55),
-      0 3px 10px rgb(0 0 0 / 0.32);
-  }
-  .apercu[data-bouncer="off"] .tuile::after {
-    opacity: 0.9;
-  }
-  .tuile svg {
-    width: 22px;
-    height: 22px;
+  .piste svg {
+    display: block;
+    color: var(--color-accent-vif);
   }
 
-  /* le pupitre : ce qui dit que la scène est jouable, et où on en est */
+  /* LE PUPITRE : qui est dans l'encoche, et l'interrupteur qui débranche
+     Bouncer. Deux informations, pas trois. */
   .pupitre {
-    width: min(820px, 94vw);
+    width: min(720px, 94vw);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 10px 12px 10px 16px;
-    border: 1px solid var(--color-filet);
+    padding: 11px 13px 11px 17px;
     border-radius: 14px;
-    background: var(--color-fond-carte);
+    border: 1px solid rgb(255 255 255 / 0.07);
+    background: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.045) 0%,
+      rgb(255 255 255 / 0.012) 100%
+    );
     font-size: 0.875rem;
     color: var(--color-gris);
   }
   .pupitre .etat {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
     min-width: 0;
   }
   .pupitre .puce {
@@ -394,10 +543,12 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--color-accent);
+    background: var(--color-accent-vif);
+    box-shadow: 0 0 0 4px rgb(79 209 180 / 0.16);
   }
   .apercu[data-bouncer="off"] .pupitre .puce {
-    background: #c94f4f;
+    background: #ff6b6b;
+    box-shadow: 0 0 0 4px rgb(255 107 107 / 0.16);
   }
   .pupitre strong {
     color: var(--color-encre);
@@ -406,22 +557,23 @@
   .pupitre .commandes {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
   .interrupteur {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    border: 1px solid var(--color-filet);
+    gap: 9px;
+    padding: 6px 13px;
+    border: 1px solid rgb(255 255 255 / 0.1);
     border-radius: 999px;
-    background: #fff;
+    background: rgb(255 255 255 / 0.03);
     color: var(--color-gris);
+    font-family: inherit;
     font-size: 0.8125rem;
     cursor: pointer;
   }
   .interrupteur:hover {
-    border-color: #d4d4d8;
+    border-color: rgb(255 255 255 / 0.2);
     color: var(--color-encre);
   }
   .interrupteur .rail {
@@ -444,7 +596,7 @@
     transition: left 0.2s var(--ease-courbe);
   }
   .interrupteur[aria-pressed="false"] .rail {
-    background: #c9c9cf;
+    background: #3a3d46;
   }
   .interrupteur[aria-pressed="false"] .rail::after {
     left: 2px;
@@ -455,10 +607,10 @@
     display: inline-block;
     min-width: 1.5em;
     padding: 2px 6px;
-    border: 1px solid var(--color-filet);
+    border: 1px solid rgb(255 255 255 / 0.12);
     border-bottom-width: 2px;
     border-radius: 6px;
-    background: #fff;
+    background: rgb(255 255 255 / 0.04);
     font-family: var(--font-sans);
     font-size: 0.8125rem;
     line-height: 1.35;
@@ -468,32 +620,39 @@
 
   @media (max-width: 700px) {
     .apercu {
-      --lg-encoche: 104px;
-      --h-barre: 22px;
+      --lg-encoche: 108px;
+      --h-barre: 24px;
     }
-    .mac {
-      aspect-ratio: 16 / 8;
-      padding: 6px 6px 0;
-      border-radius: 16px 16px 5px 5px;
+    .ecran {
+      height: clamp(96px, 16vh, 124px);
+      border-radius: 14px 14px 0 0;
     }
-    .panneau {
-      font-size: 9px;
+    .pilule {
+      /* L'encoche rétrécit plus vite que le nom de l'app : la pilule reprend en
+         largeur relative ce que la petite typo ne compense pas. */
+      width: calc(var(--lg-encoche) * 2.95);
+      font-size: 9.5px;
       border-radius: 0 0 12px 12px;
     }
+    .pilule .g {
+      padding-left: 10px;
+      gap: 6px;
+    }
+    .pilule .d {
+      padding-right: 10px;
+      gap: 6px;
+    }
     .barre-menus {
-      font-size: 9px;
-      padding: 0 9px;
+      font-size: 9.5px;
+      padding: 0 10px;
     }
     .barre-menus .menus > :nth-child(n + 3) {
       display: none;
     }
-    .tuile {
-      width: 38px;
-      height: 38px;
-    }
-    .tuile svg {
-      width: 18px;
-      height: 18px;
+    .piste {
+      top: calc(var(--h-barre) + 26px);
+      font-size: 11.5px;
+      padding: 8px 14px;
     }
     .fleche.gauche {
       left: calc(50% - var(--lg-encoche) / 2 - 26px);
@@ -505,9 +664,9 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Mouvement réduit. L'aperçu n'a rien à démonter — il ne bouge que sur ordre
-   du visiteur, et il reste entièrement jouable ici. On coupe seulement les
-   fondus et les décollements de tuile.
+   Mouvement réduit. L'aperçu n'a rien à démonter — il ne bouge que sur ordre du
+   visiteur, et il reste entièrement jouable ici. On coupe seulement les fondus
+   et le glissement latéral des pilules.
    --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -516,8 +675,8 @@
     transition: none !important;
     animation: none !important;
   }
-  .tuile:hover {
-    transform: none;
+  .pilule {
+    transform: translateX(-50%) scale(1);
   }
   .fleche {
     opacity: 0.9;

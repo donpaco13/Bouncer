@@ -11,37 +11,43 @@
     "piedVersions": "Releases"
   },
   "demo": {
-    "nom1": "Agent tracker",
-    "nom2": "Music",
-    "nom3": "Calendar",
-    "agents": "4 agents",
-    "duree": "2:41",
-    "jour": "Thu 14",
-    "heure": "11:00"
+    "contenus": {
+      "musique": {
+        "valeur": "2:41"
+      },
+      "agents": {
+        "valeur": "4 agents"
+      },
+      "calendrier": {
+        "valeur": "Thu 14 · 11:00"
+      }
+    }
   },
   "apercu": {
-    "invite": "Click an app in the Dock. On stage:",
+    "invite": "Swipe across the notch, or click. In the notch:",
     "enScene": "In the notch:",
-    "debranche": "Without Bouncer: three apps drawing in the same place.",
+    "debranche": "Without Bouncer: both apps drawing in the same place.",
     "bouncerActif": "Bouncer",
     "precedente": "Previous notch app",
     "suivante": "Next notch app",
-    "choisir": "Put in the notch:",
+    "geste": "Swipe",
     "raccourci": "works here too"
   },
   "heros": {
     "titreLigne1": "One notch.",
-    "titreLigne2": "One app at a time.",
+    "titreLigne2": "<accent>One app</accent> at a time.",
     "chapo": "Your notch apps all stay open. Bouncer decides which one you see, and you change your mind with a two-finger swipe.",
     "installer": "Install Bouncer",
     "voirCompatibles": "See how your apps are handled"
   },
   "probleme": {
+    "surtitre": "The problem",
     "titre": "macOS coordinates nothing",
     "para1": "Vibe Island, boringNotch, Alcove, Notchy: each one draws its own pill under your MacBook’s notch. Open two and they land on the same rectangle, one over the other. That’s the state you just saw when you switched Bouncer off.",
     "para2": "There is no coordination API, and no such thing as an “active notch app”. <fort>The only way out macOS gives you is to quit one app to use the other</fort>, then launch it again when you need it back. Bouncer handles that for you, and fast."
   },
   "commandes": {
+    "surtitre": "The gesture",
     "titre": "Four ways to change app",
     "chapo": "Take whichever is closest to hand. They all do the same thing: move one step through the cycle.",
     "swipeTitre": "The swipe on the notch",
@@ -57,6 +63,7 @@
     "menuEnCours": "switching"
   },
   "moteur": {
+    "surtitre": "Under the hood",
     "titre": "What happens when you switch",
     "chapo": "Two routes, picked automatically from what each app’s binary accepts. There is nothing for you to set.",
     "chiffre1": "46 ms",
@@ -74,6 +81,7 @@
     "refusCorps": "No private APIs, no WindowServer injection: those are the tricks that break on every minor macOS update. An app that refuses to quit is never force-killed — it may well have something to save. Bouncer notes it and leaves the app alone."
   },
   "compatibilite": {
+    "surtitre": "Compatibility",
     "titre": "Does it work with your apps?",
     "chapo": "Four apps managed today, measured one by one on a real machine. Three more are waiting on a detection fix that has already been pinned down.",
     "legendeTableau": "Compatibility matrix of notch apps",
@@ -126,6 +134,7 @@
     "verifierCorps": "Once Bouncer is installed, this command lists the apps it found under your notch, with the verdict it gave each one."
   },
   "prerequis": {
+    "surtitre": "Requirements",
     "titre": "What you need",
     "chapo": "Four things, and you probably already have three of them.",
     "item1Titre": "macOS 14 Sonoma or later",
@@ -138,6 +147,7 @@
     "item4Corps": "Bouncer is a stage manager, not a notch widget. With no third-party app installed it has nothing to arbitrate, and it tells you so right in the welcome guide."
   },
   "installation": {
+    "surtitre": "Install",
     "titre": "Install",
     "chapo": "One line in the terminal, or an archive to drag across.",
     "copier": "Copy",
@@ -159,6 +169,7 @@
     "apres2": "On first launch, a welcome guide shows you where Bouncer sits in the menu bar, checks the Accessibility permission live, and has you try the gesture."
   },
   "faq": {
+    "surtitre": "Questions",
     "titre": "Common questions",
     "q1": "Do my apps close when I switch?",
     "r1": "Not on the fast route: the app is hidden, stays in memory and comes back in the state you left it. On the relaunch route, yes, it restarts. The table says row by row what to expect.",

@@ -15,17 +15,19 @@ export const bloc = "mx-auto max-w-[34rem]";
 export const corps = "[&_p]:text-gris [&_strong]:font-semibold [&_strong]:text-encre";
 
 export const titre =
-  "mx-auto mb-[.55em] text-balance text-center text-titre font-semibold leading-[1.08] tracking-titre";
+  "titre-degrade mx-auto mb-[.55em] text-balance text-center text-titre font-semibold leading-[1.08] tracking-titre";
 
 export const chapo =
   "mx-auto my-0 max-w-[32rem] text-center text-chapo font-normal leading-[1.5] text-gris";
 
 /** Une liste numérotée d'étapes d'installation. */
 export const etapes =
-  "mx-auto max-w-[34rem] list-decimal pl-[1.35em] text-gris marker:tabular-nums marker:text-marqueur [&>li]:mb-[.55em]";
+  "mx-auto max-w-[34rem] list-decimal pl-[1.35em] text-gris marker:tabular-nums marker:text-sourdine [&>li]:mb-[.55em]";
 
-/** Le cadre clair qui isole une citation ou une commande. */
-export const carte = "rounded-xl border border-filet bg-fond-carte";
+/** Le cadre qui isole une carte, une citation ou une commande : le voile blanc
+    de 4 % défini dans `globals.css`, jamais un fond plein. Sur du noir, une
+    surface opaque plus claire que le fond se lit comme un trou. */
+export const carte = "surface";
 
 /** Le titre d'un bloc à l'intérieur d'une section. */
 export const sousTitre =
