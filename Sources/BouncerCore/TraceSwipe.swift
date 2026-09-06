@@ -11,9 +11,9 @@
 // événements par geste remplit un disque sans que personne le lise. On l'allume pour une session
 // de mesure, on relit, on éteint :
 //
-//     defaults write com.bouncer.app bouncer.traceSwipe -bool true    # puis relancer Bouncer
+//     defaults write io.github.donpaco13.bouncer bouncer.traceSwipe -bool true    # puis relancer Bouncer
 //     tail -f ~/Library/Logs/Bouncer/swipe.log
-//     defaults write com.bouncer.app bouncer.traceSwipe -bool false
+//     defaults write io.github.donpaco13.bouncer bouncer.traceSwipe -bool false
 //
 // Écrit en TSV et non en JSON : ces lignes se lisent à l'œil et se trient à l'`awk`, et c'est ce
 // qu'on en fait. L'écriture est différée sur une file dédiée — le journal ne doit pas ajouter de
@@ -22,13 +22,24 @@
 import Foundation
 
 public enum TraceSwipe {
+    public static let clePreference = "bouncer.traceSwipe"
+    public static let bundleIDReel = "io.github.donpaco13.bouncer"
+    public static let variableEnvironnement = "BOUNCER_TRACE_SWIPE"
+
+    /// Détermine si l'instrumentation est active pour un domaine de préférences et un environnement donnés.
+    public static func estActif(
+        defaults: UserDefaults = .standard,
+        env: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
+        defaults.bool(forKey: clePreference) || env[variableEnvironnement] == "1"
+    }
+
     /// Lu une seule fois au démarrage : le drapeau ne change pas en cours de vie, et le relire à
     /// chaque événement mettrait `UserDefaults` sur le chemin critique du geste.
     /// La variable d'environnement double la préférence pour une raison pratique : un binaire de
     /// développement lancé hors bundle n'a pas de domaine `UserDefaults` stable, donc
     /// `defaults write` n'y arrive pas — et c'est justement le binaire sur lequel on mesure.
-    public static let active: Bool = UserDefaults.standard.bool(forKey: "bouncer.traceSwipe")
-        || ProcessInfo.processInfo.environment["BOUNCER_TRACE_SWIPE"] == "1"
+    public static let active: Bool = estActif()
 
     private static let file = DispatchQueue(label: "com.bouncer.trace", qos: .utility)
     private static let debut = Date()

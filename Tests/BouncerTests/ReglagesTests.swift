@@ -106,6 +106,26 @@ struct ReglagesTests {
         #expect(Reglages(defaults: defaults).bundleIDsExclus.isEmpty)
     }
 
+    @Test("Les exclusions orphelines sont visibles et retirables (N9)")
+    func exclusionsOrphelinesVisiblesEtRetirables() {
+        let defaults = defaultsJetables()
+        let r = Reglages(defaults: defaults)
+        r.exclusion("app.vibeisland.macos", exclue: true)
+        r.exclusion("com.pais.handy", exclue: true)
+
+        let entrees = [
+            EntreeMenu(bundleID: "app.vibeisland.macos", nom: "Vibe Island", etat: .inactive, detail: "")
+        ]
+
+        let orphelines = r.exclusionsOrphelines(dans: entrees)
+        #expect(orphelines == ["com.pais.handy"])
+
+        r.retirerExclusion("com.pais.handy")
+        #expect(r.exclusionsOrphelines(dans: entrees).isEmpty)
+        #expect(r.bundleIDsExclus == ["app.vibeisland.macos"])
+        #expect(Reglages(defaults: defaults).bundleIDsExclus == ["app.vibeisland.macos"])
+    }
+
     @Test("Le mode d'activation dit ce que chaque entrée du geste a le droit de faire")
     func modeActivation() {
         #expect(ModeActivation.lesDeux.swipeActif && ModeActivation.lesDeux.flechesActives)
@@ -142,7 +162,15 @@ struct CyclablesTests {
         let entrees = [entree("a")]
         #expect(bundleIDsCyclables(entrees: entrees, exclus: ["disparue"]) == ["a"])
     }
+
+    @Test("exclusionsOrphelines identifie les exclusions absentes du menu (N9)")
+    func exclusionsOrphelinesFonctionPure() {
+        let entrees = [entree("a"), entree("b")]
+        let orphelines = exclusionsOrphelines(entrees: entrees, exclus: ["b", "com.pais.handy", "autre.inconnue"])
+        #expect(orphelines == ["autre.inconnue", "com.pais.handy"])
+    }
 }
+
 
 //
 // RaccourciGlobalTests — ce que la suite PEUT verrouiller sur le raccourci global.

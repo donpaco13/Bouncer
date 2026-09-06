@@ -314,4 +314,19 @@ struct RaisonTests {
         _ = d.recoit(evt(.encours))
         #expect(d.raison == .nonArme)
     }
+
+    @Test("L'instrumentation du geste lit bouncer.traceSwipe et documente le bon bundleID (N7)")
+    func traceSwipeActivationEtBundleID() {
+        let suite = UUID().uuidString
+        let d = UserDefaults(suiteName: suite)!
+        defer { d.removePersistentDomain(forName: suite) }
+
+        #expect(!TraceSwipe.estActif(defaults: d, env: [:]))
+
+        d.set(true, forKey: TraceSwipe.clePreference)
+        #expect(TraceSwipe.estActif(defaults: d, env: [:]))
+
+        #expect(TraceSwipe.bundleIDReel == "io.github.donpaco13.bouncer")
+        #expect(TraceSwipe.clePreference == "bouncer.traceSwipe")
+    }
 }

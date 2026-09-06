@@ -371,6 +371,7 @@ private struct OngletApplications: View {
     var body: some View {
         let entrees = windowManager.entreesMenu
         let retenues = entrees.filter { !reglages.bundleIDsExclus.contains($0.bundleID) }
+        let orphelines = reglages.exclusionsOrphelines(dans: entrees)
 
         Form {
             Section {
@@ -410,6 +411,32 @@ private struct OngletApplications: View {
                     .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("Une app décochée reste dans le menu et reste cliquable — elle n'apparaît simplement plus dans le cycle. Utile pour une app d'encoche qu'on garde ouverte en permanence.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if !orphelines.isEmpty {
+                Section {
+                    ForEach(orphelines, id: \.self) { bundleID in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(bundleID)
+                                Text("App non détectée sur ce Mac")
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Retirer") {
+                                reglages.retirerExclusion(bundleID)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Exclusions orphelines")
+                } footer: {
+                    Text("Ces apps ont été exclues précédemment mais ne sont plus détectées. Les retirer permet d'éviter qu'elles restent exclues si elles sont réinstallées ou re-détectées.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
