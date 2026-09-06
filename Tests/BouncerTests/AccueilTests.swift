@@ -65,7 +65,7 @@ struct ParcoursAccueilTests {
 ///
 /// Le mot « hello » ayant grandi (tracé vectoriel à 187 pt contre 132 pt pour le lettrage
 /// manuscrit initial, soit +55 pt), la page `.bienvenue` est devenue la plus haute du parcours
-/// (290 pt de contenu, 439 pt de fenêtre minimale requise, seuil visibleFrame à 491 pt).
+/// (290 pt de contenu, 451 pt de fenêtre minimale requise, seuil visibleFrame à 503 pt).
 struct DefilementAccueilTests {
     @Test func accueilDefilableQuandLeContenuDepasseLaHauteurUtile() throws {
         // 1. Vérifie la présence du ScrollView dans FenetreAccueil.swift
@@ -108,18 +108,18 @@ struct DefilementAccueilTests {
 
     @Test func leSeuilRecalculeTientCompteDuNouveauTraceHello() {
         // Hello mesure 187 pt de haut au lieu de 132 pt (+55 pt).
-        // Le contenu de l'accueil nécessite 290 pt (34 pt marge haut + 290 pt contenu + 115 pt pied = 439 pt).
-        // Le seuil de visibleFrame sans défilement (titre 28 + respiration 24 = 52 pt) vaut donc 491 pt.
+        // Le contenu de l'accueil nécessite 290 pt (34 pt marge haut + 290 pt contenu + 127 pt pied = 451 pt).
+        // Le seuil de visibleFrame sans défilement (titre 28 + respiration 24 = 52 pt) vaut donc 503 pt.
         let seuilBienvenue = GeometrieAccueil.seuilVisibleFrameSansDefilement(pour: .bienvenue)
-        #expect(seuilBienvenue == 491)
+        #expect(seuilBienvenue == 503)
 
         let hauteurFenetreMin = GeometrieAccueil.hauteurMinimaleFenetreSansDefilement(pour: .bienvenue)
-        #expect(hauteurFenetreMin == 439)
+        #expect(hauteurFenetreMin == 451)
 
-        // Dans la fenêtre standard de 580 pt, la marge restante est de 141 pt (580 - 439)
-        // alors qu'elle était de 196 pt (580 - 384) avec l'ancien hello de 132 pt.
+        // Dans la fenêtre standard de 580 pt, la marge restante est de 129 pt (580 - 451)
+        // alors qu'elle était de 141 pt avec l'ancienne constante sous-estimée à 115 pt.
         let margeDisponible = GeometrieAccueil.hauteurVoulue - hauteurFenetreMin
-        #expect(margeDisponible == 141)
+        #expect(margeDisponible == 129)
     }
 
     @Test func laFenetreNeDepassePasLEcranSurPetitsEcrans() {
@@ -130,5 +130,34 @@ struct DefilementAccueilTests {
         let cadreTotal = hauteur + GeometrieAccueil.hauteurBarreDeTitre
         #expect(cadreTotal <= visibleCourt)
         #expect(hauteur >= GeometrieAccueil.plancherHauteur)
+    }
+}
+
+/// Vérifie que la constante `hauteurPiedDePage` ne ment plus et correspond exactement
+/// à la hauteur réelle mesurée par le moteur de rendu AppKit / SwiftUI.
+///
+/// Défaut D4 de la QA passe 4 : la constante valait 115 pt déclarée à la main.
+/// La mesure réelle d'un `NSHostingView(rootView: PiedDePageAccueil)` à 660 pt de large
+/// donne 127 pt (bouton principal 41 pt + espacement 18 pt + rangée navigation 14 pt +
+/// espacement vers bouton ⌘W 18 pt + marges 36 pt = 127 pt).
+@MainActor
+struct PiedDePageTests {
+    @Test func laHauteurReelleDuPiedDePageCorrespondALaConstante() {
+        for etape in EtapeAccueil.allCases {
+            let mesuree = PiedDePageAccueil.mesurerHauteur(pour: etape)
+            #expect(
+                mesuree == GeometrieAccueil.hauteurPiedDePage,
+                "La hauteur mesurée du pied de page pour l'étape \(etape) (\(mesuree) pt) ne correspond pas à GeometrieAccueil.hauteurPiedDePage (\(GeometrieAccueil.hauteurPiedDePage) pt)"
+            )
+            #expect(mesuree == 127)
+        }
+    }
+
+    @Test func laHauteurEstStrictementConstanteDUnEcranALAutre() {
+        let hauteurs = EtapeAccueil.allCases.map { PiedDePageAccueil.mesurerHauteur(pour: $0) }
+        let premiere = hauteurs[0]
+        for hauteur in hauteurs {
+            #expect(hauteur == premiere)
+        }
     }
 }
