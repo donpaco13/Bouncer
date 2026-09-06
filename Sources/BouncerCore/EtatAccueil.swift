@@ -73,7 +73,11 @@ public enum GeometrieAccueil {
     public static let margeRespiration: CGFloat = 24
     public static let hauteurBarreDeTitre: CGFloat = 28
     public static let margePastillesHaut: CGFloat = 34
-    public static let hauteurPiedDePage: CGFloat = 115
+    /// Hauteur mesurée du pied de page (bouton principal 41 pt + espacement 18 pt + rangée
+    /// de navigation 14 pt + espacement vers bouton masqué ⌘W 18 pt + marges 36 pt = 127 pt).
+    /// MESURÉ par `PiedDePageAccueil.mesurerHauteur()` et verrouillé par `PiedDePageTests` :
+    /// l'ancienne constante déclarée à 115 pt omettait l'espacement vers le bouton ⌘W.
+    public static let hauteurPiedDePage: CGFloat = 127
 
     /// Hauteur minimale hors contenu (pastilles en haut + boutons et pagination en bas).
     public static var hauteurFixe: CGFloat {

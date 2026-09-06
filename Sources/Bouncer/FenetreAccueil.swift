@@ -131,25 +131,7 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
     }
 }
 
-// MARK: - Palette
 
-/// Le parcours ne suit pas le thème du système : il est sombre en permanence, comme l'écran
-/// d'accueil d'un Mac neuf. Les couleurs sont donc écrites, pas sémantiques.
-private enum Nuit {
-    static let fond = LinearGradient(
-        colors: [
-            Color(red: 0.055, green: 0.094, blue: 0.216),
-            Color(red: 0.027, green: 0.043, blue: 0.118),
-            Color(red: 0.016, green: 0.024, blue: 0.071),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-    static let encre = Color.white
-    static let doux = Color.white.opacity(0.60)
-    static let tresDoux = Color.white.opacity(0.38)
-    static let trait = Color.white.opacity(0.12)
-}
 
 // MARK: - Le tracé « hello »
 
@@ -324,7 +306,12 @@ struct VueAccueil: View {
             // plafond mord et que le défilement apparaît.
             .scrollBounceBehavior(.basedOnSize)
 
-            piedDePage
+            PiedDePageAccueil(
+                etape: $etape,
+                avancer: avancer,
+                reculer: reculer,
+                fermer: fermer
+            )
         }
         .frame(width: largeur, height: hauteur)
         .background(Nuit.fond)
@@ -513,70 +500,7 @@ struct VueAccueil: View {
         return n == 1 ? "1 app d’encoche détectée" : "\(n) apps d’encoche détectées"
     }
 
-    // MARK: Pied de page
 
-    private var piedDePage: some View {
-        VStack(spacing: 18) {
-            Button(action: avancer) {
-                Text(libelleBouton)
-            }
-            .buttonStyle(BoutonPrincipal())
-            .keyboardShortcut(.defaultAction)
-
-            HStack {
-                // Le retour occupe sa place même sur le premier écran : sinon les points de
-                // pagination se décalent d'un écran à l'autre.
-                Button(action: reculer) {
-                    Label("Retour", systemImage: "chevron.left")
-                        .labelStyle(.titleAndIcon)
-                        .font(.system(size: 11.5, weight: .medium))
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Nuit.doux)
-                .opacity(etape.precedente == nil ? 0 : 1)
-                .disabled(etape.precedente == nil)
-                .accessibilityHidden(etape.precedente == nil)
-                .frame(width: 92, alignment: .leading)
-
-                Spacer()
-
-                PointsPagination(etape: $etape)
-
-                Spacer()
-
-                Button("Passer", action: fermer)
-                    .buttonStyle(.plain)
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(Nuit.tresDoux)
-                    .opacity(etape.estDerniere ? 0 : 1)
-                    .disabled(etape.estDerniere)
-                    .accessibilityHidden(etape.estDerniere)
-                    .frame(width: 92, alignment: .trailing)
-                    .accessibilityHint("Ferme la présentation et commence à utiliser Bouncer")
-            }
-
-            // ⌘W n'a pas d'équivalent AppKit ici : une app LSUIElement n'a pas de menu Fichier
-            // d'où le raccourci viendrait. Échap, lui, n'est PAS ici — `FenetreAccueilWindow`
-            // l'intercepte au niveau de la fenêtre.
-            Button("Fermer la présentation avec commande W", action: fermer)
-                .keyboardShortcut("w", modifiers: .command)
-                .opacity(0)
-                .frame(width: 0, height: 0)
-                .accessibilityHidden(true)
-        }
-        .padding(.horizontal, 44)
-        .padding(.bottom, 30)
-        .padding(.top, 6)
-    }
-
-    /// Le premier écran invite (« Commencer »), les suivants enchaînent, le dernier conclut.
-    private var libelleBouton: String {
-        switch etape {
-        case .bienvenue: return "Commencer"
-        case .pret: return "Utiliser Bouncer"
-        default: return "Continuer"
-        }
-    }
 
     private func avancer() {
         guard let suivante = etape.suivante else {
@@ -666,69 +590,7 @@ private struct LigneBilan: View {
     }
 }
 
-/// Les cinq points du bas. Cliquables : sur un parcours court, sauter à l'écran qu'on cherche
-/// vaut mieux que quatre « Continuer » d'affilée.
-private struct PointsPagination: View {
-    @Binding var etape: EtapeAccueil
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(spacing: 8) {
-            ForEach(EtapeAccueil.allCases) { candidate in
-                Button {
-                    if reduceMotion {
-                        etape = candidate
-                    } else {
-                        withAnimation(.easeInOut(duration: 0.28)) { etape = candidate }
-                    }
-                } label: {
-                    Capsule()
-                        .fill(candidate == etape ? Nuit.encre : Color.white.opacity(0.22))
-                        .frame(width: candidate == etape ? 20 : 7, height: 7)
-                        // La cible cliquable dépasse largement le point dessiné : 7 pt de haut,
-                        // c'est sous la taille minimale d'une cible pointée.
-                        .contentShape(Rectangle().inset(by: -7))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Écran \(candidate.rawValue + 1) sur \(EtapeAccueil.allCases.count)")
-                .accessibilityAddTraits(candidate == etape ? [.isSelected] : [])
-            }
-        }
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.28), value: etape)
-    }
-}
-
 // MARK: - Boutons
-
-/// Le bouton clair et large du bas, seul appel à l'action de chaque écran.
-///
-/// Le survol vit dans une vue imbriquée et non sur le style : un `@State` posé sur le
-/// `ButtonStyle` lui-même n'a pas de nœud dans le graphe de vues — il se laisse écrire et ne
-/// redessine jamais rien.
-private struct BoutonPrincipal: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { Corps(configuration: configuration) }
-
-    private struct Corps: View {
-        let configuration: ButtonStyleConfiguration
-
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
-        @State private var survol = false
-
-        var body: some View {
-            configuration.label
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color(red: 0.03, green: 0.05, blue: 0.13))
-                .frame(maxWidth: 300)
-                .padding(.vertical, 12)
-                .background(
-                    Capsule().fill(Nuit.encre.opacity(configuration.isPressed ? 0.82 : (survol ? 1 : 0.94)))
-                )
-                .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.985)
-                .onHover { survol = $0 }
-        }
-    }
-}
 
 /// Le bouton d'un écran qui envoie ailleurs (les Réglages Système) : présent, mais pas au même
 /// rang que « Continuer ».
