@@ -17,9 +17,10 @@
 //     sémantiques (`.secondary`, `.windowBackgroundColor` des sous-vues réutilisées) doivent se
 //     résoudre en sombre quel que soit le thème du système, sinon les composants repris du guide
 //     précédent peignent du gris clair sur le dégradé bleu nuit.
-//   - Hauteur plafonnée à ce que l'écran offre (`hauteurMaxContenu`). MESURÉ le 2026-09-05 sur
-//     l'écran interne d'un MacBook : `visibleFrame.height` vaut 780 pt, une fenêtre plus haute
-//     pose son bouton sous le Dock, hors d'atteinte.
+//   - Hauteur plafonnée à ce que l'écran offre (`hauteurContenu`) avec `ScrollView` : MESURÉ le
+//     2026-09-05 sur l'écran interne d'un MacBook (`visibleFrame.height` = 780 pt). Sur un écran court
+//     ou avec un Dock agrandi, le contenu défile et les boutons du pied de page restent ancrés et
+//     atteignables en permanence.
 //   - Aucun appel d'API AX direct : on lit uniquement l'état publié par WindowManager /
 //     EtatAccueil (un appel AX passé avant l'octroi du trust condamne la connexion du process).
 //   - Réactivité native : l'écran de l'Accessibilité passe au vert tout seul dès que
@@ -121,9 +122,7 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
     private static func hauteurContenu() -> CGFloat {
         let visible = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame.height ?? 780
         let barreDeTitre = NSWindow.frameRect(forContentRect: .zero, styleMask: [.titled, .closable]).height
-        // 24 pt de respiration : une fenêtre qui affleure pile le Dock se lit comme tronquée.
-        let plafond = visible - barreDeTitre - 24
-        return max(460, min(hauteurVoulue, plafond))
+        return GeometrieAccueil.hauteurContenu(visibleFrameHeight: visible, barreDeTitre: barreDeTitre)
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -303,20 +302,27 @@ struct VueAccueil: View {
             // la place plutôt que de laisser le contenu passer dessous.
             Spacer(minLength: 34)
 
-            ZStack {
-                contenu(pour: etape)
-                    .id(etape)
-                    .transition(
-                        reduceMotion
-                            ? .opacity
-                            : .asymmetric(
-                                insertion: .opacity.combined(with: .offset(x: 26)),
-                                removal: .opacity.combined(with: .offset(x: -26))
-                            )
-                    )
+            ScrollView {
+                ZStack {
+                    contenu(pour: etape)
+                        .id(etape)
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .asymmetric(
+                                    insertion: .opacity.combined(with: .offset(x: 26)),
+                                    removal: .opacity.combined(with: .offset(x: -26))
+                                )
+                        )
+                }
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: GeometrieAccueil.hauteurUtile(pourHauteurFenetre: hauteur))
+                .padding(.horizontal, 44)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 44)
+            // Le contenu tient sur un grand écran : pas de rebond, pas de barre, la fenêtre reste
+            // exactement à la taille du guide. C'est seulement quand l'écran est trop court que le
+            // plafond mord et que le défilement apparaît.
+            .scrollBounceBehavior(.basedOnSize)
 
             piedDePage
         }
