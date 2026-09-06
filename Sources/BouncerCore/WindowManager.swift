@@ -162,29 +162,55 @@ public final class WindowManager: ObservableObject {
     public let reglages: Reglages
     private var abonnementReglages: AnyCancellable?
 
-    /// `startTimer: false` pour le self-test CLI (un seul refresh() synchrone, pas de boucle).
+    /// D'où vient la géométrie de l'encoche. Injectable pour exactement la même raison que
+    /// `controleur` : vérifier qu'un changement d'écrans est bien répercuté ne doit pas demander
+    /// de débrancher un moniteur. Rien n'est mis en cache derrière — la valeur par défaut
+    /// `zoneEncoche()` relit `NSScreen.screens` à chaque appel — mais l'appeler à CHAQUE sondage
+    /// est ce qui rend la géométrie périmée impossible : sur la machine de référence le MacBook
+    /// n'est pas l'écran principal et la bande d'encoche vit en y négatifs, le multi-écrans y est
+    /// le cas nominal, pas un cas limite.
+    private let geometrie: @MainActor () -> (rect: CGRect, ecran: String, cadre: CGRect)?
+
+    /// Faux pour le self-test CLI : aucun timer n'est posé, y compris par un réveil. Sans ce
+    /// drapeau, une notification système reposait un timer que `startTimer: false` avait
+    /// justement refusé.
+    private let sondageActif: Bool
+
+    /// `startTimer: false` pour le self-test CLI (un seul sondage synchrone, pas de boucle).
     public init(
         startTimer: Bool = true,
         catalogue: CatalogueApps = CatalogueApps(),
         controleur: ControleurApps = ControleurAppsSysteme(),
-        reglages: Reglages = Reglages()
+        reglages: Reglages = Reglages(),
+        geometrie: @escaping @MainActor () -> (rect: CGRect, ecran: String, cadre: CGRect)? = zoneEncoche,
+        demanderAccessibilite: Bool = true
     ) {
         self.catalogue = catalogue
         self.controleur = controleur
         self.reglages = reglages
+        self.geometrie = geometrie
+        sondageActif = startTimer
         bascule = Bascule(controleur: controleur)
         accessibilityTrusted = AXIsProcessTrusted()
-        if !accessibilityTrusted {
+        // `demanderAccessibilite: false` pour les tests : la popup système est modale et bloquerait
+        // `swift test` sur la machine de qui la lance. Elle reste vraie partout ailleurs, y compris
+        // dans le self-test CLI — c'est même son intérêt, l'autorisation se donne par binaire.
+        if !accessibilityTrusted, demanderAccessibilite {
             // Popup système une seule fois, ici, à froid — jamais dans la boucle de refresh.
             _ = AXIsProcessTrustedWithOptions(
                 [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as NSDictionary
             )
         }
-        refresh()
+        sonder()
         restaurerAppsMasquees()
+        // Avant le garde, et c'est le correctif : brancher un écran, en débrancher un, réveiller
+        // le Mac ou changer d'écran principal déplace l'encoche, donc TOUT ce que le sondage
+        // regarde. Ces observateurs ne dépendent pas du timer — ils sont la seule chose qui dise
+        // à Bouncer que sa géométrie vient de changer, et un `startTimer: false` ne doit pas les
+        // emporter avec la boucle.
+        observerReveils()
         guard startTimer else { return }
         replanifierTimer()
-        observerReveils()
         // La contrepartie de la restauration au démarrage : ranger avant de partir, pour ne pas
         // laisser l'utilisateur sans encoche entre deux lancements de Bouncer.
         //
@@ -248,6 +274,7 @@ public final class WindowManager: ObservableObject {
     /// et en reposer un. Appelé à chaque tour, il ne fait donc rien tant que la cadence voulue
     /// n'a pas bougé.
     private func replanifierTimer(base: TimeInterval? = nil) {
+        guard sondageActif else { return }
         let periode = periodeVoulue(base: base)
         guard periode != periodePosee || timer == nil else { return }
         periodePosee = periode
@@ -278,7 +305,20 @@ public final class WindowManager: ObservableObject {
     public func reveiller() {
         toursImmobiles = 0
         replanifierTimer()
-        refresh()
+        sonder()
+    }
+
+    /// Le « Rafraîchir » du menu : l'utilisateur redemande un état propre, et c'est la SEULE porte
+    /// qui efface le triangle d'alerte.
+    ///
+    /// Elle ne peut pas être la boucle de sondage. `sonder()` passe toutes les deux secondes :
+    /// un message d'échec qu'il effacerait disparaîtrait avant d'avoir été lu, ce qui est pire
+    /// que le triangle figé qu'on corrige ici. Ni un réveil système (une app tierce qui démarre
+    /// n'a rien à dire de la bascule qui vient de rater) ne doit l'effacer. Restent deux portes,
+    /// toutes deux volontaires : celle-ci, et la bascule suivante.
+    public func refresh() {
+        echecBascule = nil
+        reveiller()
     }
 
     /// Ce qui vaut la peine de resonder vite : une app apparaît ou disparaît, l'utilisateur change
@@ -297,11 +337,20 @@ public final class WindowManager: ObservableObject {
             observateursReveil.append(
                 atelier.addObserver(forName: nom, object: nil, queue: .main, using: reveil))
         }
-        // Brancher un écran change la géométrie de l'encoche, donc ce que le scan doit regarder.
+        // Brancher un écran, en débrancher un, réveiller le Mac, changer l'écran principal : la
+        // géométrie de l'encoche change, donc l'ENDROIT même que le scan doit regarder. C'est la
+        // seule notification qui le dise ; sans elle le sondage continue de raisonner sur une
+        // encoche qui n'est plus là.
+        //
+        // `queue: nil` et pas `.main`, pour la raison exposée sur `observateurQuit` : une queue
+        // fait passer le bloc par `addOperation`, donc au tour de run loop SUIVANT. AppKit poste
+        // cette notification sur le thread principal — `assumeIsolated` est donc exact — et sans
+        // queue la géométrie est relue dans le tour même où l'écran a changé, au lieu d'un tour
+        // de retard pendant lequel la bascule sonderait une encoche périmée.
         observateursReveil.append(
             NotificationCenter.default.addObserver(
                 forName: NSApplication.didChangeScreenParametersNotification,
-                object: nil, queue: .main, using: reveil))
+                object: nil, queue: nil, using: reveil))
     }
 
     /// Range le tour qui vient de finir : identique au précédent, ou pas.
@@ -349,7 +398,7 @@ public final class WindowManager: ObservableObject {
             // ne l'ouvrait pas voyait seulement ses gestes cesser de faire effet. Un échec muet
             // est le seul qu'on ne peut pas diagnostiquer — on le nomme.
             if justRevoked { signalerRevocation() }
-            refresh()
+            sonder()
             return
         }
 
@@ -362,7 +411,7 @@ public final class WindowManager: ObservableObject {
         echecBascule = nil
         apps.removeAll()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.refresh()
+            self?.sonder()
         }
     }
 
@@ -410,7 +459,7 @@ public final class WindowManager: ObservableObject {
     /// mesure exactement la même zone que le scan de découverte. Ne reste ici que la description
     /// publiée vers l'UI.
     public func notchZone() -> CGRect? {
-        guard let (rect, ecran, _) = zoneEncoche() else {
+        guard let (rect, ecran, _) = geometrie() else {
             publier(description: "Aucune encoche détectée sur cette machine.")
             return nil
         }
@@ -487,8 +536,48 @@ public final class WindowManager: ObservableObject {
 
     // MARK: - Rafraîchissement : découverte + suivi par identité (pas seulement géométrie)
 
-    public func refresh() {
-        guard let (zone, ecran, cadreEcran) = zoneEncoche() else {
+    /// Recale le modèle sur ce que le sondage vient de VOIR, plutôt que sur ce que Bouncer croit
+    /// avoir fait. Isolée de tout état pour être vérifiable, même raison que `periodeDeRepos`.
+    ///
+    /// `isHiddenByUs` n'est pas une intention, c'est un constat : une app masquée n'a par
+    /// construction aucune fenêtre dans l'encoche, c'est tout l'objet du masquage. La revoir dans
+    /// le scan prouve donc que le masquage a été DÉFAIT — l'utilisateur l'a relancée à la main
+    /// depuis le Dock, Spotlight ou le Launchpad, et macOS lève `kAXHidden` en la réactivant.
+    /// Bouncer n'en est jamais informé : aucune notification ne dit « ton masquage vient de
+    /// sauter », seul le recomptage le constate. C'est la règle du dépôt appliquée au drapeau
+    /// lui-même — le seul verdict qui vaut est l'état réel resondé, jamais le code retour de
+    /// l'action qui l'a produit.
+    ///
+    /// Ce n'était qu'un menu qui mentait tant que la bascule ne s'y fiait pas. Depuis qu'elle
+    /// s'appuie sur `bundleIDActive`, qui écarte les apps marquées masquées, un drapeau resté
+    /// vrai fait choisir « aucune app active » sur une app pourtant à l'écran : la bascule
+    /// suivante en allume une seconde par-dessus, et l'encoche en porte DEUX — le seul problème
+    /// que Bouncer existe pour éviter.
+    ///
+    /// Un process mort remet aussi le drapeau à faux : une app qui n'est plus là n'est masquée
+    /// par personne, et la laisser marquée la faisait figurer parmi les « apps coincées » que
+    /// `signalerRevocation` nomme à l'utilisateur.
+    public nonisolated static func recaler(
+        _ apps: [NotchAppInfo], vues: [String: pid_t], processVivant: (pid_t) -> Bool
+    ) -> [NotchAppInfo] {
+        apps.map { info in
+            var info = info
+            if let pid = vues[info.bundleID] {
+                info.pid = pid
+                info.isHiddenByUs = false
+            } else if let pid = info.pid, !processVivant(pid) {
+                info.pid = nil
+                info.isHiddenByUs = false
+            }
+            return info
+        }
+    }
+
+    /// Un tour de sondage : la géométrie est relue, les fenêtres recomptées, le modèle recalé sur
+    /// ce qui est RÉELLEMENT à l'écran. Interne, parce que ce n'est pas une action d'utilisateur :
+    /// le timer et les réveils système passent par ici, le menu par `refresh()`.
+    func sonder() {
+        guard let (zone, ecran, cadreEcran) = geometrie() else {
             publier(description: "Aucune encoche détectée sur cette machine.")
             // Écran débranché, résolution changée, session verrouillée : le `apps = []` d'avant
             // jetait AUSSI les apps qu'on venait de masquer, et avec elles le seul drapeau qui
@@ -517,14 +606,13 @@ public final class WindowManager: ObservableObject {
         // arrêtée, et n'est jamais réattribuée à une autre app comme l'était un pid recyclé.
 
         // Le pid n'est plus une identité, seulement un état : il suit ce que dit la découverte, et
-        // tombe à nil dès que le process a disparu — l'entrée, elle, reste.
-        for idx in apps.indices {
-            if let vue = vuesParBundleID[apps[idx].bundleID] {
-                apps[idx].pid = vue.pid
-            } else if let pid = apps[idx].pid, NSRunningApplication(processIdentifier: pid) == nil {
-                apps[idx].pid = nil
-            }
-        }
+        // tombe à nil dès que le process a disparu — l'entrée, elle, reste. `isHiddenByUs` suit la
+        // même règle, cf. `recaler`.
+        apps = Self.recaler(
+            apps,
+            vues: vuesParBundleID.mapValues(\.pid),
+            processVivant: { NSRunningApplication(processIdentifier: $0) != nil }
+        )
 
         // Toute app vue dans le notch entre au catalogue, y compris celles qu'on ne connaissait
         // pas : c'est le seul moyen de la retrouver plus tard, une fois quittée et absente de
@@ -626,7 +714,7 @@ public final class WindowManager: ObservableObject {
             // plus : elle expire donc au bout du délai, sans que la cible y soit pour quoi que ce
             // soit. Accuser l'app d'un débranchement d'écran envoie l'utilisateur la déboguer
             // pour rien.
-            echecBascule = zoneEncoche() == nil
+            echecBascule = geometrie() == nil
                 ? "Plus aucune encoche détectée — la bascule vers \(cible.name) a été abandonnée. \(repli)"
                 : "\(cible.name) s'est lancée sans rien afficher dans l'encoche. \(repli)"
         }
@@ -664,7 +752,7 @@ public final class WindowManager: ObservableObject {
         }
         updateApp(bundleID: cible) { $0.isHiddenByUs = !cibleVisible }
         activeCycleBundleID = cibleVisible ? cible : nil
-        refresh()
+        sonder()
     }
 
     /// L'app qui occupe le notch : celle que la dernière bascule a désignée si elle est toujours

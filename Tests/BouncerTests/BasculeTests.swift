@@ -371,8 +371,14 @@ struct MeurtreSurTests {
         // qu'il soit parti ne redémarre rien.
         double.sondagesAvantMort[vibe] = 3
 
+        // `delaiMax` généreux, comme le défaut du helper d'à côté : ce test-ci attend un SUCCÈS,
+        // pas un délai. Son budget de 50 ms était une horloge murale, et il a suffi qu'un test
+        // voisin construise un vrai `WindowManager` — première touche de `AXIsProcessTrusted()`
+        // et de `CGWindowList`, ~90 ms de main actor à elles deux, une seule fois par processus —
+        // pour qu'il expire sur une lenteur qui n'est pas la sienne. La boucle sort dès que la
+        // cible est là : le budget large ne coûte rien.
         let bascule = Bascule(controleur: double, intervalleSondage: .milliseconds(1),
-                              delaiMax: .milliseconds(50), trustAccorde: { true })
+                              delaiMax: .seconds(2), trustAccorde: { true })
         let resultat = await bascule.basculer(vers: info(vibe, .supported, pid: 100), depuis: nil)
 
         #expect(resultat == .reussie)
