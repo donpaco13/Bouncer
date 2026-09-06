@@ -109,7 +109,13 @@ public final class WindowManager: ObservableObject {
     /// Nombre de tours de sondage consécutifs qui n'ont RIEN vu changer. C'est la seule mesure
     /// qui décide de la cadence : tant qu'elle monte, le timer s'espace ; elle retombe à zéro
     /// dès qu'un scan trouve autre chose ou qu'un réveil arrive.
-    private var toursImmobiles = 0
+    public private(set) var toursImmobiles = 0
+
+    /// Délai d'immobilité du curseur dans la zone sensible avant de considérer qu'il s'est arrêté
+    /// (et non qu'il traverse simplement vers les onglets ou le menu).
+    public var delaiArretCurseur: TimeInterval = 0.2
+
+    private var timerReveilCurseur: Timer?
 
     /// Empreinte du dernier scan. Comparer deux tours, c'est comparer ces deux chaînes.
     private var derniereEmpreinte = ""
@@ -124,7 +130,7 @@ public final class WindowManager: ObservableObject {
     /// Plafond du ralentissement au repos. Un changement qu'aucune notification ne signale — une
     /// app d'encoche qui détruit sa fenêtre sans quitter son process — n'est vu que par le
     /// sondage : au-delà de cette période, le menu mettrait trop longtemps à se corriger.
-    private nonisolated static let periodeMaxAuRepos: TimeInterval = 30
+    private nonisolated static let periodeMaxAuRepos: TimeInterval = 8
 
     /// Nombre de tours identiques tolérés avant de commencer à ralentir. Trois tours à la période
     /// par défaut font six secondes de cadence pleine après le moindre mouvement : l'utilisateur
@@ -176,6 +182,12 @@ public final class WindowManager: ObservableObject {
     /// justement refusé.
     private let sondageActif: Bool
 
+    /// Vérification de l'accès Accessibilité, injectable pour les tests.
+    private let verifierAccessibilite: () -> Bool
+
+    /// Centre de notifications pour observer les réveils et l'arrêt.
+    private let notificationCenter: NotificationCenter
+
     /// `startTimer: false` pour le self-test CLI (un seul sondage synchrone, pas de boucle).
     public init(
         startTimer: Bool = true,
@@ -183,15 +195,19 @@ public final class WindowManager: ObservableObject {
         controleur: ControleurApps = ControleurAppsSysteme(),
         reglages: Reglages = Reglages(),
         geometrie: @escaping @MainActor () -> (rect: CGRect, ecran: String, cadre: CGRect)? = zoneEncoche,
-        demanderAccessibilite: Bool = true
+        demanderAccessibilite: Bool = true,
+        verifierAccessibilite: @escaping () -> Bool = { AXIsProcessTrusted() },
+        notificationCenter: NotificationCenter = .default
     ) {
         self.catalogue = catalogue
         self.controleur = controleur
         self.reglages = reglages
         self.geometrie = geometrie
+        self.verifierAccessibilite = verifierAccessibilite
+        self.notificationCenter = notificationCenter
         sondageActif = startTimer
         bascule = Bascule(controleur: controleur)
-        accessibilityTrusted = AXIsProcessTrusted()
+        accessibilityTrusted = verifierAccessibilite()
         // `demanderAccessibilite: false` pour les tests : la popup système est modale et bloquerait
         // `swift test` sur la machine de qui la lance. Elle reste vraie partout ailleurs, y compris
         // dans le self-test CLI — c'est même son intérêt, l'autorisation se donne par binaire.
@@ -219,7 +235,7 @@ public final class WindowManager: ObservableObject {
         // train de mourir. Sans queue, le bloc s'exécute de façon synchrone sur le thread qui
         // poste, le thread principal pour cette notification-là, ce qui rend `assumeIsolated`
         // exact et le rangement effectif.
-        observateurQuit = NotificationCenter.default.addObserver(
+        observateurQuit = notificationCenter.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: nil
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.restaurerAppsMasquees() }
@@ -267,7 +283,8 @@ public final class WindowManager: ObservableObject {
     ) -> TimeInterval {
         guard accessibiliteAccordee else { return base }
         let crans = max(0, toursImmobiles - toursAvantRalentissement)
-        return min(base * pow(2, Double(min(crans, 8))), periodeMaxAuRepos)
+        let plafond = max(base, periodeMaxAuRepos)
+        return min(base * pow(2, Double(min(crans, 8))), plafond)
     }
 
     /// (Re)pose le timer de resondage. Un `Timer` ne change pas de période : il faut l'invalider
@@ -303,9 +320,36 @@ public final class WindowManager: ObservableObject {
     /// lancement). Une notification est donc un RÉVEIL : elle dit qu'il vaut la peine de resonder
     /// vite, et c'est le sondage qui constate.
     public func reveiller() {
+        timerReveilCurseur?.invalidate()
+        timerReveilCurseur = nil
         toursImmobiles = 0
         replanifierTimer()
         sonder()
+    }
+
+    /// Informe le gestionnaire de la présence du curseur dans la zone sensible.
+    ///
+    /// Distingue « le curseur passe » de « le curseur s'arrête » : une simple traversée (vers la
+    /// barre des menus ou les onglets) dure quelques dizaines de millisecondes et quitte la zone
+    /// avant l'échéance du délai, annulant le réveil. Si le curseur s'arrête, le timer arrive à
+    /// échéance et déclenche le réveil complet.
+    public func curseurDansZone(_ dansLaZone: Bool) {
+        if dansLaZone {
+            guard timerReveilCurseur == nil else { return }
+            if delaiArretCurseur <= 0 {
+                reveiller()
+                return
+            }
+            timerReveilCurseur = Timer.scheduledTimer(withTimeInterval: delaiArretCurseur, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.timerReveilCurseur = nil
+                    self?.reveiller()
+                }
+            }
+        } else {
+            timerReveilCurseur?.invalidate()
+            timerReveilCurseur = nil
+        }
     }
 
     /// Le « Rafraîchir » du menu : l'utilisateur redemande un état propre, et c'est la SEULE porte
@@ -348,7 +392,7 @@ public final class WindowManager: ObservableObject {
         // queue la géométrie est relue dans le tour même où l'écran a changé, au lieu d'un tour
         // de retard pendant lequel la bascule sonderait une encoche périmée.
         observateursReveil.append(
-            NotificationCenter.default.addObserver(
+            notificationCenter.addObserver(
                 forName: NSApplication.didChangeScreenParametersNotification,
                 object: nil, queue: nil, using: reveil))
     }
@@ -381,8 +425,8 @@ public final class WindowManager: ObservableObject {
     /// Relit le trust sans jamais prompter (`AXIsProcessTrusted()`, pas la variante `WithOptions`).
     /// Au passage false -> true, les verdicts "Non supportée" obtenus sans droits AX sont faux :
     /// on les jette et on relance le test de régissabilité sur toutes les apps détectées.
-    private func refreshTrustState() {
-        let nowTrusted = AXIsProcessTrusted()
+    func refreshTrustState() {
+        let nowTrusted = verifierAccessibilite()
         let justGranted = nowTrusted && !accessibilityTrusted
         let justRevoked = !nowTrusted && accessibilityTrusted
         accessibilityTrusted = nowTrusted
@@ -409,7 +453,7 @@ public final class WindowManager: ObservableObject {
         // retester. Si le décalage réel dépasse cette marge, prévoir un retry supplémentaire.
         // Le droit est revenu : le message de révocation ne décrit plus rien.
         echecBascule = nil
-        apps.removeAll()
+        apps.removeAll { !$0.isHiddenByUs }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.sonder()
         }
@@ -836,5 +880,13 @@ public final class WindowManager: ObservableObject {
     private func updateApp(bundleID: String, _ mutate: (inout NotchAppInfo) -> Void) {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         mutate(&apps[idx])
+    }
+
+    func definirToursImmobilesPourTest(_ n: Int) {
+        toursImmobiles = n
+    }
+
+    func injecterAppPourTest(_ app: NotchAppInfo) {
+        apps.append(app)
     }
 }
