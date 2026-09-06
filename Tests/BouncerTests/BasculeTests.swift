@@ -100,7 +100,14 @@ final class ControleurAppsDouble: ControleurApps {
         return true
     }
 
+    /// Combien de fois la visibilité a été sondée depuis le début. C'est le compteur qui rend
+    /// l'emballement de la boucle d'apparition MESURABLE plutôt que seulement lent : la QA a
+    /// relevé 29 899 sondages en 300 ms sur une tâche annulée contre 23 sans annulation, et un
+    /// test qui ne compte pas ne peut pas distinguer les deux.
+    private(set) var sondagesVisibilite = 0
+
     func fenetreVisibleDansNotch(pid: pid_t) -> Bool {
+        sondagesVisibilite += 1
         guard encocheMesurable else { return false }
         guard let bundleID = bundleID(de: pid), !masquees.contains(bundleID) else { return false }
         let restants = sondagesAvantApparition[bundleID] ?? 0

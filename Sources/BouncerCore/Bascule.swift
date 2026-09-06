@@ -7,8 +7,15 @@
 //
 // La règle qui commande tout le reste : **on allume la suivante avant d'éteindre la précédente**.
 // L'utilisateur ne doit jamais voir une encoche vide, et un échec ne doit jamais le laisser avec
-// deux apps mortes. C'est pour ça que `eteindre` n'est atteignable que par la branche où
+// deux apps mortes. C'est pour ça que `eteindre` n'est atteignable que par une branche où
 // `allumer` a déjà réussi — la garantie est structurelle, pas une discipline d'appelant.
+//
+// **Et sa réciproque, qui a coûté la QA passe 5 (D1).** Un `allumer` qui rend la main SANS avoir
+// allumé — `.cibleFermetureEnCours`, la cible tuée qu'il faut relancer plus tard — laisse la
+// précédente à l'écran, ce qui est juste sur le moment (rien d'autre n'occupe l'encoche) et faux
+// dès que la relance aboutit : l'encoche en porte alors DEUX. La dette suit donc la relance.
+// `poursuivreFermeture(de:puisRelancer:puisEteindre:)` rejoue les deux moitiés de `basculer` dans
+// le même ordre — allumer, puis éteindre — et c'est la seconde entrée légitime de `eteindre`.
 //
 // Rien n'est écrit ici dans le modèle : la bascule agit et rend un verdict, c'est
 // `WindowManager` qui met à jour `NotchAppInfo` en conséquence.
@@ -42,6 +49,11 @@ public enum ResultatBascule: Equatable {
     /// une relance la lui rend. `poursuivreFermeture(de:puisRelancer: true)` est cette relance, et
     /// l'appelant DOIT l'enchaîner — sans elle, ce verdict décrit une app tuée que rien ne
     /// ramènera. À traduire par un message d'ATTENTE, jamais par un message d'échec.
+    ///
+    /// **Et il porte une SECONDE dette, celle que la QA passe 5 a trouvée ouverte (D1) :** la
+    /// précédente n'a pas été touchée — `basculer` s'arrête avant `eteindre` — donc l'appelant
+    /// doit passer cette précédente à `puisEteindre:`, faute de quoi la relance mettra deux apps
+    /// dans l'encoche. Une seule des deux dettes soldée est pire que le défaut d'origine.
     case cibleFermetureEnCours
     /// Rien n'a été tenté : ce process n'a jamais eu le droit Accessibilité, et sans lui la
     /// bascule n'aurait eu que le meurtre du process à offrir. Cf. le garde de `basculer`.
@@ -144,9 +156,32 @@ public struct Bascule {
         }
 
         let resultat = await allumer(cible)
-        guard resultat == .reussie else { return resultat } // l'actuelle n'a pas été touchée
+        // L'actuelle n'a pas été touchée, et c'est voulu dans les deux sens : sur un échec franc
+        // elle reste la seule app de l'encoche, sur `.cibleFermetureEnCours` elle est la seule
+        // app de l'encoche EN ATTENDANT. Dans ce second cas la dette n'est pas soldée — c'est
+        // `poursuivreFermeture(…, puisEteindre: actuelle)` qui l'éteindra APRÈS la relance, et
+        // c'est le contrat que le verdict impose à l'appelant (QA passe 5, D1).
+        guard resultat == .reussie else { return resultat }
         guard let actuelle else { return .reussie }
         return await eteindre(actuelle)
+    }
+
+    // MARK: - La porte de sortie commune à toutes les boucles
+
+    /// Dort un intervalle de sondage, et rend `false` quand la tâche a été annulée — le seul cas
+    /// où une boucle de ce fichier doit s'arrêter avant sa propre condition.
+    ///
+    /// **Pourquoi une porte unique et pas un garde par boucle.** `try? await Task.sleep` rend la
+    /// main SUR-LE-CHAMP sur une tâche annulée et avale l'erreur : la boucle repart sans avoir
+    /// dormi, à pleine vitesse sur le main actor. La QA (passe 5, D2) l'a mesuré sur la boucle
+    /// d'apparition de `allumer`, la seule des trois où le garde manquait : **29 899 sondages en
+    /// 300 ms contre 23 sans annulation**, soit ~10 000 allers-retours WindowServer et 5 s de main
+    /// actor à 100 % aux durées de production (`delaiMax` = 5 s) — pendant lesquelles ni le menu,
+    /// ni le panel, ni le geste suivant ne répondent. Un garde recopié dans chaque boucle est un
+    /// oubli en attente ; c'est très exactement comme ça que `allumer` avait été oubliée.
+    private func dormir() async -> Bool {
+        do { try await Task.sleep(for: intervalleSondage); return true }
+        catch { return false }
     }
 
     // MARK: - Quitter, et le vérifier
@@ -215,7 +250,10 @@ public struct Bascule {
         let echeance = ContinuousClock.now + delaiMort
         while controleur.pid(pour: bundleID) != nil {
             guard ContinuousClock.now < echeance else { return false }
-            try? await Task.sleep(for: intervalleSondage)
+            // Annulée : « pas encore parti », comme au bout de la fenêtre de courtoisie. Le
+            // process reste dû à `poursuivreFermeture`, qui est justement ce que le geste
+            // suivant vient de reprendre en main.
+            guard await dormir() else { return false }
         }
         return true
     }
@@ -240,16 +278,44 @@ public struct Bascule {
     ///   - la PRÉCÉDENTE, elle, n'a rien à relancer : sa mort libère l'encoche à elle seule. Ce
     ///     qu'on doit à l'utilisateur ici, c'est de retirer un message d'échec qui n'est plus
     ///     vrai — le triangle d'alerte allumé pour une app partie depuis.
-    public func poursuivreFermeture(de app: NotchAppInfo, puisRelancer: Bool) async -> ResultatBascule {
+    ///
+    /// **`puisEteindre` solde la SECONDE moitié du geste, et son absence était le défaut D1 de la
+    /// QA passe 5.** Quand `basculer` a rendu `.cibleFermetureEnCours`, il s'est arrêté AVANT
+    /// `eteindre(actuelle)` : la précédente est toujours à l'écran. Relancer la cible sans
+    /// l'éteindre met alors deux apps dans l'encoche — l'état même que ce fichier existe pour
+    /// empêcher, et un échange pur et simple de la perte d'app contre le doublon. On rejoue donc
+    /// ici les deux moitiés de `basculer`, dans le même ordre et avec la même garantie : la
+    /// précédente n'est éteinte QUE si la relance a vraiment abouti, jamais avant.
+    ///
+    /// Si cette extinction-là traîne à son tour, elle rend `.precedenteFermetureEnCours` et
+    /// l'appelant enchaîne une seconde surveillance, `puisRelancer: false`. La chaîne est finie :
+    /// ce second tour n'a plus rien à relancer, donc plus rien à éteindre après.
+    ///
+    /// **Pas de garde `trustAccorde` / `encocheMesurable` ici, et c'est délibéré (QA passe 5,
+    /// D3).** Ils sont dans `basculer` parce que là, refuser d'agir laisse l'encoche intacte. Ici,
+    /// Bouncer a DÉJÀ tué : refuser laisserait l'app morte. L'écran débranché pendant la
+    /// surveillance ne doit donc pas empêcher la relance — c'est le seul moyen de rendre l'app à
+    /// l'utilisateur — il doit seulement changer ce qu'on lui DIT, et c'est `WindowManager` qui
+    /// s'en charge. Quant au trust : sur un process mort `pid(pour:)` rend `nil`, `allumer` saute
+    /// donc sa voie rapide et ne touche aucune API AX ; `eteindre`, lui, n'est atteint que par une
+    /// bascule qui a déjà franchi le garde.
+    public func poursuivreFermeture(de app: NotchAppInfo, puisRelancer: Bool,
+                                    puisEteindre precedente: NotchAppInfo? = nil) async -> ResultatBascule {
         let enCours: ResultatBascule = puisRelancer ? .cibleFermetureEnCours : .precedenteFermetureEnCours
         while controleur.pid(pour: app.bundleID) != nil {
-            // Avant le sommeil, pas après : `try? await Task.sleep` rend la main SUR-LE-CHAMP
-            // quand la tâche est annulée, et sans ce garde la boucle tournerait à vide.
-            guard !Task.isCancelled else { return enCours }
-            try? await Task.sleep(for: intervalleSondage)
+            guard await dormir() else { return enCours }
         }
         guard puisRelancer else { return .reussie }
-        return await allumer(app)
+        // La mort est constatée — et un geste suivant a repris la main entre-temps. Relancer
+        // maintenant remettrait dans l'encoche l'app que l'utilisateur vient d'abandonner, par
+        // dessus celle qu'il a demandée : le doublon, encore. Ce garde était dans la boucle et
+        // pas ici, et `allumer` partait donc quand même (QA passe 5, D2 —
+        // `journal.contains(.lance(vibe)) == true` sur une tâche annulée).
+        guard !Task.isCancelled else { return enCours }
+        let resultat = await allumer(app)
+        guard resultat == .reussie else { return resultat }
+        guard let precedente else { return .reussie }
+        return await eteindre(precedente)
     }
 
     // MARK: - Allumer la cible
@@ -293,7 +359,11 @@ public struct Bascule {
                 return .reussie
             }
             guard ContinuousClock.now < echeance else { return .cibleJamaisApparue }
-            try? await Task.sleep(for: intervalleSondage)
+            // L'annulation sort par la même porte que le délai : dans les deux cas Bouncer a
+            // cessé de regarder sans avoir vu la fenêtre. Le verdict n'est de toute façon pas lu
+            // — `WindowManager.surveiller` le jette sur `Task.isCancelled` — mais la BOUCLE, elle,
+            // doit s'arrêter, et c'est ce qu'elle ne faisait pas.
+            guard await dormir() else { return .cibleJamaisApparue }
         }
     }
 
