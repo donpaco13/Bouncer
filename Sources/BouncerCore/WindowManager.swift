@@ -503,7 +503,16 @@ public final class WindowManager: ObservableObject {
     /// Dit ce que la révocation vient de coûter, et nomme l'app coincée s'il y en a une. Passe
     /// par `echecBascule` et pas par une nouvelle propriété : c'est déjà le canal des échecs, et
     /// c'est lui qui fait passer l'icône de la barre en triangle d'alerte.
-    private func signalerRevocation() {
+    /// `precedenteRestee` porte le cas de la surveillance (QA passe 6, D2) : la relance a abouti,
+    /// la précédente n'a PAS pu être rangée faute de droit, et l'utilisateur a maintenant deux
+    /// apps dans l'encoche. C'est le même événement — le droit retiré — donc le même message,
+    /// mais il doit dire ce que l'utilisateur VOIT, et qu'un geste de plus n'y changera rien : le
+    /// garde d'entrée de la bascule refusera tant que le droit n'est pas rendu.
+    private func signalerRevocation(precedenteRestee: NotchAppInfo? = nil) {
+        if let restee = precedenteRestee {
+            echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer : \(restee.name) est restée dans l'encoche à côté de la nouvelle. Bouncer ne la range pas sans ce droit — la quitter de force pourrait vous faire perdre du travail non enregistré. Rendez-lui l'accès dans les Réglages Système ; d'ici là, aucun geste ne rangera l'encoche."
+            return
+        }
         let coincees = apps.filter(\.isHiddenByUs).map(\.name)
         let sort = coincees.isEmpty
             ? "Les bascules quitteront les apps au lieu de les masquer."
@@ -838,6 +847,13 @@ public final class WindowManager: ObservableObject {
             surveiller(cible, puisRelancer: true, puisEteindre: aEteindre)
         case .lancementImpossible:
             echecBascule = "\(cible.name) n'a pas pu être lancée."
+        case .precedenteNonRangeableSansAccessibilite:
+            // Inatteignable par cette porte-ci : `Bascule.basculer` a son garde de trust en
+            // entrée, et ce verdict ne naît que sur le chemin de la surveillance, qui n'en a pas.
+            // On lui donne quand même le traitement de la surveillance plutôt qu'un silence — la
+            // moitié qui a réussi doit être enregistrée d'où qu'elle vienne.
+            appliquerReussite(cible: cible.bundleID, actuelle: nil)
+            signalerRevocation(precedenteRestee: actuelle ?? cible)
         case .accessibiliteJamaisAccordee:
             // Le menu affiche déjà sa ligne « ⚠️ Autoriser dans les Réglages… » — `accessibilityTrusted`
             // est faux par définition dans ce cas. Ce message-ci porte ce qu'elle ne dit pas : que
@@ -897,6 +913,13 @@ public final class WindowManager: ObservableObject {
                     echecBascule = "\(precedente.name) n'est pas encore fermée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Bouncer continue de la surveiller et libérera l'encoche dès qu'elle sera partie ; il ne la forcera jamais, ce serait perdre votre travail."
                     self.surveiller(precedente, puisRelancer: false)
                 }
+            case .precedenteNonRangeableSansAccessibilite:
+                // La relance a abouti : la cible est dans l'encoche, le modèle l'enregistre.
+                // `actuelle: nil` — la précédente n'est PAS masquée, elle est toujours à l'écran.
+                // Et pas de surveillance chaînée : personne ne l'a tuée, il n'y a aucune mort à
+                // constater. C'est le droit qu'il faut rendre, pas une attente à tenir.
+                self.appliquerReussite(cible: app.bundleID, actuelle: nil)
+                self.signalerRevocation(precedenteRestee: precedente)
             case .lancementImpossible:
                 echecBascule = "\(app.name) s'est bien fermée, mais n'a pas pu être relancée — désinstallée, ou lancement refusé par le système."
             case .cibleJamaisApparue:

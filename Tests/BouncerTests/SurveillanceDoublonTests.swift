@@ -41,7 +41,7 @@ private func info(_ bundleID: String, _ support: SupportStatus, pid: pid_t?) -> 
 /// L'écran à encoche, débranchable en cours de route. Une classe et pas un `var` capturé : les
 /// deux fermetures injectées (`geometrie` et `encocheMesurable`) doivent voir la MÊME bascule.
 @MainActor
-private final class EcranSimule {
+final class EcranSimule {
     var branche = true
     let zone = CGRect(x: 576, y: 846, width: 200, height: 32)
     let cadre = CGRect(x: 0, y: 0, width: 1352, height: 878)
@@ -181,7 +181,7 @@ struct AnnulationDeLaSurveillanceTests {
 /// sortie de test qui manquait : sans `scan:`, `apps` reste vide et aucun des deux verdicts
 /// « en cours » n'atteint son `case`.
 @MainActor
-private func gestionnaire(
+func gestionnaire(
     _ double: ControleurAppsDouble, ecran: EcranSimule, suite: String,
     defaults: UserDefaults, dansLEncoche: [String], bascule: Bascule
 ) -> WindowManager {

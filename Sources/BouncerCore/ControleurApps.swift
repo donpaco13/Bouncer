@@ -484,7 +484,13 @@ public final class ControleurAppsSysteme: ControleurApps {
         while ContinuousClock.now < echeance {
             let compte = compteFenetres(pid: pid)
             if masquee ? compte < countBefore : compte > countBefore { break }
-            try? await Task.sleep(for: Self.intervalleSondagePropagation)
+            // La porte unique de `dormirSondage`, et pas un `try?` nu : celui-ci rendait la main
+            // sur-le-champ sur une tâche annulée, et les ~7 tours restants devenaient 100 ms de
+            // boucle serrée sur le main actor. Cette boucle-là n'avait jamais vu de tâche
+            // annulable — jusqu'à ce que `Bascule.poursuivreFermeture(puisEteindre:)` en fasse
+            // passer une par `eteindre` (QA passe 6, §3). Sortir sans avoir vu le changement rend
+            // le même verdict qu'un plafond atteint : le recomptage qui suit tranche.
+            guard await dormirSondage(Self.intervalleSondagePropagation) else { break }
         }
 
         let countAfter = compteFenetres(pid: pid)
