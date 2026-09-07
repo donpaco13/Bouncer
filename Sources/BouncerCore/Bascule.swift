@@ -414,7 +414,13 @@ public struct Bascule {
     /// trois autres issues libèrent l'encoche sur-le-champ et rendent `.reussie`.
     private func eteindre(_ actuelle: NotchAppInfo) async -> ResultatBascule {
         guard let pid = controleur.pid(pour: actuelle.bundleID) else { return .reussie }
-        if actuelle.support != .unsupported, await controleur.masquer(true, pid: pid) { return .reussie }
+        if actuelle.support != .unsupported {
+            let masquageReussi = await controleur.masquer(true, pid: pid)
+            if masquageReussi { return .reussie }
+            
+            if Task.isCancelled { return .precedenteFermetureEnCours }
+            if !trustAccorde() { return .precedenteNonRangeableSansAccessibilite }
+        }
         return await quitterEtAttendre(bundleID: actuelle.bundleID, pid: pid)
             ? .reussie : .precedenteFermetureEnCours
     }
