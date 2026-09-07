@@ -221,6 +221,59 @@ public func bandeFleches(survol: CGRect, hauteurRangee: CGFloat = hauteurBarreDe
     survol.offsetBy(dx: 0, dy: -hauteurRangee)
 }
 
+/// La RANGÉE de la barre des menus au-dessus du boîtier, marges comprises : l'endroit où le
+/// curseur fait se déployer l'app d'encoche tierce.
+///
+/// Ce n'est pas tout à fait `zoneSurvol`. Celle-ci part du boîtier caméra, qui fait 29 pt, quand
+/// la rangée que macOS réserve en fait 35 (relevé D1 du 2026-09-06, cf. `hauteurBarreDesMenus`).
+/// Les 6 pt d'écart tombaient entre les deux bandes : ni « sur l'encoche », ni « sur les flèches ».
+/// Un curseur qui monte du chevron vers l'encoche les traverse à chaque fois, et une frontière
+/// qu'on traverse est une frontière qui clignote.
+public func bandeEncoche(survol: CGRect, hauteurRangee: CGFloat = hauteurBarreDesMenus()) -> CGRect {
+    let hauteur = max(survol.height, hauteurRangee)
+    return CGRect(x: survol.minX, y: survol.maxY - hauteur, width: survol.width, height: hauteur)
+}
+
+/// L'app d'encoche occupe-t-elle la place, au point que les flèches n'aient plus rien à y faire ?
+///
+/// **Le défaut, dans ses mots** (2026-09-07) : « quand on est sur le notch les flèches restent
+/// visibles alors que l'application du notch est ouverte, donc c'est pas propre propre ». Les
+/// chevrons vivent une rangée SOUS la barre des menus (`bandeFleches`) et le panel monte au niveau
+/// `statusBar + 10` : quand l'app tierce déploie son panneau, ils sont dessinés PAR-DESSUS. Et ils
+/// y étaient à pleine opacité, la portée d'approche (72 pt) couvrant très largement les 6 pt qui
+/// séparent la rangée de la barre des menus de la leur.
+///
+/// **Quand exactement, et pourquoi ce signal-là.** Trois candidats se présentaient :
+///
+///   1. *La fenêtre a grandi au-delà de la bande.* Écarté, et c'est mesuré : les conteneurs des
+///      apps d'encoche NE BOUGENT PAS au déploiement (relevé du 2026-09-05, cf.
+///      `WindowManager.cadreFenetresEncoche` — boringNotch 640×210, Vibe Island 740×520, fixes,
+///      transparents). Il n'y a pas de croissance à observer.
+///   2. *Le curseur est entré dans la surface de la fenêtre.* Écarté aussi, et c'est le piège :
+///      cette surface couvre la bande des flèches elle-même, donc les chevrons s'effaceraient
+///      exactement au moment où l'on va les cliquer. Ça ne corrige pas un défaut, ça en crée un.
+///   3. *Le curseur est sur l'encoche.* Retenu. C'est le geste qui fait se déployer l'app tierce —
+///      c'est même sa seule commande —, et c'est littéralement ce que dit le rapport : « quand on
+///      est sur le NOTCH ». La bande est une rangée AU-DESSUS de celle des chevrons : une main qui
+///      descend vers un chevron n'y entre jamais, une main qui monte vers l'encoche y entre
+///      toujours. Le bouton est intact, la révélation graduelle aussi.
+///
+/// La seconde condition n'est pas décorative : sans recouvrement réel, il n'y a rien de sale à
+/// corriger, et effacer les flèches ne serait qu'une perte. C'est la même règle que la pastille de
+/// contraste (`flechesPoseesSurUneAppTierce`) — c'est la géométrie qui décide, pas le réglage.
+///
+/// ponytail: le signal est le curseur, pas l'état réel de l'app tierce, qui ne se publie nulle
+/// part. Une app d'encoche qui resterait déployée après que le curseur en est sorti (épinglage,
+/// lecture en cours) laisserait les flèches revenir par-dessus. La mesure à relever serait alors
+/// la région DESSINÉE de sa fenêtre (`CGWindowListCreateImage` sur le cadre du chevron), au prix
+/// d'une capture d'écran par approche et de l'autorisation qui va avec.
+public func encocheOccupee(
+    curseur: CGPoint, bandeEncoche: CGRect, cadreFleches: CGRect, fenetre: CGRect?
+) -> Bool {
+    guard let fenetre, !fenetre.isEmpty, fenetre.intersects(cadreFleches) else { return false }
+    return bandeEncoche.contains(curseur)
+}
+
 /// Ce que Bouncer ÉCOUTE : la bande des flèches, détendue de 6 pt en haut et en bas (elle fait
 /// ~29 pt, difficile à survoler pile), réunie à la fenêtre d'encoche mais BORNÉE en hauteur.
 ///
@@ -297,10 +350,14 @@ public func tailleFleche(hauteurBande: CGFloat) -> CGFloat {
 /// regarder. Il en est sorti le jour où les chevrons se sont retrouvés à moitié coupés à l'écran
 /// (cf. `ancreAuCentre`) : la géométrie était juste, le DESSIN ne l'était pas, et aucun test ne
 /// pouvait le dire tant que rien de tout ça ne franchissait les bornes de la vue.
-public func cadresFleches(overlay: CGSize, marge: CGFloat) -> (gauche: CGRect, droite: CGRect) {
+public func cadresFleches(
+    overlay: CGSize, marge: CGFloat, alignement: CGFloat = alignementFlechesDefaut
+) -> (gauche: CGRect, droite: CGRect) {
     let taille = tailleFleche(hauteurBande: overlay.height)
     let y = (overlay.height - taille) / 2
-    let x = abscissesFleches(largeurOverlay: overlay.width, marge: marge, taille: taille)
+    let x = abscissesFleches(
+        largeurOverlay: overlay.width, marge: marge, taille: taille, alignement: alignement
+    )
     return (
         CGRect(x: x.gauche, y: y, width: taille, height: taille),
         CGRect(x: x.droite, y: y, width: taille, height: taille)
@@ -334,11 +391,25 @@ public func cadresFleches(overlay: CGSize, marge: CGFloat) -> (gauche: CGRect, d
 /// Abscisses des deux flèches dans le repère de l'overlay, centrées chacune dans sa marge — donc
 /// hors du boîtier caméra ET hors de la fenêtre d'encoche par construction, ce que verrouille
 /// `ZoneSurvolTests`.
-public func abscissesFleches(largeurOverlay: CGFloat, marge: CGFloat, taille: CGFloat)
-    -> (gauche: CGFloat, droite: CGFloat)
+/// Où le chevron se pose DANS sa marge. 0 = collé au boîtier caméra, 1 = au bord extérieur,
+/// 0,5 = centré, et c'est ce que le produit fait depuis toujours.
+///
+/// Exposé parce que c'est un parti pris de forme, pas une mesure : « épouser le contour de
+/// l'encoche » et « flotter à côté d'elle » sont deux réponses défendables à la même question, et
+/// elle n'est pas tranchée. Cf. `docs/rapport-fleches-propres.html`, piste P3.
+public let alignementFlechesDefaut: CGFloat = 0.5
+
+public func abscissesFleches(
+    largeurOverlay: CGFloat, marge: CGFloat, taille: CGFloat,
+    alignement: CGFloat = alignementFlechesDefaut
+) -> (gauche: CGFloat, droite: CGFloat)
 {
-    let decalage = (marge - taille) / 2
-    return (decalage, largeurOverlay - marge + decalage)
+    // L'alignement est SYMÉTRIQUE, donc lu à l'envers d'un côté : « collé au boîtier » veut dire
+    // au bord DROIT de la marge gauche, et au bord GAUCHE de la marge droite. Une seule valeur
+    // pour les deux côtés, sans quoi régler l'un désalignerait l'autre.
+    let a = min(max(alignement, 0), 1)
+    let course = marge - taille
+    return (course * (1 - a), largeurOverlay - marge + course * a)
 }
 
 /// Part de l'écran qu'une fenêtre d'encoche ne dépasse pas. Au-delà, c'est un overlay plein écran.

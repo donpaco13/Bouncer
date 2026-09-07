@@ -173,17 +173,68 @@ public struct RevelationFleches: Equatable {
     }
 }
 
+/// L'exposant de la courbe d'opacité. 0,65 : à un tiers de la portée le chevron est déjà à 50 %.
+///
+/// Exposé parce que c'est un parti pris et pas une mesure. En dessous de 1, le chevron se devine
+/// de loin — le « soupçon » que François a validé. Au-dessus, il ne se montre qu'au dernier
+/// moment, ce qui est l'autre réponse défendable à « rendre ça plus propre ». Cf.
+/// `docs/rapport-fleches-propres.html`, piste P4.
+public let courbeRevelationDefaut: CGFloat = 0.65
+
 /// `retrait` : de combien de points la flèche sort. 0 = l'ancien comportement, fondu seul.
-public func revelationFleches(progression: CGFloat, retrait: CGFloat) -> RevelationFleches {
+public func revelationFleches(
+    progression: CGFloat, retrait: CGFloat, courbe: CGFloat = courbeRevelationDefaut
+) -> RevelationFleches {
     let p = min(max(progression, 0), 1)
     // smoothstep : dérivée nulle aux deux bouts. C'est ce qui fait qu'un aller-retour au bord de
     // la portée ne produit pas de saccade — le mouvement part de rien et arrive à rien.
     let lisse = p * p * (3 - 2 * p)
     return RevelationFleches(
-        opacite: pow(p, 0.65),
+        // La courbe ne touche QUE l'opacité. Le glissement et l'échelle gardent leur smoothstep :
+        // ce sont eux qui portent le « déploiement », et les rendre réglables reviendrait à
+        // proposer de casser ce que le test réel a validé.
+        opacite: pow(p, max(courbe, 0.05)),
         decalage: (lisse - 1) * retrait,
         echelle: 0.82 + 0.18 * lisse
     )
+}
+
+/// Durée des deux transitions temporelles, en secondes. Assez court pour ne pas traîner derrière
+/// la main, assez long pour que l'effacement ne CLAQUE pas — le reste de la révélation suit le
+/// curseur et n'a donc jamais eu besoin d'une durée.
+public let transitionTemporelle: TimeInterval = 0.18
+
+/// Ce que le TEMPS retranche à la révélation, en plus de la distance. Facteur 0…1, à multiplier
+/// à la progression géométrique.
+///
+/// Deux horloges, deux partis pris opposés, et ils composent :
+///   - `delai` — temps de présence exigé AVANT de se montrer. Un trajet vers la barre des menus
+///     ne mérite pas de chevrons ; s'arrêter à côté de l'encoche, si. 0 = tout de suite, le
+///     comportement actuel.
+///   - `inactivite` — temps d'immobilité APRÈS lequel on s'efface, curseur toujours en place. Le
+///     chrome n'a de raison d'être que pendant l'approche. 0 = jamais, le comportement actuel.
+///
+/// `depuisEntree` se compte depuis l'entrée dans la portée (progression devenue non nulle),
+/// `depuisMouvement` depuis le dernier mouvement du curseur — deux horloges parce que ce sont
+/// deux questions : « ça fait combien de temps que tu es là » et « ça fait combien de temps que
+/// tu ne bouges plus ».
+public func facteurTemporel(
+    depuisEntree: TimeInterval, depuisMouvement: TimeInterval,
+    delai: TimeInterval, inactivite: TimeInterval
+) -> CGFloat {
+    var facteur: CGFloat = 1
+    if delai > 0 { facteur = min(facteur, rampeLisse((depuisEntree - delai) / transitionTemporelle)) }
+    if inactivite > 0 {
+        facteur = min(facteur, 1 - rampeLisse((depuisMouvement - inactivite) / transitionTemporelle))
+    }
+    return facteur
+}
+
+/// Le même smoothstep que `revelationFleches`, borné : dérivée nulle aux deux bouts, donc pas de
+/// coin au départ ni à l'arrivée.
+private func rampeLisse(_ x: TimeInterval) -> CGFloat {
+    let p = CGFloat(min(max(x, 0), 1))
+    return p * p * (3 - 2 * p)
 }
 
 /// La DURÉE DE VIE du détecteur, séparée de sa décision.

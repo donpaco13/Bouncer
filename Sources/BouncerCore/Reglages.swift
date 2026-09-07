@@ -113,6 +113,34 @@ public final class Reglages: ObservableObject {
         public static let retrait: ClosedRange<CGFloat> = 0...24
         public static let retraitDefaut: CGFloat = 8
 
+        // --- Les quatre knobs des pistes « flèches propres » (2026-09-07). ---
+        //
+        // Ils N'APPARAISSENT PAS dans la fenêtre de réglages, et c'est délibéré : ce sont des
+        // propositions en attente d'arbitrage, pas des réglages arrêtés. La sensation du geste et
+        // le design appartiennent à François ; livrer quatre curseurs de plus reviendrait à
+        // trancher à sa place et à figer dans l'UI ce qui n'est pas encore décidé.
+        //
+        // Chacun se règle sans recompiler, l'app relancée :
+        //   defaults write io.github.donpaco13.bouncer bouncer.<clé> -float <valeur>
+        // Le détail de chaque piste vit dans `docs/rapport-fleches-propres.html`.
+
+        /// P2 — temps de présence dans la portée exigé avant que les chevrons se montrent.
+        /// 0 = tout de suite, le comportement actuel.
+        public static let delai: ClosedRange<TimeInterval> = 0...2
+        public static let delaiDefaut: TimeInterval = 0
+
+        /// P1 — temps d'immobilité après lequel les chevrons s'effacent, curseur toujours en
+        /// place. 0 = jamais, le comportement actuel.
+        public static let inactivite: ClosedRange<TimeInterval> = 0...20
+        public static let inactiviteDefaut: TimeInterval = 0
+
+        /// P3 — où le chevron se pose dans sa marge. 0 = collé au boîtier, 1 = au bord extérieur.
+        public static let alignement: ClosedRange<CGFloat> = 0...1
+
+        /// P4 — exposant de la courbe d'opacité. < 1 : devinable de loin. > 1 : discret jusqu'au
+        /// dernier moment.
+        public static let courbe: ClosedRange<CGFloat> = 0.3...3
+
         /// Pas un intervalle continu : un curseur suggérerait qu'une valeur intermédiaire a un
         /// sens, alors que le seul arbitrage est « réactivité contre travail à vide ».
         ///
@@ -135,6 +163,10 @@ public final class Reglages: ObservableObject {
         static let intervalle = "bouncer.intervalleRafraichissement"
         static let exclus = "bouncer.bundleIDsExclus"
         static let raccourci = "bouncer.raccourciGlobal"
+        static let delai = "bouncer.delaiRevelation"
+        static let inactivite = "bouncer.inactiviteFleches"
+        static let alignement = "bouncer.alignementFleches"
+        static let courbe = "bouncer.courbeRevelation"
     }
 
     private let defaults: UserDefaults
@@ -190,6 +222,42 @@ public final class Reglages: ObservableObject {
                     dans: &retraitStocke, cle: Cle.retrait) }
     }
     @Published private var retraitStocke: CGFloat
+
+    /// P2 — temps de présence exigé avant la révélation, en secondes.
+    public var delaiRevelation: TimeInterval {
+        get { delaiStocke }
+        set { ecris(Self.borneDuree(newValue, dans: Domaine.delai, sinon: delaiStocke),
+                    dans: &delaiStocke, cle: Cle.delai) }
+    }
+    @Published private var delaiStocke: TimeInterval
+
+    /// P1 — temps d'immobilité après lequel les chevrons s'effacent, en secondes.
+    public var inactiviteFleches: TimeInterval {
+        get { inactiviteStockee }
+        set { ecris(Self.borneDuree(newValue, dans: Domaine.inactivite, sinon: inactiviteStockee),
+                    dans: &inactiviteStockee, cle: Cle.inactivite) }
+    }
+    @Published private var inactiviteStockee: TimeInterval
+
+    /// P3 — position du chevron dans sa marge (0 = collé au boîtier, 1 = bord extérieur).
+    public var alignementFleches: CGFloat {
+        get { alignementStocke }
+        set { ecris(Self.borne(newValue, dans: Domaine.alignement, sinon: alignementStocke),
+                    dans: &alignementStocke, cle: Cle.alignement) }
+    }
+    @Published private var alignementStocke: CGFloat
+
+    /// P4 — exposant de la courbe d'opacité de la révélation.
+    public var courbeRevelation: CGFloat {
+        get { courbeStockee }
+        set { ecris(Self.borne(newValue, dans: Domaine.courbe, sinon: courbeStockee),
+                    dans: &courbeStockee, cle: Cle.courbe) }
+    }
+    @Published private var courbeStockee: CGFloat
+
+    /// Les deux horloges sont-elles au repos ? Quand elles le sont — le défaut — l'overlay ne pose
+    /// aucun timer et rien ne change du comportement d'aujourd'hui.
+    public var revelationTemporelleActive: Bool { delaiStocke > 0 || inactiviteStockee > 0 }
 
     /// Période du resondage système (apps présentes dans l'encoche, autorisation Accessibilité).
     public var intervalleRafraichissement: TimeInterval {
@@ -247,6 +315,22 @@ public final class Reglages: ObservableObject {
             (defaults.object(forKey: Cle.retrait) as? Double).map { CGFloat($0) },
             dans: Domaine.retrait, sinon: Domaine.retraitDefaut
         )
+        delaiStocke = Self.borneDuree(
+            defaults.object(forKey: Cle.delai) as? Double,
+            dans: Domaine.delai, sinon: Domaine.delaiDefaut
+        )
+        inactiviteStockee = Self.borneDuree(
+            defaults.object(forKey: Cle.inactivite) as? Double,
+            dans: Domaine.inactivite, sinon: Domaine.inactiviteDefaut
+        )
+        alignementStocke = Self.borne(
+            (defaults.object(forKey: Cle.alignement) as? Double).map { CGFloat($0) },
+            dans: Domaine.alignement, sinon: alignementFlechesDefaut
+        )
+        courbeStockee = Self.borne(
+            (defaults.object(forKey: Cle.courbe) as? Double).map { CGFloat($0) },
+            dans: Domaine.courbe, sinon: courbeRevelationDefaut
+        )
         ancrageZone = (defaults.string(forKey: Cle.ancrage).flatMap(AncrageZone.init(rawValue:)))
             ?? .fenetreEncoche
         let lu = defaults.object(forKey: Cle.intervalle) as? Double
@@ -270,6 +354,10 @@ public final class Reglages: ObservableObject {
         margeLaterale = Domaine.margeDefaut
         retraitFleches = Domaine.retraitDefaut
         intervalleRafraichissement = Domaine.intervalleDefaut
+        delaiRevelation = Domaine.delaiDefaut
+        inactiviteFleches = Domaine.inactiviteDefaut
+        alignementFleches = alignementFlechesDefaut
+        courbeRevelation = courbeRevelationDefaut
         // Les exclusions ne sont PAS remises à zéro : ce n'est pas un réglage de sensation, c'est
         // une liste que l'utilisateur a composée app par app. La perdre par un bouton nommé
         // « valeurs par défaut du geste » serait une surprise.
@@ -287,6 +375,16 @@ public final class Reglages: ObservableObject {
     /// Retire une exclusion.
     public func retirerExclusion(_ bundleID: String) {
         exclusion(bundleID, exclue: false)
+    }
+
+    /// Même règle que `borne`, pour une durée. Nommée à part et non surchargée : avec la
+    /// conversion implicite CGFloat/Double de Swift, deux surcharges qui ne diffèrent que par ce
+    /// type se résolvent au petit bonheur.
+    private static func borneDuree(
+        _ valeur: TimeInterval?, dans domaine: ClosedRange<TimeInterval>, sinon defaut: TimeInterval
+    ) -> TimeInterval {
+        guard let valeur, valeur.isFinite else { return defaut }
+        return min(max(valeur, domaine.lowerBound), domaine.upperBound)
     }
 
     private static func borne(_ valeur: CGFloat?, dans domaine: ClosedRange<CGFloat>, sinon defaut: CGFloat) -> CGFloat {
