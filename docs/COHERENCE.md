@@ -62,6 +62,8 @@ Dans `Sources/Bouncer/NotchOverlay.swift` (l. 16-17) :
 
 **Réalité :** Le projet s'appelle Bouncer. « Island Switch » était le nom de travail initial conservé par le dossier parent.
 
+**Résolu le 7 septembre 2026.** Les deux moitiés du constat sont fermées : le commentaire de `NotchOverlay.swift` ne porte plus l'ancien nom, et le dossier parent a été renommé `GitHub/Bouncer`. Le constat reste écrit ici plutôt que gommé — un audit qui efface ce qu'il a trouvé ne prouve plus rien.
+
 ### 2.5 Fréquence d'évaluation du catalogue
 Dans `Sources/BouncerCore/WindowManager.swift` (l. 496-499) :
 > `ses deux appelants sont rares : le corps du menu n'est évalué que menu ouvert, et cyclableApps à chaque cran de swipe...`
