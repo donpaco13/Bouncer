@@ -275,12 +275,10 @@ public func bandeEncoche(survol: CGRect, hauteurRangee: CGFloat = hauteurBarreDe
 /// abord. Partout ailleurs dans la fenêtre, le chrome n'a rien à faire.
 ///
 /// « Et leur abord », pas « les 22 pt » : c'est là qu'était le trou. Une cible nue laisserait le
-/// chevron s'éteindre dès que la main s'en approche par le bas ou par le côté sans encore la
-/// toucher — donc n'apparaître qu'une fois le curseur DESSUS, une cible qu'on ne voit pas. La
-/// zone protégée est donc celle où la flèche est encore atteignable, mesurée par la fonction qui
-/// décide déjà de son opacité (`opaciteFleches`) : aucune constante nouvelle, et le protégé colle
-/// par construction au visible. À `portee = 0` la protection retombe sur les 22 pt nus, ce qui est
-/// cohérent : ce réglage-là rend déjà les flèches binaires.
+/// chevron s'éteindre dès que la main s'en approche par le côté sans encore la toucher — donc
+/// n'apparaître qu'une fois le curseur DESSUS, une cible qu'on ne voit pas. Cet abord, c'est
+/// `abordChevron`, et le passage par `opaciteFleches` qui le mesurait est précisément ce qui a
+/// fait revenir le défaut une troisième fois : cf. le raisonnement là-bas.
 ///
 /// **Ce qu'on ne peut pas savoir, et qu'on ne suppose donc pas.** Rien ne distingue « déployée »
 /// de « repliée » par la géométrie : les conteneurs des apps d'encoche sont fixes et transparents
@@ -307,7 +305,45 @@ public func encocheOccupee(
     guard let fenetre, !fenetre.isEmpty, fenetre.intersects(cadreFleches) else { return false }
     if bandeEncoche.contains(curseur) { return true }
     guard fenetre.contains(curseur) else { return false }
-    return !ciblesFleches.contains { opaciteFleches(curseur: curseur, zone: $0, portee: portee) > 0 }
+    return !ciblesFleches.contains { abordChevron(cible: $0, portee: portee).contains(curseur) }
+}
+
+/// La zone qui PROTÈGE un chevron de l'effacement. Ce n'est pas celle qui le RÉVÈLE, et les
+/// confondre est le défaut du 2026-09-07, revenu deux fois.
+///
+/// **Ce qui ratait, en chiffres** (géométrie de référence : bande des flèches en y 814→843,
+/// chevron gauche 560→582 × 817,5→839,5, portée 72). La protection était mesurée par
+/// `opaciteFleches`, une distance EUCLIDIENNE au cadre du chevron — donc un disque, donc autant
+/// vers le bas que vers le côté. Curseur posé 40 pt sous la bande, en plein widget déployé :
+///
+/// ```
+/// x = 571 (sous le chevron)  opacité cible 0,396 -> PROTÉGÉ    révélation 0,444 -> allumé
+/// x = 600                    opacité cible 0,346 -> PROTÉGÉ    révélation 0,444 -> allumé
+/// x = 640                    opacité cible 0,000 -> effacé
+/// ```
+///
+/// Soit, dans ses mots : « dès que je suis un peu plus bas sur le panel de l'app qui s'est
+/// ouverte, ils réapparaissent ». La protection descendait 72 pt sous les chevrons, sur ~114 pt de
+/// large chacune, et cette nappe recouvrait la moitié de la rangée juste sous l'encoche. L'autre
+/// hypothèse — une fenêtre d'app qui ne descendrait pas jusque-là — est écartée par le relevé :
+/// `CGWindowList` du 2026-09-07, Vibe Island 740×520 et TheBoringNotch 640×210 en repère AppKit,
+/// tous deux couvrant ces points ; `fenetre.contains` était vrai partout dans la zone décrite.
+///
+/// **La géométrie juste.** On protège le chevron d'une extinction quand la main VIENT LE
+/// CHERCHER, et une main ne le cherche pas par en dessous : sous la rangée des chevrons il n'y a
+/// que le panneau de l'app tierce, rien à viser. La protection s'étend donc de `portee` sur les
+/// côtés et vers le haut — le trajet réel, puisque au-dessus la rangée de l'encoche prend le
+/// relais et efface —, et à peine plus bas que la cible.
+///
+/// « À peine », c'est la hauteur du chevron : on tolère de dépasser sa cible d'au plus la taille
+/// de la cible. 22 pt sur la machine de référence, ce qui garde couverte la bande entière (le
+/// chevron a 3,5 pt de marge sous lui) et le dépassement franc qu'un doigt produit — mais plus la
+/// nappe de 72. Aucune constante nouvelle : la hauteur sort du cadre reçu. Bornée par `portee`
+/// pour que `portee = 0` retombe exactement sur les 22 pt nus, comme avant.
+public func abordChevron(cible: CGRect, portee: CGFloat) -> CGRect {
+    let dessous = min(portee, cible.height)
+    return CGRect(x: cible.minX - portee, y: cible.minY - dessous,
+                  width: cible.width + 2 * portee, height: cible.height + dessous + portee)
 }
 
 /// Ce que Bouncer ÉCOUTE : la bande des flèches, détendue de 6 pt en haut et en bas (elle fait

@@ -93,6 +93,44 @@ struct EncocheOccupeeTests {
         }
     }
 
+    @Test("Sous la bande, en plein widget : les chevrons s'effacent même sous une cible")
+    func effacementSousLaBande() {
+        // Le retour du 2026-09-07, deuxième passe : « dès que je suis un peu plus bas sur le
+        // panel de l'app qui s'est ouverte, en dessous de la zone de l'encoche, ils
+        // réapparaissent ». La protection était un DISQUE de 72 pt autour de la cible : elle
+        // descendait aussi bas qu'elle s'étendait sur les côtés, et couvrait la rangée entière
+        // sous l'encoche. Mesuré avant correctif, curseur 40 pt sous la bande : opacité de cible
+        // 0,396 en x 571 et 0,346 en x 600 — protégé, donc chevrons allumés.
+        //
+        // La colonne x 571 est celle du chevron gauche : c'est le pire cas, celui qui reste
+        // protégé le plus longtemps.
+        for dessous in [40.0, 60.0, 80.0, 150.0] as [CGFloat] {
+            for x in [571.0, 600.0, 676.0, 781.0] as [CGFloat] {
+                let curseur = CGPoint(x: x, y: cadreFleches.minY - dessous)
+                #expect(fenetreDeployee.contains(curseur), "hors fenêtre \(curseur)")
+                #expect(occupee(curseur: curseur, fenetre: fenetreDeployee), "curseur \(curseur)")
+            }
+        }
+    }
+
+    @Test("La protection s'arrête à une hauteur de chevron sous la cible")
+    func frontiereBasseDeLaProtection() {
+        // Contre-épreuve de la frontière, des deux côtés et à 0,5 pt près : au-dessus elle tient
+        // (c'est le trajet vers le bouton), en dessous elle lâche (c'est le widget).
+        let cible = cibles[0]
+        let plancher = cible.minY - cible.height  // 795,5
+        #expect(!occupee(curseur: CGPoint(x: cible.midX, y: plancher + 0.5),
+                         fenetre: fenetreDeployee))
+        #expect(occupee(curseur: CGPoint(x: cible.midX, y: plancher - 0.5),
+                        fenetre: fenetreDeployee))
+        // Latéralement, en revanche, la portée entière reste protégée : c'est par là que la main
+        // arrive quand une app est déployée, la rangée de l'encoche effaçant déjà par le haut.
+        #expect(!occupee(curseur: CGPoint(x: cible.minX - portee + 0.5, y: cible.midY),
+                         fenetre: fenetreDeployee))
+        #expect(occupee(curseur: CGPoint(x: cible.minX - portee - 0.5, y: cible.midY),
+                        fenetre: fenetreDeployee))
+    }
+
     @Test("Les deux règles se composent sans trou : la marge entre cible et bord de bande")
     func aucunTrouEntreLesDeuxRegles() {
         // Le piège que la version « 22 pt nus » aurait introduit : la cible ne fait que 22 pt de
