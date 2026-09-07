@@ -4,6 +4,9 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 BUNDLE_ID="io.github.donpaco13.bouncer"
+# La version n'est écrite qu'ici. release.sh la relit dans l'Info.plist du bundle et en
+# tire le nom de l'archive : un seul endroit à changer, et rien qui puisse diverger.
+VERSION="0.1.0"
 # Certificat auto-signé, persistant dans le trousseau. Il n'a PAS besoin d'être trusté.
 # Mesuré le 2026-09-03 : aucun réglage de confiance dans les trois domaines (user, admin,
 # system), et l'Accessibilité fonctionne quand même. La designated requirement embarquée est
@@ -39,9 +42,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleIdentifier</key>
     <string>$BUNDLE_ID</string>
     <key>CFBundleVersion</key>
-    <string>0.1.0</string>
+    <string>$VERSION</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>$VERSION</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>

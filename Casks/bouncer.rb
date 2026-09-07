@@ -1,6 +1,6 @@
 cask "bouncer" do
   version "0.1.0"
-  sha256 "640038e9e44bad4a85d326629ae7b1b8d0d840ebd3837d1faca92b5952f17a2f"
+  sha256 "606c0ebc920d92ee0cb5bcfae4e52fd6dde2e2877d6054f174c27d63910d5d27"
 
   url "https://github.com/donpaco13/Bouncer/releases/download/v#{version}/Bouncer-#{version}.zip"
   name "Bouncer"
