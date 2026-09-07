@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA passe 6 — 57b735f</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #181b24; --text: #e2e8f0; --muted: #94a3b8;
+    --border: #2d3748; --accent: #3b82f6; --maj: #f97316; --med: #eab308;
+    --ok: #22c55e; --code: #11141c; --crit: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 2.5rem 1.5rem; max-width: 900px; margin: 0 auto;
+  }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 1.4rem; margin-bottom: 2rem; }
+  h1 { font-size: 1.7rem; color: #fff; margin-bottom: .4rem; }
+  h2 { font-size: 1.2rem; color: #fff; margin: 2.2rem 0 .9rem; }
+  h3 { font-size: 1rem; color: #fff; margin: 1.4rem 0 .4rem; }
+  .meta { color: var(--muted); font-size: .9rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.15rem; margin-bottom: 1.2rem; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: .5rem; }
+  .badge { font-size: .7rem; font-weight: 700; text-transform: uppercase; padding: .18rem .5rem; border-radius: 4px; white-space: nowrap; }
+  .b-maj { background: rgba(249,115,22,.18); color: var(--maj); border: 1px solid var(--maj); }
+  .b-med { background: rgba(234,179,8,.18); color: var(--med); border: 1px solid var(--med); }
+  .b-ok  { background: rgba(34,197,94,.18); color: var(--ok); border: 1px solid var(--ok); }
+  .loc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; color: var(--accent); margin-bottom: .6rem; }
+  p { margin-bottom: .65rem; }
+  ul, ol { margin-left: 1.2rem; margin-bottom: .65rem; }
+  li { margin-bottom: .18rem; }
+  pre { background: var(--code); border: 1px solid var(--border); border-radius: 6px; padding: .7rem; overflow-x: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .79rem; margin-bottom: .65rem; }
+  code { background: var(--code); padding: .1rem .3rem; border-radius: 4px;
+         font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; margin-bottom: .8rem; }
+  th, td { text-align: left; padding: .42rem .55rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+  .ko { color: var(--crit); font-weight: 600; }
+  .go { color: var(--ok); font-weight: 600; }
+  h4 { font-size: .76rem; text-transform: uppercase; color: var(--muted); letter-spacing: .05em; margin: .8rem 0 .2rem; }
+  footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1.2rem; }
+</style>
+
+<header>
+  <h1>QA passe 7 — <code>f0c5fe4</code> / <code>94c3825</code></h1>
+  <p class="meta">
+    Passe en lecture seule sur le moteur, celle qui précède la livraison. Question posée :
+    non pas « les quatre correctifs ferment-ils les défauts de la passe 6 » — la contre-épreuve
+    est faite, par les auteurs et par god — mais
+    <strong>qu'est-ce qu'ils rendent possible qui ne l'était pas</strong>.
+    Périmètre : <code>Bascule.swift</code>, <code>WindowManager.swift</code>,
+    <code>ControleurAppsSysteme.masquer</code>, et le chemin de fermeture d'app en entier.
+    Branche <code>agent/worker-qa-round-7</code>. 7 septembre 2026.
+  </p>
+</header>
+
+<h2>En une phrase</h2>
+<p>
+  Deux défauts, et ils ont la même racine : <code>eteindre</code> lit <em>tout</em>
+  <code>masquer(true, …) == false</code> comme « app résistante » et tombe dans son dernier filet,
+  qui tue. Ce raccourci était juste tant qu'une seule cause produisait ce <code>false</code>.
+  <code>f0c5fe4</code> en ajoute deux autres et ne les distingue pas.
+  <strong>D1</strong> : la porte unique <code>dormirSondage</code> fait sortir la boucle de
+  propagation du WindowServer <em>à l'instant</em> de l'annulation, avant que le masquage n'ait
+  pris — le recomptage rend <code>false</code>, et la précédente est tuée par une tâche annulée.
+  C'est le défaut D1 de la passe 6, rouvert 15 ms plus loin, derrière le garde même qui le fermait.
+  <strong>D2</strong> : le garde <code>trustAccorde()</code> posé avant <code>eteindre</code> lit
+  une latche qui ne redescend jamais ; en production elle vaut <code>true</code> à chaque fois
+  qu'on l'atteint. Le garde ne se déclenche donc jamais, le verdict
+  <code>.precedenteNonRangeableSansAccessibilite</code> est inatteignable, et la révocation en
+  cours de surveillance — le scénario que le doc-comment nomme — tue toujours la précédente. Les
+  sept tests de la passe 6 l'éprouvent sur une fermeture que la production n'utilise pas.
+</p>
+<p>
+  Le reste tient, et c'est mesuré : le second <code>guard !Task.isCancelled</code> ferme bien le
+  trou qu'il annonce, les quatre boucles passent par la porte unique, et la chaîne de surveillances
+  finit en deux tours. <strong>209 tests, 0 échec</strong> — les deux défauts vivent hors de leur
+  portée, comme les six fois précédentes.
+</p>
+
+<h2>1. Ce que ces commits rendent possible qui ne l'était pas</h2>
+
+<p>
+  Le dernier filet de <code>eteindre</code> (<code>Bascule.swift:415-420</code>) tient en deux
+  lignes : si le masquage mesuré échoue, on quitte le process. Le commentaire dit pourquoi — un
+  verdict <code>.supported</code> peut avoir vieilli, une mise à jour de l'app peut l'avoir rendue
+  résistante, et deux apps dans l'encoche seraient pires. Ce raisonnement suppose que
+  <code>false</code> veut dire <em>« cette app ne se laisse pas masquer »</em>. Après
+  <code>f0c5fe4</code>, il peut aussi vouloir dire <em>« on a cessé de regarder »</em> (D1) et
+  <em>« on n'avait plus le droit de demander »</em> (D2). Dans ces deux cas-là, tuer est le geste
+  exactement inverse de celui qu'il faut.
+</p>
+
+<div class="card">
+  <div class="head">
+    <h3 style="margin:0">D1 — La porte unique fait sortir <code>masquer</code> avant la propagation, et le recomptage rend alors « résistante »</h3>
+    <span class="badge b-maj">Majeur</span>
+  </div>
+  <p class="loc">Sources/BouncerCore/ControleurApps.swift:641-654 → Sources/BouncerCore/Bascule.swift:415-419</p>
+  <p>
+    <code>ControleurAppsSysteme.masquer</code> poste l'ordre AX, puis sonde le recomptage
+    <code>CGWindowList</code> jusqu'à voir le changement, avec un plafond de 100 ms et un intervalle
+    de 15 ms. Le verdict rendu est le recomptage <em>après</em> la boucle,
+    <code>countAfter &lt; countBefore</code>. §3 du commit remplace le <code>try? await
+    Task.sleep</code> nu par <code>guard await dormirSondage(…) else { break }</code>. Sur une tâche
+    annulée, <code>dormirSondage</code> rend <code>false</code> en 40 µs (mesuré), la boucle
+    <code>break</code>, et le recomptage a lieu <strong>avant que le WindowServer n'ait propagé</strong>.
+  </p>
+  <p>
+    Le commentaire posé au-dessus du <code>break</code> tranche déjà la question, et il la tranche
+    à l'envers : « Sortir sans avoir vu le changement rend le même verdict qu'un plafond atteint :
+    le recomptage qui suit tranche. » C'est vrai, et c'est le problème. Un plafond atteint après
+    100 ms de sondage veut dire « cette app ne se masque pas ». Une sortie à 0,5 ms veut dire
+    « on n'a pas attendu ». Les deux rendent <code>false</code>, et
+    <code>eteindre</code> tue dans les deux cas.
+  </p>
+  <p>
+    Le <code>try?</code> nu, lui, ne pouvait pas produire ça. Sur annulation il repartait à pleine
+    vitesse — le défaut CPU que le commit ferme — mais il <em>continuait de sonder</em> jusqu'au
+    plafond, voyait la propagation arriver, et rendait <code>true</code>. Le commit échange 100 ms
+    de boucle serrée sur le main actor contre le meurtre d'une app qui a peut-être du travail non
+    enregistré.
+  </p>
+  <h4>Rejeu — double fidèle à <code>ControleurAppsSysteme.masquer</code>, propagation à 20 ms (mesurée réelle : 1,5 à 31,7 ms), annulation à l'entrée de <code>masquer</code></h4>
+<pre>R2  porteUnique=true   → masquer = <span class="ko">false</span>,    1 tour,    0,54 ms
+    porteUnique=false  → masquer = <span class="go">true</span>,  2245 tours, 20,0 ms   (la forme d'avant f0c5fe4)
+
+R3  poursuivreFermeture(de: vibe, puisRelancer: true, puisEteindre: boring)
+    porteUnique=true   → verdict=reussie  journal=[lance(vibe), masque(true,200), <span class="ko">tue(200)</span>]  boringVivant=<span class="ko">false</span>
+    porteUnique=false  → verdict=reussie  journal=[lance(vibe), masque(true,200)]           boringVivant=<span class="go">true</span>  masquee=true</pre>
+  <p>
+    <code>tue(200)</code> est la précédente. Le verdict <code>.reussie</code> est ensuite jeté par
+    le <code>guard !Task.isCancelled else { return }</code> de
+    <code>WindowManager.surveiller</code> (<code>WindowManager.swift:893</code>) : rien n'est
+    écrit dans le modèle, aucun message n'est publié, aucune relance n'est armée.
+    <strong>L'app meurt en silence</strong>, et le <code>refresh()</code> suivant la retirera de la
+    liste sans que rien n'ait jamais dit pourquoi.
+  </p>
+  <h4>L'enveloppe, et pourquoi elle n'est pas exotique</h4>
+  <p>
+    L'annulation vient du <code>surveillanceFermeture?.cancel()</code> de
+    <code>WindowManager.basculer</code> : c'est le geste suivant de l'utilisateur. La fenêtre
+    sensible court de l'entrée de <code>masquer</code> jusqu'à la propagation observée, soit 1,5 à
+    31,7 ms (plafonnée à 100 ms), à l'intérieur d'une surveillance qui dure de l'ordre d'une
+    seconde et demie — mort de la cible mesurée à 867-894 ms, puis <code>openApplication</code> sur
+    une app froide. Pendant tout ce temps, l'utilisateur regarde un message d'attente. Reswiper
+    là est très exactement le comportement que N3 a documenté.
+  </p>
+  <p>
+    Et le pire cas est le même qu'à la passe 6 : si le geste suivant vise la précédente, deux
+    chemins courent en parallèle — <code>basculer</code> qui la démasque, la surveillance qui la
+    tue. <strong>Bouncer tue l'app que l'utilisateur vient de demander.</strong>
+  </p>
+</div>
+
+<div class="card">
+  <div class="head">
+    <h3 style="margin:0">D2 — Le garde de trust lit une latche monotone : il ne se déclenche jamais en production</h3>
+    <span class="badge b-maj">Majeur</span>
+  </div>
+  <p class="loc">Sources/BouncerCore/Bascule.swift:345 · Sources/BouncerCore/ControleurApps.swift:78-83</p>
+  <p>
+    <code>poursuivreFermeture</code> vérifie <code>guard trustAccorde() else { return
+    .precedenteNonRangeableSansAccessibilite }</code> avant <code>eteindre(precedente)</code>. En
+    production, <code>trustAccorde</code> vaut <code>accessibiliteDejaAccordee</code>, et cette
+    fonction est une latche : <code>if !trustDejaAccorde, AXIsProcessTrusted() { trustDejaAccorde =
+    true }</code>, jamais remise à <code>false</code>. Son doc-comment le dit lui-même — « la
+    latche n'est jamais remise à false ».
+  </p>
+  <p>
+    Or une surveillance n'existe que si <code>basculer</code> a tourné, et
+    <code>basculer</code> commence par <code>guard trustAccorde()</code>
+    (<code>Bascule.swift:138</code>). Quand la ligne 345 s'exécute, la latche a donc <em>toujours</em>
+    déjà monté. <strong>Le garde est inerte</strong>, et avec lui les trois branches qui en
+    dépendent : <code>.precedenteNonRangeableSansAccessibilite</code> ne peut naître nulle part,
+    et <code>WindowManager.swift:850</code> comme <code>WindowManager.swift:916</code> sont du code
+    mort. L'auteur a d'ailleurs écrit « inatteignable par cette porte-ci » au premier des deux — il
+    manquait de le vérifier pour le second.
+  </p>
+  <p>
+    Ce que le garde devait protéger reste donc grand ouvert, et le doc-comment le nomme :
+    « Le retrait du droit en cours de session est un scénario que le produit modélise DÉJÀ
+    (<code>WindowManager.signalerRevocation</code>). » Droit retiré pendant la surveillance :
+    <code>AXUIElementSetAttributeValue</code> échoue en silence, le recomptage ne bouge pas,
+    <code>masquer</code> rend <code>false</code>, et <code>eteindre</code> tue. C'est mot pour mot
+    ce que <code>f0c5fe4</code> annonce avoir fermé.
+  </p>
+  <h4>Rejeu — révocation déclenchée pendant <code>lancer</code>, seule la fonction de trust change</h4>
+<pre>R5  latche du produit  (if !deja, AXIsProcessTrusted() { deja = true } ; return deja)
+      → verdict=reussie  journal=[lance(vibe), masque(true,200), <span class="ko">tue(200)</span>]  boringVivant=<span class="ko">false</span>
+
+    fermeture des tests de la passe 6  ({ droit.accorde }, redescend à false)
+      → verdict=<span class="go">precedenteNonRangeableSansAccessibilite</span>  journal=[lance(vibe)]  boringVivant=<span class="go">true</span></pre>
+  <p>
+    Les sept tests de <code>GardesExtinctionTests.swift</code> injectent tous
+    <code>trustAccorde: { droit.accorde }</code> via la classe <code>DroitAX</code>, dont le
+    doc-comment dit « le droit AX, révocable en cours de route ». C'est la seule ligne du montage
+    qui diffère du produit, et c'est celle dont dépend le résultat. Le correctif est prouvé contre
+    une fonction que rien n'appelle.
+  </p>
+  <h4>Pourquoi ce n'est pas la latche qu'il faut lire ici</h4>
+  <p>
+    La latche répond à « toucher l'API AX peut-il condamner la connexion de ce process ? », et
+    c'est la bonne question au garde d'entrée de <code>basculer</code> : sans octroi initial, un
+    seul appel met la connexion hors service pour toute la vie du process
+    (<code>RobustesseTests</code>). Avant <code>eteindre</code>, la question est autre : « le
+    masquage a-t-il une chance d'aboutir ? », et elle se lit sur
+    <code>AXIsProcessTrusted()</code>, l'état courant.
+  </p>
+</div>
+
+<h3>La racine, et la forme que prendrait le correctif</h3>
+<p>
+  Les deux défauts se referment au même endroit, et ce n'est pas là où les gardes ont été posés.
+  Un garde <em>avant</em> <code>masquer</code> ne peut pas couvrir D1 (l'annulation arrive après)
+  et couvre D2 avec une course : la révocation peut tomber entre le garde et l'appel. Ce qui
+  manque est en aval — <code>eteindre</code> doit distinguer les trois causes du <code>false</code>
+  avant de tomber dans son dernier filet :
+</p>
+<ul>
+  <li><strong>résistance</strong> — l'app a reçu l'ordre et n'a rien changé : tuer est légitime, c'est le cas d'origine ;</li>
+  <li><strong>annulation</strong> — <code>Task.isCancelled</code> : ne rien faire, le geste suivant décide ;</li>
+  <li><strong>droit retiré</strong> — <code>AXIsProcessTrusted() == false</code> : ne rien tuer, rendre <code>.precedenteNonRangeableSansAccessibilite</code>, qui existe déjà et n'attend que d'être atteignable.</li>
+</ul>
+<p>
+  Un seul point de décision, au seul endroit où les trois causes sont encore distinguables. C'est
+  l'argument que le fichier tient déjà pour <code>dormirSondage</code> et pour le garde de
+  <code>basculer</code> : un garde recopié chez chaque appelant est un oubli en attente.
+</p>
+
+<h2>2. Ce qui tient, prouvé</h2>
+
+<div class="card">
+  <h3 style="margin-top:0">Le second <code>guard !Task.isCancelled</code> ferme bien le trou qu'il annonce</h3>
+  <p class="loc">Sources/BouncerCore/Bascule.swift:339</p>
+  <p>
+    Le trou décrit à la passe 6 est réel et le garde le ferme : quand <code>allumer</code> trouve
+    la fenêtre au premier sondage, la boucle rend <code>.reussie</code> sans passer par
+    <code>dormir()</code>, et sans ce second garde la précédente était tuée. Vérifié par relecture
+    des trois chemins qui mènent à <code>eteindre</code> et par les rejeux de
+    <code>GardesExtinctionTests</code>, qui tombent bien quand on le retire. Sa limite est D1 :
+    il observe l'annulation à l'instant où elle est vraie, et le seul <code>await</code> qui suit
+    peut en recevoir une autre.
+  </p>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Les quatre boucles passent bien par la porte unique</h3>
+  <p class="loc">Bascule.swift:257, 316, 394 · ControleurApps.swift:650</p>
+  <p>
+    <code>quitterEtAttendre</code>, <code>poursuivreFermeture</code>, la boucle d'apparition de
+    <code>allumer</code> et la boucle de propagation de <code>masquer</code> : aucune n'a gardé de
+    <code>Task.sleep</code> nu, vérifié par recherche exhaustive sur <code>Sources/</code>. Et la
+    seule tâche annulable du produit est <code>surveillanceFermeture</code> — les trois autres
+    <code>Task { }</code> (<code>rendreActive</code>, <code>testSupport</code>, les rebuilds de
+    l'overlay) ne sont annulées nulle part. Le périmètre de l'annulation est donc exactement celui
+    qui est décrit.
+  </p>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">La chaîne de surveillances finit bien en deux tours</h3>
+  <p class="loc">Sources/BouncerCore/WindowManager.swift:906-915</p>
+  <p>
+    Affirmé « fini par construction », et c'est vrai : le tour 2 part avec
+    <code>puisRelancer: false</code>, donc <code>poursuivreFermeture</code> rend <code>.reussie</code>
+    au sortir de sa boucle sans jamais atteindre <code>eteindre</code> ; son seul autre verdict
+    possible est <code>.precedenteFermetureEnCours</code> sur annulation, que le
+    <code>guard !Task.isCancelled</code> de <code>surveiller</code> intercepte avant le
+    <code>switch</code>. Aucun tour 3 n'est atteignable. Rejoué sur le câblage complet, cible tuée
+    au repli et précédente résistante qui met 80 ms à mourir :
+  </p>
+<pre>R7  tour 1 → .precedenteFermetureEnCours, message nommant la précédente
+    tour 2 → .reussie, echecBascule=nil, surveillance restante=<span class="go">aucune</span>
+    journal=[…, tue(100), lance(vibe), masque(true,200), tue(200)]
+    boringVivant=false  vibeVivant=true  active=app.vibeisland.macos</pre>
+</div>
+
+<h3>Les deux dettes que les auteurs ont laissées ouvertes</h3>
+
+<div class="card">
+  <div class="head">
+    <h3 style="margin:0">Bouncer quitte pendant une surveillance</h3>
+    <span class="badge b-ok">Acceptable en l'état</span>
+  </div>
+  <p class="loc">Sources/BouncerCore/WindowManager.swift:279-283</p>
+  <p>
+    L'observateur <code>willTerminateNotification</code> appelle
+    <code>restaurerAppsMasquees()</code>, qui démasque tout le catalogue installé. Il ne peut rien
+    pour l'app tuée : elle n'a plus de pid. L'utilisateur perd donc l'app que la surveillance
+    allait lui rendre.
+  </p>
+  <p>
+    Ce que ça coûte vraiment : l'app reste au catalogue et au menu, à un clic — le
+    <code>infoPourBascule</code> la fabrique depuis <code>catalogue.installees()</code> même
+    arrêtée, avec son verdict mémorisé. Rien n'est masqué de façon irrécupérable, rien n'est perdu
+    au-delà de l'état non enregistré que le <code>terminate()</code> avait déjà mis en jeu. Et la
+    fenêtre est courte : il faut que l'utilisateur quitte Bouncer dans la seconde et demie qui suit
+    son propre geste de bascule. <strong>Persister une dette entre deux lancements coûterait plus
+    cher que le défaut</strong> — il faudrait décider quoi faire d'une relance ordonnée par une
+    session morte, et l'app d'encoche que l'utilisateur a peut-être rouverte entre-temps.
+    Laisser en l'état, et le documenter.
+  </p>
+</div>
+
+<div class="card">
+  <div class="head">
+    <h3 style="margin:0">L'utilisateur relance l'app à la main pendant la surveillance</h3>
+    <span class="badge b-med">Mineur</span>
+  </div>
+  <p class="loc">Sources/BouncerCore/Bascule.swift:315-317</p>
+  <p>
+    La boucle attend <code>pid(pour:) == nil</code>. Si l'ancien process meurt et que le nouveau
+    apparaît dans le même intervalle de sondage, le pid n'est jamais <code>nil</code> au moment où
+    on le lit, et <strong>la boucle ne se termine pas</strong> — elle n'a pas de plafond, c'est son
+    contrat. Rejoué en changeant le pid sous la surveillance toutes les 30 ms : toujours en cours
+    au bout de 300 ms, elle ne sort que sur l'annulation.
+  </p>
+  <p>
+    Ce que ça coûte vraiment, mesuré : un tour de <code>pid(pour:)</code> réel
+    (<code>NSRunningApplication.runningApplications(withBundleIdentifier:)</code>) coûte 62,8 µs
+    (200 tours en 12,6 ms). Aux durées de production, 20 sondages par seconde font
+    <strong>1,3 ms de main actor par seconde, soit 0,13 %</strong>. Le vrai coût est le message
+    d'attente figé — « Bouncer la relancera dès qu'elle sera partie » — sur une app que
+    l'utilisateur a déjà sous les yeux. Et le geste suivant annule la surveillance : ça se répare
+    tout seul.
+  </p>
+  <p>
+    L'enveloppe est étroite : il faut que le nouveau process apparaisse dans les 50 ms qui suivent
+    la mort de l'ancien, alors que <code>openApplication</code> sur une app en train de mourir rend
+    l'instance mourante au lieu d'en démarrer une neuve. <strong>Ne pas corriger avant D1 et
+    D2.</strong> Si on y revient, le remède tient en une ligne : mémoriser le pid attendu et
+    sortir dès qu'il change, plutôt que d'attendre l'absence.
+  </p>
+</div>
+
+<h2>3. Ce que je n'ai pas pu vérifier</h2>
+<ul>
+  <li>
+    <strong>Le vrai <code>ControleurAppsSysteme.masquer</code> sous annulation.</strong> Il exige
+    des pids réels, le droit AX et une encoche. D1 est reproduit sur un double dont la boucle de
+    propagation est écrite à l'identique — même plafond, même intervalle, même verdict par
+    recomptage — avec une propagation à 20 ms, dans la plage 1,5-31,7 ms relevée par
+    <code>docs/PERFORMANCE.md §5</code>. La chaîne <code>false → quitterEtAttendre → tuer</code>,
+    elle, est lue directement dans <code>Bascule.swift:417-419</code> et ne dépend d'aucun double.
+  </li>
+  <li>
+    <strong>La révocation AX réelle en cours de surveillance.</strong> Décocher Bouncer dans les
+    Réglages Système pendant la seconde et demie que dure une surveillance n'est pas scriptable
+    ici. R5 réplique la latche du produit ligne pour ligne et modélise la révocation comme le fait
+    <code>ControleurAppsDouble.accessibiliteRevoquee</code>, qui est déjà la référence de
+    <code>RobustesseTests</code>. La partie qui compte — la latche ne redescend pas, donc le garde
+    ne se déclenche pas — se lit dans <code>ControleurApps.swift:78-83</code> sans rien exécuter.
+  </li>
+  <li>
+    <strong>D1 au niveau du câblage <code>WindowManager</code>.</strong> Reproduit au niveau de
+    <code>Bascule</code> seulement : le montage <code>gestionnaire(…)</code> prend un
+    <code>ControleurAppsDouble</code>, dont le <code>masquer</code> est instantané et n'observe
+    aucune annulation. La conséquence côté modèle — le verdict jeté par le
+    <code>guard !Task.isCancelled</code> de <code>surveiller</code>, donc le silence — est établie
+    par lecture, pas par rejeu.
+  </li>
+  <li>
+    <strong>Tout ce qui est hors du moteur.</strong> Overlay, swipe, réglages, menu, accueil,
+    landing : non regardés, conformément au périmètre.
+  </li>
+</ul>
+
+<h2>Méthode</h2>
+<p>
+  Sept rejeux sur le double, aux durées de production quand elles comptent, tous écrits dans un
+  fichier de test temporaire <code>Tests/BouncerTests/ZZRoundSevenRepro.swift</code> supprimé
+  après relevé — la passe est en lecture seule, aucun fichier du dépôt n'a été modifié. Chaque
+  défaut est rejoué dans les deux sens : avec le code tel qu'il est, et avec la forme d'avant le
+  commit, pour que la différence soit attribuable au commit et pas au montage. Suite complète
+  relancée avant et après : <strong>209 tests, 0 échec</strong>.
+</p>
+<table>
+  <tr><th>Rejeu</th><th>Ce qu'il mesure</th><th>Résultat</th></tr>
+  <tr><td>R1</td><td><code>dormirSondage</code> sur tâche annulée</td><td><code>false</code> en 40 µs (contre <code>true</code> en 16,5 ms sans annulation)</td></tr>
+  <tr><td>R2</td><td>Verdict de <code>masquer</code> sur annulation</td><td><span class="ko">false</span> à 0,54 ms · <span class="go">true</span> à 20 ms avec le <code>try?</code> nu</td></tr>
+  <tr><td>R3</td><td>Machine à états, annulation pendant le masquage</td><td><span class="ko">précédente tuée</span> · vivante et masquée avec le <code>try?</code> nu</td></tr>
+  <tr><td>R4</td><td>Relance manuelle pendant la surveillance</td><td>boucle sans fin, sortie sur annulation seulement</td></tr>
+  <tr><td>R5</td><td>Révocation AX, latche du produit contre fermeture des tests</td><td><span class="ko">précédente tuée</span> · verdict correct avec la fermeture des tests</td></tr>
+  <tr><td>R6</td><td>Coût d'un sondage <code>pid(pour:)</code> réel</td><td>62,8 µs (200 tours en 12,6 ms)</td></tr>
+  <tr><td>R7</td><td>Longueur de la chaîne de surveillances</td><td>2 tours, aucune surveillance résiduelle</td></tr>
+</table>
+
+<footer>
+  QA passe 7 — <code>f0c5fe4</code> / <code>94c3825</code> · lecture seule · branche
+  <code>agent/worker-qa-round-7</code> · 7 septembre 2026 · 209 tests, 0 échec.
+  Deux défauts majeurs, un mineur, une dette acceptée. <strong>Ne pas livrer avant D1 et D2.</strong>
+</footer>
