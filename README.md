@@ -29,6 +29,10 @@ app and launch it again when you need it back.
 
 ## Install
 
+Bouncer is distributed from its [releases page](https://github.com/donpaco13/Bouncer/releases).
+The download badge at the top of this page names the current version, and reads `no releases`
+while none is out; whatever it says, the source build below works at any commit.
+
 ### Homebrew
 
 ```bash
