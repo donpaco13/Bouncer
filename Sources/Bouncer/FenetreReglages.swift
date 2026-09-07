@@ -33,11 +33,11 @@ struct VueReglages: View {
     var body: some View {
         TabView {
             OngletGeneral(reglages: reglages, actionRelance: actionRelance)
-                .tabItem { Label("Général", systemImage: "gearshape") }
+                .tabItem { Label(texte("settings.tab.general"), systemImage: "gearshape") }
             OngletGeste(reglages: reglages, raccourci: raccourci)
-                .tabItem { Label("Geste", systemImage: "hand.draw") }
+                .tabItem { Label(texte("settings.tab.gesture"), systemImage: "hand.draw") }
             OngletApplications(windowManager: windowManager, reglages: reglages)
-                .tabItem { Label("Applications", systemImage: "square.stack") }
+                .tabItem { Label(texte("settings.tab.apps"), systemImage: "square.stack") }
         }
         // Taille fixe, et c'est voulu : MESURÉ, la scène `Settings` fige la hauteur de la
         // fenêtre sur le premier onglet et ne la reprend pas en changeant d'onglet — laisser la
@@ -59,12 +59,12 @@ private struct OngletGeneral: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Lancer Bouncer à l'ouverture de session", isOn: Binding(
+                Toggle(texte("settings.general.launchAtLogin"), isOn: Binding(
                     get: { demarrage.actif },
                     set: { demarrage.definir($0) }
                 ))
 
-                Text("Bouncer n'arbitre l'encoche que pendant qu'il tourne. Sans lancement automatique, il faut y penser à chaque démarrage.")
+                Text(texte("settings.general.launchAtLogin.note"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -83,18 +83,31 @@ private struct OngletGeneral: View {
             }
 
             Section {
-                Picker("Vérifier les apps toutes les", selection: $reglages.intervalleRafraichissement) {
+                Picker(texte("settings.general.refresh"), selection: $reglages.intervalleRafraichissement) {
                     ForEach(Reglages.Domaine.intervalles, id: \.self) { intervalle in
                         Text(libelle(intervalle)).tag(intervalle)
                     }
                 }
-                Text("Fréquence à laquelle Bouncer regarde quelles apps occupent l'encoche et si l'autorisation d'Accessibilité a changé. Plus court : le menu se met à jour plus vite. Plus long : moins de travail en arrière-plan.")
+                Text(texte("settings.general.refresh.note"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            // La langue et le bouton de relance dans la MÊME section : le changement s'applique
+            // tout de suite à tout ce que Bouncer écrit lui-même, mais le titre de la fenêtre
+            // vient de macOS et ne suit qu'à la relance — le bouton qui la fait est donc à côté
+            // de la note qui la demande.
             Section {
+                Picker(texte("settings.general.language"), selection: $reglages.langue) {
+                    ForEach(LangueInterface.allCases) { langue in
+                        Text(langue.nomNatif).tag(langue)
+                    }
+                }
+                Text(texte("settings.general.language.note"))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Spacer()
                     Button(texte("settings.general.relaunch")) {
@@ -110,7 +123,7 @@ private struct OngletGeneral: View {
     }
 
     private func libelle(_ intervalle: TimeInterval) -> String {
-        intervalle == 1 ? "1 seconde" : "\(Int(intervalle)) secondes"
+        texteAuPluriel("settings.general.refresh.interval", Int(intervalle))
     }
 }
 
@@ -132,7 +145,7 @@ private final class LancementAuDemarrage: ObservableObject {
         let statut = SMAppService.mainApp.status
         actif = statut == .enabled
         avertissement = statut == .requiresApproval
-            ? "macOS attend votre accord : ouvrez Réglages Système › Général › Ouverture et éléments autorisés, et activez Bouncer."
+            ? texte("settings.general.launchAtLogin.needsApproval")
             : nil
     }
 
@@ -150,7 +163,7 @@ private final class LancementAuDemarrage: ObservableObject {
             relire()
         } catch {
             actif = SMAppService.mainApp.status == .enabled
-            avertissement = "macOS a refusé : \(error.localizedDescription)"
+            avertissement = texte("settings.general.launchAtLogin.refused", error.localizedDescription)
         }
     }
 }
@@ -164,7 +177,7 @@ private struct OngletGeste: View {
     var body: some View {
         Form {
             Section {
-                Picker("Faire tourner le cycle avec", selection: $reglages.modeActivation) {
+                Picker(texte("settings.gesture.trigger"), selection: $reglages.modeActivation) {
                     ForEach(ModeActivation.allCases) { mode in
                         Text(mode.libelle).tag(mode)
                     }
@@ -176,8 +189,8 @@ private struct OngletGeste: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Section("Raccourci clavier") {
-                Picker("Raccourci", selection: $reglages.raccourciGlobal) {
+            Section(texte("settings.gesture.shortcut.header")) {
+                Picker(texte("settings.gesture.shortcut"), selection: $reglages.raccourciGlobal) {
                     ForEach(RaccourciGlobal.allCases) { combinaison in
                         Text(combinaison.libelle)
                             .accessibilityLabel(combinaison.libelleAccessible)
@@ -187,7 +200,7 @@ private struct OngletGeste: View {
                 // Le raccourci marche quelle que soit l'app au premier plan, et il PRÉEMPTE la
                 // combinaison : le dire est le minimum, puisque l'utilisateur ne peut pas le
                 // déduire de l'écran.
-                Text("Fonctionne depuis n'importe quelle app, y compris plein écran. Tant que Bouncer tourne, la combinaison choisie n'atteint plus les autres apps.")
+                Text(texte("settings.gesture.shortcut.note"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -202,8 +215,8 @@ private struct OngletGeste: View {
                 }
             }
 
-            Section("Zone sensible") {
-                Picker("Bouncer se cale sur", selection: $reglages.ancrageZone) {
+            Section(texte("settings.gesture.zone.header")) {
+                Picker(texte("settings.gesture.zone"), selection: $reglages.ancrageZone) {
                     ForEach(AncrageZone.allCases) { a in Text(a.libelle).tag(a) }
                 }
                 .pickerStyle(.inline)
@@ -215,57 +228,57 @@ private struct OngletGeste: View {
 
                 // Le chiffre plutôt que l'adjectif : c'est lui qui rend le réglage décidable, et
                 // c'est la mesure qui a expliqué les swipes ratés.
-                Text("Mesuré : le boîtier caméra fait 166 pt de large, une app d'encoche en fait 640 à 740 et descend jusqu'à 520 pt sous la barre. Calé sur le boîtier, le swipe n'écoutait que 3 % de l'île qu'on voit.")
+                Text(texte("settings.gesture.zone.measured"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Section("Flèches") {
+            Section(texte("settings.gesture.arrows.header")) {
                 // La valeur est dans le libellé du curseur, pas sur une ligne à part : un
                 // panneau de préférences se lit d'un coup d'œil, et « Réglage actuel : 72 pt »
                 // sur sa propre ligne doublait la hauteur de la section pour redire le curseur.
                 Slider(value: $reglages.porteeApproche, in: Reglages.Domaine.portee, step: 4) {
-                    Text("Apparition — \(libellePortee)")
+                    Text(texte("settings.gesture.reveal", libellePortee))
                 } minimumValueLabel: {
-                    Text("Au survol")
+                    Text(texte("settings.gesture.reveal.min"))
                 } maximumValueLabel: {
-                    Text("De loin")
+                    Text(texte("settings.gesture.reveal.max"))
                 }
-                .accessibilityLabel("Distance d'apparition des flèches")
-                .accessibilityValue(reglages.porteeApproche == 0 ? "0 point, uniquement dans la bande de l'encoche" : "\(Int(reglages.porteeApproche)) points")
+                .accessibilityLabel(texte("settings.gesture.reveal.label"))
+                .accessibilityValue(reglages.porteeApproche == 0 ? texte("settings.gesture.reveal.value.zero") : texte("settings.gesture.points", Int(reglages.porteeApproche)))
 
-                Text("L'opacité des flèches suit la distance du curseur à l'encoche. Ce réglage dit où la montée commence.")
+                Text(texte("settings.gesture.reveal.note"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Slider(value: $reglages.margeLaterale, in: Reglages.Domaine.marge, step: 2) {
-                    Text("Bandes latérales — \(Int(reglages.margeLaterale)) pt de chaque côté")
+                    Text(texte("settings.gesture.margin", Int(reglages.margeLaterale)))
                 } minimumValueLabel: {
-                    Text("Étroites")
+                    Text(texte("settings.gesture.margin.min"))
                 } maximumValueLabel: {
-                    Text("Larges")
+                    Text(texte("settings.gesture.margin.max"))
                 }
-                .accessibilityLabel("Largeur des bandes latérales des flèches")
-                .accessibilityValue("\(Int(reglages.margeLaterale)) points de chaque côté")
+                .accessibilityLabel(texte("settings.gesture.margin.label"))
+                .accessibilityValue(texte("settings.gesture.margin.value", Int(reglages.margeLaterale)))
 
-                Text("Les flèches se logent de part et d'autre de ce qui couvre l'encoche, jamais dessus. Élargir donne une cible de clic plus facile ; réduire laisse la barre des menus tranquille.")
+                Text(texte("settings.gesture.margin.note"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Slider(value: $reglages.retraitFleches, in: Reglages.Domaine.retrait, step: 1) {
-                    Text("Déploiement — \(libelleRetrait)")
+                    Text(texte("settings.gesture.slide", libelleRetrait))
                 } minimumValueLabel: {
-                    Text("Fondu seul")
+                    Text(texte("settings.gesture.slide.min"))
                 } maximumValueLabel: {
-                    Text("Ample")
+                    Text(texte("settings.gesture.slide.max"))
                 }
-                .accessibilityLabel("Amplitude du déploiement des flèches")
-                .accessibilityValue(reglages.retraitFleches == 0 ? "aucune, fondu seul" : "\(Int(reglages.retraitFleches)) points")
+                .accessibilityLabel(texte("settings.gesture.slide.label"))
+                .accessibilityValue(reglages.retraitFleches == 0 ? texte("settings.gesture.slide.value.zero") : texte("settings.gesture.points", Int(reglages.retraitFleches)))
 
-                Text("À l'approche, la flèche sort de derrière l'encoche en même temps qu'elle apparaît : un soupçon de loin, déployée de près. À zéro, elle se contente de s'éclaircir sans bouger.")
+                Text(texte("settings.gesture.slide.note"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -278,8 +291,8 @@ private struct OngletGeste: View {
                 ApercuGeste(reglages: reglages)
                 HStack {
                     Spacer()
-                    Button("Rétablir les valeurs d'origine") { reglages.reinitialiser() }
-                        .accessibilityHint("Restaure la portée d'apparition et les marges à leurs valeurs d'origine")
+                    Button(texte("settings.gesture.reset")) { reglages.reinitialiser() }
+                        .accessibilityHint(texte("settings.gesture.reset.hint"))
                 }
             }
         }
@@ -288,14 +301,14 @@ private struct OngletGeste: View {
 
     private var libelleRetrait: String {
         reglages.retraitFleches == 0
-            ? "la flèche ne bouge pas"
-            : "\(Int(reglages.retraitFleches)) pt de glissement"
+            ? texte("settings.gesture.slide.summary.zero")
+            : texte("settings.gesture.slide.summary", Int(reglages.retraitFleches))
     }
 
     private var libellePortee: String {
         reglages.porteeApproche == 0
-            ? "Uniquement dans la bande de l'encoche"
-            : "\(Int(reglages.porteeApproche)) pt avant la bande"
+            ? texte("settings.gesture.reveal.summary.zero")
+            : texte("settings.gesture.reveal.summary", Int(reglages.porteeApproche))
     }
 }
 
@@ -368,9 +381,9 @@ private struct ApercuGeste: View {
 
     private var descriptionAccessible: String {
         guard reglages.modeActivation.flechesActives else {
-            return "Aperçu : l'encoche seule, sans flèche — le mode choisi ne les affiche pas."
+            return texte("settings.gesture.preview.noArrows")
         }
-        return "Aperçu : l'encoche, une bande de \(Int(reglages.margeLaterale)) points de chaque côté portant une flèche, et une zone d'approche de \(Int(reglages.porteeApproche)) points au-delà."
+        return texte("settings.gesture.preview", Int(reglages.margeLaterale), Int(reglages.porteeApproche))
     }
 }
 
@@ -388,7 +401,7 @@ private struct OngletApplications: View {
         Form {
             Section {
                 if entrees.isEmpty {
-                    Text("Aucune app d'encoche détectée sur ce Mac. Elles apparaîtront ici dès que Bouncer en verra une.")
+                    Text(texte("settings.apps.empty"))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
@@ -407,13 +420,13 @@ private struct OngletApplications: View {
                     }
                 }
             } header: {
-                Text("Apps parcourues par le swipe et les flèches")
+                Text(texte("settings.apps.header"))
             } footer: {
                 if entrees.isEmpty {
                     EmptyView()
                 } else if retenues.isEmpty {
                     Label {
-                        Text("Toutes les apps sont décochées : le geste n'a plus rien à parcourir. Le menu de la barre des menus, lui, continue de les lister.")
+                        Text(texte("settings.apps.allUnchecked"))
                             .foregroundStyle(.primary)
                     } icon: {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -422,7 +435,7 @@ private struct OngletApplications: View {
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Text("Une app décochée reste dans le menu et reste cliquable — elle n'apparaît simplement plus dans le cycle. Utile pour une app d'encoche qu'on garde ouverte en permanence.")
+                    Text(texte("settings.apps.note"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -435,20 +448,20 @@ private struct OngletApplications: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(bundleID)
-                                Text("App non détectée sur ce Mac")
+                                Text(texte("settings.apps.orphan.detail"))
                                     .font(.callout)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button("Retirer") {
+                            Button(texte("settings.apps.orphan.remove")) {
                                 reglages.retirerExclusion(bundleID)
                             }
                         }
                     }
                 } header: {
-                    Text("Exclusions orphelines")
+                    Text(texte("settings.apps.orphan.header"))
                 } footer: {
-                    Text("Ces apps ont été exclues précédemment mais ne sont plus détectées. Les retirer permet d'éviter qu'elles restent exclues si elles sont réinstallées ou re-détectées.")
+                    Text(texte("settings.apps.orphan.note"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

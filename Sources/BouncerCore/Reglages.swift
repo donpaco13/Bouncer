@@ -43,21 +43,18 @@ public enum ModeActivation: String, CaseIterable, Identifiable, Sendable {
 
     public var libelle: String {
         switch self {
-        case .lesDeux: return "Le swipe et les flèches"
-        case .swipeSeul: return "Le swipe seul"
-        case .flechesSeules: return "Les flèches seules"
+        case .lesDeux: return texte("mode.both")
+        case .swipeSeul: return texte("mode.swipeOnly")
+        case .flechesSeules: return texte("mode.arrowsOnly")
         }
     }
 
     /// La conséquence concrète, pas la reformulation du libellé.
     public var explication: String {
         switch self {
-        case .lesDeux:
-            return "Swipe horizontal à deux doigts sur l'encoche, ou clic sur une flèche."
-        case .swipeSeul:
-            return "Aucune flèche ne s'affiche. Rien ne recouvre jamais la barre des menus."
-        case .flechesSeules:
-            return "Le swipe est ignoré. Utile avec une souris, ou si le geste part tout seul."
+        case .lesDeux: return texte("mode.both.note")
+        case .swipeSeul: return texte("mode.swipeOnly.note")
+        case .flechesSeules: return texte("mode.arrowsOnly.note")
         }
     }
 }
@@ -76,17 +73,15 @@ public enum AncrageZone: String, CaseIterable, Identifiable, Sendable {
 
     public var libelle: String {
         switch self {
-        case .fenetreEncoche: return "La fenêtre de l'app d'encoche"
-        case .boitier: return "Le boîtier caméra seul"
+        case .fenetreEncoche: return texte("anchor.notchWindow")
+        case .boitier: return texte("anchor.cameraHousing")
         }
     }
 
     public var explication: String {
         switch self {
-        case .fenetreEncoche:
-            return "Le swipe marche partout sur l'île qu'on voit, et les flèches se posent de part et d'autre. Sans app d'encoche à l'écran, revient au boîtier."
-        case .boitier:
-            return "Zone étroite, collée à l'encoche matérielle. À essayer si un défilement horizontal déclenche une bascule sans l'avoir voulu."
+        case .fenetreEncoche: return texte("anchor.notchWindow.note")
+        case .boitier: return texte("anchor.cameraHousing.note")
         }
     }
 }
@@ -163,6 +158,7 @@ public final class Reglages: ObservableObject {
         static let intervalle = "bouncer.intervalleRafraichissement"
         static let exclus = "bouncer.bundleIDsExclus"
         static let raccourci = "bouncer.raccourciGlobal"
+        static let langue = "bouncer.langue"
         static let delai = "bouncer.delaiRevelation"
         static let inactivite = "bouncer.inactiviteFleches"
         static let alignement = "bouncer.alignementFleches"
@@ -170,6 +166,9 @@ public final class Reglages: ObservableObject {
     }
 
     private let defaults: UserDefaults
+    /// `activerLangue` dans l'app ; un espion dans les tests, qui ne doivent pas changer la langue
+    /// du processus sous les pieds des autres suites (cf. Localisation.swift).
+    private let appliquerLangue: (LangueInterface) -> Void
 
     /// Ce qui déclenche le cycle : swipe, flèches, ou les deux.
     @Published public var modeActivation: ModeActivation {
@@ -185,6 +184,26 @@ public final class Reglages: ObservableObject {
     /// rien du tout — voir `RaccourciGlobal` pour pourquoi ce choix doit rester à l'utilisateur.
     @Published public var raccourciGlobal: RaccourciGlobal {
         didSet { defaults.set(raccourciGlobal.rawValue, forKey: Cle.raccourci) }
+    }
+
+    /// La langue de l'interface. Le DÉFAUT EST L'ANGLAIS, pas la langue de la machine : c'est
+    /// la consigne de François (« par défaut elle se lance en anglais »), et c'est cohérent avec
+    /// un produit dont l'anglais est la voix. « Langue du système » reste proposée dans le menu
+    /// pour qui la veut. Le changement s'applique tout de suite, cf. `activerLangue`.
+    @Published public var langue: LangueInterface {
+        didSet {
+            defaults.set(langue.rawValue, forKey: Cle.langue)
+            appliquerLangue(langue)
+            // `AppleLanguages` en plus, dans le domaine de l'app : macOS fournit lui-même quelques
+            // textes (le titre de la fenêtre Réglages) que `texte` ne contrôle pas, et eux ne
+            // suivent qu'à la relance suivante — le bouton pour ça est juste à côté. Écrit ICI et
+            // pas dans l'init, pour ne toucher aux préférences que sur un choix de l'utilisateur.
+            if let code = langue.code {
+                defaults.set([code], forKey: "AppleLanguages")
+            } else {
+                defaults.removeObject(forKey: "AppleLanguages")
+            }
+        }
     }
 
     // Les trois réglages bornés ci-dessous sont des propriétés CALCULÉES au-dessus d'un stockage
@@ -296,8 +315,10 @@ public final class Reglages: ObservableObject {
         didSet { defaults.set(bundleIDsExclus.sorted(), forKey: Cle.exclus) }
     }
 
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard,
+                appliquerLangue: @escaping (LangueInterface) -> Void = activerLangue) {
         self.defaults = defaults
+        self.appliquerLangue = appliquerLangue
         modeActivation = (defaults.string(forKey: Cle.mode).flatMap(ModeActivation.init(rawValue:)))
             ?? .lesDeux
         // `object(forKey:)` et pas `double(forKey:)` : ce dernier rend 0 pour une clé absente, ce
@@ -341,6 +362,10 @@ public final class Reglages: ObservableObject {
         // à l'autre) retombe sur le défaut plutôt que de laisser l'app sans raccourci du tout.
         raccourciGlobal = (defaults.string(forKey: Cle.raccourci).flatMap(RaccourciGlobal.init(rawValue:)))
             ?? RaccourciGlobal.defaut
+        langue = (defaults.string(forKey: Cle.langue).flatMap(LangueInterface.init(rawValue:))) ?? .en
+        // `didSet` ne joue pas dans un init : on applique à la main, sinon la première fenêtre
+        // parlerait anglais chez qui a choisi autre chose.
+        appliquerLangue(langue)
     }
 
     /// Remet les valeurs d'origine. Le bouton qui l'appelle existe parce qu'un réglage de
