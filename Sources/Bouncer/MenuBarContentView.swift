@@ -11,7 +11,7 @@ struct MenuBarContentView: View {
 
     var body: some View {
         if !windowManager.accessibilityTrusted {
-            Button("⚠️ Autoriser dans les Réglages…") {
+            Button(texte("menu.grantAccess")) {
                 windowManager.openAccessibilitySettings()
             }
             Divider()
@@ -27,7 +27,7 @@ struct MenuBarContentView: View {
 
         let entrees = windowManager.entreesMenu
         if entrees.isEmpty {
-            Text("Aucune app d'encoche détectée")
+            Text(texte("menu.noNotchApp"))
         } else {
             ForEach(entrees) { entree in
                 Button {
@@ -48,11 +48,11 @@ struct MenuBarContentView: View {
         }
 
         Divider()
-        Button("Réglages…") { Self.ouvrirReglages() }
+        Button(texte("menu.settings")) { Self.ouvrirReglages() }
             .keyboardShortcut(",", modifiers: .command)
-        Button("Guide de démarrage…") { ouvrirAccueil() }
-        Button("Rafraîchir") { windowManager.refresh() }
-        Button("Quitter") { NSApplication.shared.terminate(nil) }
+        Button(texte("menu.welcomeGuide")) { ouvrirAccueil() }
+        Button(texte("menu.refresh")) { windowManager.refresh() }
+        Button(texte("menu.quit")) { NSApplication.shared.terminate(nil) }
     }
 
     /// Ouvre la scène `Settings`.
@@ -102,9 +102,9 @@ struct MenuBarContentView: View {
 
     private func descriptionEtat(_ etat: EntreeMenu.Etat) -> String {
         switch etat {
-        case .active: return "occupe l'encoche"
-        case .inactive: return "n'occupe pas l'encoche"
-        case .enCours: return "bascule en cours"
+        case .active: return texte("menu.state.onStage")
+        case .inactive: return texte("menu.state.waiting")
+        case .enCours: return texte("menu.state.switching")
         }
     }
 }

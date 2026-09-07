@@ -87,7 +87,7 @@ public struct PointsPagination: View {
                         .contentShape(Rectangle().inset(by: -7))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Écran \(candidate.rawValue + 1) sur \(EtapeAccueil.allCases.count)")
+                .accessibilityLabel(texte("welcome.pagination.step", candidate.rawValue + 1, EtapeAccueil.allCases.count))
                 .accessibilityAddTraits(candidate == etape ? [.isSelected] : [])
             }
         }
@@ -120,9 +120,9 @@ public struct PiedDePageAccueil: View {
     /// Le premier écran invite (« Commencer »), les suivants enchaînent, le dernier conclut.
     public var libelleBouton: String {
         switch etape {
-        case .bienvenue: return "Commencer"
-        case .pret: return "Utiliser Bouncer"
-        default: return "Continuer"
+        case .bienvenue: return texte("welcome.button.getStarted")
+        case .pret: return texte("welcome.button.finish")
+        default: return texte("welcome.button.continue")
         }
     }
 
@@ -138,7 +138,7 @@ public struct PiedDePageAccueil: View {
                 // Le retour occupe sa place même sur le premier écran : sinon les points de
                 // pagination se décalent d'un écran à l'autre.
                 Button(action: reculer) {
-                    Label("Retour", systemImage: "chevron.left")
+                    Label(texte("welcome.button.back"), systemImage: "chevron.left")
                         .labelStyle(.titleAndIcon)
                         .font(.system(size: 11.5, weight: .medium))
                 }
@@ -155,7 +155,7 @@ public struct PiedDePageAccueil: View {
 
                 Spacer()
 
-                Button("Passer", action: fermer)
+                Button(texte("welcome.button.skip"), action: fermer)
                     .buttonStyle(.plain)
                     .font(.system(size: 11.5, weight: .medium))
                     .foregroundStyle(Nuit.tresDoux)
@@ -163,13 +163,13 @@ public struct PiedDePageAccueil: View {
                     .disabled(etape.estDerniere)
                     .accessibilityHidden(etape.estDerniere)
                     .frame(width: 92, alignment: .trailing)
-                    .accessibilityHint("Ferme la présentation et commence à utiliser Bouncer")
+                    .accessibilityHint(texte("welcome.skip.hint"))
             }
 
             // ⌘W n'a pas d'équivalent AppKit ici : une app LSUIElement n'a pas de menu Fichier
             // d'où le raccourci viendrait. Échap, lui, n'est PAS ici — `FenetreAccueilWindow`
             // l'intercepte au niveau de la fenêtre.
-            Button("Fermer la présentation avec commande W", action: fermer)
+            Button(texte("welcome.close.commandW"), action: fermer)
                 .keyboardShortcut("w", modifiers: .command)
                 .opacity(0)
                 .frame(width: 0, height: 0)

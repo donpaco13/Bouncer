@@ -47,7 +47,7 @@ struct MenuTests {
             enCoursDeBascule: nil
         )
         #expect(entrees.map(\.bundleID) == ["z.notchy", "a.vibe"])
-        #expect(entrees[0].detail == "Arrêtée — sera relancée")
+        #expect(entrees[0].detail == texte("menu.detail.notRunning"))
         // Pas de doublon quand le catalogue et la découverte parlent de la même app.
         #expect(entrees.count == 2)
     }
@@ -59,7 +59,7 @@ struct MenuTests {
             apps: [app("a.vibe", "Vibe Island", pid: nil)],
             installees: [], active: nil, enCoursDeBascule: nil
         )
-        #expect(entrees[0].detail == "Arrêtée — sera relancée")
+        #expect(entrees[0].detail == texte("menu.detail.notRunning"))
     }
 
     /// L'état « en cours » prime sur tout le reste, y compris sur l'app active : c'est lui qui

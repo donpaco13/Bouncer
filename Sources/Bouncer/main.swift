@@ -1,5 +1,9 @@
 //
-// main.swift — point d'entrée. `--self-test` fait tourner WindowManager en CLI (un seul
+// main.swift — point d'entrée.
+//
+// La sortie de `--self-test` est un outil de développeur, pas de l'interface : elle est écrite
+// en anglais et ne passe PAS par le catalogue de chaînes — la localiser reviendrait à traduire
+// une table de diagnostic qu'on lit dans un terminal, et le README la cite déjà en anglais. `--self-test` fait tourner WindowManager en CLI (un seul
 // sondage synchrone, table imprimée sur stdout) sans passer par la boucle SwiftUI/MenuBarExtra :
 // utile pour vérifier la détection + le cycle masquer/réafficher depuis ce binaire précis, puisque
 // l'autorisation Accessibilité se donne par binaire, pas par processus parent (cf. SPIKE_RESULTS.md).
@@ -22,14 +26,18 @@ if CommandLine.arguments.contains("--self-test") {
     while wm.apps.contains(where: { $0.support == .testing }), Date() < echeance {
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
     }
-    print("Accessibilité accordée à ce binaire : \(wm.accessibilityTrusted)")
-    print("Zone d'encoche : \(wm.lastNotchZoneDescription)")
+    // Le catalogue en premier : `Bundle.module` fait un `fatalError` quand le bundle de
+    // ressources n'est pas à côté du binaire — c'est le piège du packaging (cf. build.sh),
+    // et il vaut mieux le voir ici que sur le premier menu ouvert.
+    print("Strings: \(catalogueDeChaines.preferredLocalizations.first ?? "none") — \(texte("menu.settings"))")
+    print("Accessibility granted to this binary: \(wm.accessibilityTrusted)")
+    print("Notch zone: \(wm.lastNotchZoneDescription)")
     if wm.apps.isEmpty {
-        print("Aucune app d'encoche détectée.")
+        print("No notch app found.")
     } else {
         for app in wm.apps {
             let pid = app.pid.map(String.init) ?? "—"
-            print("bundle=\(app.bundleID)\tapp=\(app.name)\tpid=\(pid)\tlancée=\(app.estLancee)\tstatut=\(app.support.rawValue)\tmasquée=\(app.isHiddenByUs)")
+            print("bundle=\(app.bundleID)\tapp=\(app.name)\tpid=\(pid)\trunning=\(app.estLancee)\tstatus=\(app.support.rawValue)\thidden=\(app.isHiddenByUs)")
         }
     }
     exit(0)

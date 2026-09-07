@@ -96,7 +96,7 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
         fenetre.styleMask = [.titled, .closable, .fullSizeContentView]
         // Titre vidé mais pas absent : c'est le nom accessible de la fenêtre, et VoiceOver
         // annoncerait « fenêtre sans titre » sans lui. `titleVisibility` l'efface du bandeau.
-        fenetre.title = "Bienvenue dans Bouncer"
+        fenetre.title = texte("welcome.window.title")
         fenetre.titleVisibility = .hidden
         fenetre.titlebarAppearsTransparent = true
         fenetre.isMovableByWindowBackground = true
@@ -348,9 +348,9 @@ struct VueAccueil: View {
             SignatureHello(largeur: 320)
                 .padding(.bottom, 26)
 
-            TitreEtape("Bienvenue dans Bouncer")
+            TitreEtape(texte("welcome.hello.title"))
 
-            SousTitreEtape("Vos apps d’encoche ne se marchent plus dessus. Une seule occupe le notch, et un swipe désigne laquelle.")
+            SousTitreEtape(texte("welcome.hello.body"))
 
             Spacer(minLength: 0)
         }
@@ -365,9 +365,9 @@ struct VueAccueil: View {
             IllustrationConflit()
                 .padding(.bottom, 28)
 
-            TitreEtape("Trois apps, une seule encoche")
+            TitreEtape(texte("welcome.problem.title"))
 
-            SousTitreEtape("macOS ne coordonne rien : chaque app d’encoche pose sa fenêtre au même endroit, en même temps. La dernière lancée recouvre les autres. Bouncer en garde une visible et met les autres de côté.")
+            SousTitreEtape(texte("welcome.problem.body"))
 
             Spacer(minLength: 0)
         }
@@ -385,23 +385,23 @@ struct VueAccueil: View {
             )
             .padding(.bottom, 26)
 
-            TitreEtape(etat.accessibiliteAccordee ? "Autorisation accordée" : "macOS demande une autorisation")
+            TitreEtape(texte(etat.accessibiliteAccordee ? "welcome.access.granted.title" : "welcome.access.missing.title"))
 
             SousTitreEtape(
-                etat.accessibiliteAccordee
-                    ? "Bouncer peut masquer et révéler les fenêtres de vos apps d’encoche. Rien d’autre à faire ici."
-                    : "Masquer la fenêtre d’une autre application passe par l’Accessibilité. Sans elle, Bouncer voit vos apps d’encoche mais ne peut rien en faire."
+                texte(etat.accessibiliteAccordee
+                    ? "welcome.access.granted.body"
+                    : "welcome.access.missing.body")
             )
 
             if !etat.accessibiliteAccordee {
                 VStack(spacing: 10) {
-                    Button("Ouvrir les Réglages Système…") {
+                    Button(texte("welcome.access.openSettings")) {
                         windowManager.openAccessibilitySettings()
                     }
                     .buttonStyle(BoutonSecondaire())
-                    .accessibilityHint("Ouvre la section Confidentialité et sécurité, Accessibilité, des Réglages Système")
+                    .accessibilityHint(texte("welcome.access.openSettings.hint"))
 
-                    Text("Cochez Bouncer dans la liste. Cet écran passe au vert tout seul, sans relancer l’app.")
+                    Text(texte("welcome.access.tip"))
                         .font(.system(size: 11.5))
                         .foregroundStyle(Nuit.tresDoux)
                 }
@@ -424,9 +424,9 @@ struct VueAccueil: View {
             SimulateurNotchInteractif()
                 .padding(.bottom, 22)
 
-            TitreEtape("Survolez l’encoche, swipez à deux doigts")
+            TitreEtape(texte("welcome.gesture.title"))
 
-            SousTitreEtape("Un swipe horizontal avance d’une app, vers la gauche comme vers la droite : il n’y a aucun sens à retenir. Les flèches ‹ ›, elles, en ont un.")
+            SousTitreEtape(texte("welcome.gesture.body"))
 
             HStack(spacing: 7) {
                 Text("⌃⌥⌘B")
@@ -440,7 +440,7 @@ struct VueAccueil: View {
                             .strokeBorder(Nuit.trait, lineWidth: 1)
                     )
 
-                Text("fait tourner le cycle depuis n’importe quelle app.")
+                Text(texte("welcome.gesture.shortcutNote"))
                     .font(.system(size: 12))
                     .foregroundStyle(Nuit.doux)
             }
@@ -463,26 +463,26 @@ struct VueAccueil: View {
             )
             .padding(.bottom, 22)
 
-            TitreEtape(etat.pretAServir ? "Tout est en place" : "Il manque encore quelque chose")
+            TitreEtape(texte(etat.pretAServir ? "welcome.ready.title" : "welcome.ready.title.incomplete"))
 
             VStack(alignment: .leading, spacing: 9) {
                 LigneBilan(
                     valide: etat.accessibiliteAccordee,
-                    texte: etat.accessibiliteAccordee
-                        ? "Accessibilité autorisée"
-                        : "Accessibilité pas encore autorisée"
+                    texte: texte(etat.accessibiliteAccordee
+                        ? "welcome.ready.access.ok"
+                        : "welcome.ready.access.missing")
                 )
                 LigneBilan(
                     valide: etat.appsAInstaller.isEmpty,
                     texte: etat.appsAInstaller.isEmpty
                         ? bilanApps
-                        : "Aucune app d’encoche installée — essayez \(etat.appsAInstaller.formatted(.list(type: .or)))"
+                        : texte("welcome.ready.noAppInstalled", etat.appsAInstaller.formatted(.list(type: .or)))
                 )
             }
             .padding(.top, 18)
 
             VStack(spacing: 9) {
-                Text("Bouncer vit dans la barre des menus, pas dans le Dock.")
+                Text(texte("welcome.ready.menuBarNote"))
                     .font(.system(size: 12))
                     .foregroundStyle(Nuit.doux)
 
@@ -497,7 +497,7 @@ struct VueAccueil: View {
 
     private var bilanApps: String {
         let n = windowManager.entreesMenu.count
-        return n == 1 ? "1 app d’encoche détectée" : "\(n) apps d’encoche détectées"
+        return texteAuPluriel("welcome.ready.appsFound", n)
     }
 
 
@@ -699,7 +699,7 @@ private struct IllustrationConflit: View {
             }
         }
         .accessibilityElement()
-        .accessibilityLabel("Trois applications d'encoche — NotchNook, Boring Notch et Vibe Island — dessinent leur fenêtre au même endroit, sous l'encoche, et se recouvrent.")
+        .accessibilityLabel(texte("welcome.problem.illustration"))
     }
 }
 
@@ -716,7 +716,7 @@ private struct ApercuBarreDesMenus: View {
                 Text("Finder")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.55))
-                Text("Fichier")
+                Text(texte("welcome.ready.fakeMenu.file"))
                     .font(.system(size: 10.5))
                     .foregroundStyle(Color.white.opacity(0.38))
             }
@@ -772,7 +772,7 @@ private struct ApercuBarreDesMenus: View {
                 .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("L'icône de Bouncer dans la barre des menus a la forme de deux rectangles superposés, en haut à droite de l'écran.")
+        .accessibilityLabel(texte("welcome.ready.menuBarPreview"))
     }
 }
 
@@ -788,9 +788,9 @@ private struct SimulateurNotchInteractif: View {
     }
 
     private let apps: [AppSimulee] = [
-        AppSimulee(id: 0, nom: "Now Playing", sousTitre: "Daft Punk — One More Time", icone: "music.note", couleur: .pink),
-        AppSimulee(id: 1, nom: "Boring Notch", sousTitre: "Batterie 94% · 45 W", icone: "battery.100.bolt", couleur: .green),
-        AppSimulee(id: 2, nom: "Vibe Island", sousTitre: "2 notifications en attente", icone: "bell.badge.fill", couleur: .orange),
+        AppSimulee(id: 0, nom: texte("welcome.sim.app1.name"), sousTitre: texte("welcome.sim.app1.subtitle"), icone: "music.note", couleur: .pink),
+        AppSimulee(id: 1, nom: "Boring Notch", sousTitre: texte("welcome.sim.app2.subtitle"), icone: "battery.100.bolt", couleur: .green),
+        AppSimulee(id: 2, nom: "Vibe Island", sousTitre: texte("welcome.sim.app3.subtitle"), icone: "bell.badge.fill", couleur: .orange),
     ]
 
     /// L'encoche dessinée ici l'est à l'échelle du simulateur, pas à celle de l'écran : seule sa
@@ -861,21 +861,21 @@ private struct SimulateurNotchInteractif: View {
                     // exactement comme `NotchArrowsView` dans l'app réelle.
                     BoutonFlecheEncoche(
                         symbole: "chevron.left",
-                        libelleAccessible: "Flèche gauche : app précédente",
-                        indication: "Revient à l'application précédente du cycle"
+                        libelleAccessible: texte("welcome.sim.arrow.previous.label"),
+                        indication: texte("welcome.sim.arrow.previous.hint")
                     ) {
                         parFleche(avance: false)
                     }
-                    .help("Cliquez pour revenir à l'app précédente")
+                    .help(texte("welcome.sim.arrow.previous.tooltip"))
 
                     BoutonFlecheEncoche(
                         symbole: "chevron.right",
-                        libelleAccessible: "Flèche droite : app suivante",
-                        indication: "Passe à l'application suivante du cycle"
+                        libelleAccessible: texte("welcome.sim.arrow.next.label"),
+                        indication: texte("welcome.sim.arrow.next.hint")
                     ) {
                         parFleche(avance: true)
                     }
-                    .help("Cliquez pour passer à l'app suivante")
+                    .help(texte("welcome.sim.arrow.next.tooltip"))
                 }
                 .padding(.top, 2.5)
 
@@ -921,7 +921,7 @@ private struct SimulateurNotchInteractif: View {
                             )
                     )
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Application simulée : \(app.nom), \(app.sousTitre)")
+                    .accessibilityLabel(texte("welcome.sim.app.label", app.nom, app.sousTitre))
 
                     Spacer().frame(height: 3)
 

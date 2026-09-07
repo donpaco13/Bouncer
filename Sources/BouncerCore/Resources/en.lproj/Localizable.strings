@@ -1,0 +1,109 @@
+/*
+   Localizable.strings (en) — the product's own voice.
+
+   English is the source language, not a translation: it is written the way a macOS developer
+   writes it, following Apple's conventions (System Settings, not Preferences; Title Case in
+   menus; short imperatives on buttons). The French file is the translation, and it must carry
+   exactly the same keys — `CatalogueDeChainesTests` fails otherwise.
+
+   Vocabulary is fixed by landing/messages/en.json and README.md: notch, notch app, switch,
+   hide, relaunch, on stage. Do not invent a second one.
+*/
+
+/* MARK: - Menu bar */
+
+"menu.grantAccess" = "⚠️ Allow in System Settings…";
+"menu.noNotchApp" = "No notch app found";
+"menu.settings" = "Settings…";
+"menu.welcomeGuide" = "Welcome Guide…";
+"menu.refresh" = "Refresh";
+"menu.quit" = "Quit Bouncer";
+
+/* State of one app in the menu, read out by VoiceOver. Same words as the landing page. */
+"menu.state.onStage" = "on stage";
+"menu.state.waiting" = "waiting, one click brings it back";
+"menu.state.switching" = "switching";
+
+/* Secondary detail on a menu row: what the switch route means for the user. */
+"menu.detail.testing" = "Testing the switch…";
+"menu.detail.instant" = "Instant switch";
+"menu.detail.relaunch" = "Switches by relaunch, about a second";
+"menu.detail.notRunning" = "Not running, will be relaunched";
+
+/* MARK: - Welcome guide, footer */
+
+"welcome.button.getStarted" = "Get Started";
+"welcome.button.continue" = "Continue";
+"welcome.button.finish" = "Start Using Bouncer";
+"welcome.button.back" = "Back";
+"welcome.button.skip" = "Skip";
+"welcome.skip.hint" = "Closes the guide and starts using Bouncer";
+"welcome.close.commandW" = "Close the guide with Command W";
+/* %1$d: current step, %2$d: total number of steps. */
+"welcome.pagination.step" = "Step %1$d of %2$d";
+
+/* MARK: - Welcome guide, step 1 */
+
+"welcome.window.title" = "Welcome to Bouncer";
+"welcome.hello.title" = "Welcome to Bouncer";
+"welcome.hello.body" = "Your notch apps stop landing on top of each other. One holds the notch, and a swipe picks which one.";
+
+/* MARK: - Welcome guide, step 2 */
+
+"welcome.problem.title" = "Three apps, one notch";
+"welcome.problem.body" = "macOS coordinates nothing: every notch app draws its window in the same place, at the same time. The last one launched covers the rest. Bouncer keeps one visible and sets the others aside.";
+"welcome.problem.illustration" = "Three notch apps — NotchNook, Boring Notch and Vibe Island — draw their window in the same place under the notch, and cover each other.";
+
+/* MARK: - Welcome guide, step 3 (Accessibility) */
+
+"welcome.access.granted.title" = "Permission granted";
+"welcome.access.granted.body" = "Bouncer can hide and bring back your notch apps' windows. Nothing else to do here.";
+"welcome.access.missing.title" = "macOS needs your permission";
+"welcome.access.missing.body" = "Hiding another app's window goes through Accessibility. Without it, Bouncer sees your notch apps but can't do anything with them.";
+"welcome.access.openSettings" = "Open System Settings…";
+"welcome.access.openSettings.hint" = "Opens the Accessibility list in System Settings, under Privacy & Security";
+"welcome.access.tip" = "Turn Bouncer on in the list. This screen goes green on its own, no relaunch needed.";
+
+/* MARK: - Welcome guide, step 4 (the gesture) */
+
+"welcome.gesture.title" = "Hover the notch, swipe with two fingers";
+"welcome.gesture.body" = "A horizontal swipe moves one app along, left or right: there’s no direction to remember. The arrows ‹ › do have one.";
+"welcome.gesture.shortcutNote" = "moves the cycle along, from any app.";
+
+/* Interactive notch simulator. Fake content, shown to teach the gesture. */
+"welcome.sim.app1.name" = "Now Playing";
+"welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
+"welcome.sim.app2.subtitle" = "Battery 94% · 45 W";
+"welcome.sim.app3.subtitle" = "2 notifications waiting";
+/* %1$@: app name, %2$@: its subtitle. */
+"welcome.sim.app.label" = "Simulated app: %1$@, %2$@";
+"welcome.sim.arrow.previous.label" = "Left arrow: previous app";
+"welcome.sim.arrow.previous.hint" = "Goes back to the previous app in the cycle";
+"welcome.sim.arrow.previous.tooltip" = "Click to go back to the previous app";
+"welcome.sim.arrow.next.label" = "Right arrow: next app";
+"welcome.sim.arrow.next.hint" = "Moves to the next app in the cycle";
+"welcome.sim.arrow.next.tooltip" = "Click to move to the next app";
+
+/* MARK: - Welcome guide, step 5 (ready) */
+
+"welcome.ready.title" = "All set";
+"welcome.ready.title.incomplete" = "Something’s still missing";
+"welcome.ready.access.ok" = "Accessibility granted";
+"welcome.ready.access.missing" = "Accessibility not granted yet";
+/* %@: a list of app names, already joined by the formatter ("Vibe Island or Boring Notch"). */
+"welcome.ready.noAppInstalled" = "No notch app installed. Try %@";
+"welcome.ready.menuBarNote" = "Bouncer lives in the menu bar, not the Dock.";
+"welcome.ready.menuBarPreview" = "Bouncer's menu bar icon is two stacked rectangles, at the top right of the screen.";
+/* Fake Finder menu drawn in the menu bar preview. */
+"welcome.ready.fakeMenu.file" = "File";
+
+/* MARK: - Global keyboard shortcut */
+
+"shortcut.none" = "None";
+"shortcut.none.spoken" = "No shortcut";
+"shortcut.ctrlOptCmdSpace" = "⌃⌥⌘Space";
+"shortcut.ctrlOptCmdB.spoken" = "Control Option Command B";
+"shortcut.ctrlOptCmdN.spoken" = "Control Option Command N";
+"shortcut.ctrlOptCmdSpace.spoken" = "Control Option Command Space";
+/* %@: the shortcut as written, e.g. "⌃⌥⌘B". */
+"shortcut.refused" = "The system refused %@, probably because another app already uses it. Pick a different one.";
