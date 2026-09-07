@@ -27,10 +27,26 @@ async function langueDe(params: Params["params"]) {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const locale = await langueDe(params);
   const t = await getTranslations({ locale, namespace: "meta" });
+  const autreLocale =
+    routing.locales.find((l) => l !== locale) ?? routing.defaultLocale;
   return {
     title: t("titre"),
     description: t("description"),
     icons: { icon: FAVICON },
+    alternates: {
+      canonical: `/${locale}/`,
+      languages: {
+        en: "/en/",
+        fr: "/fr/",
+        "x-default": `/${routing.defaultLocale}/`,
+      },
+    },
+    openGraph: {
+      title: t("titre"),
+      description: t("description"),
+      locale: locale === "fr" ? "fr_FR" : "en_US",
+      alternateLocale: [autreLocale === "fr" ? "fr_FR" : "en_US"],
+    },
   };
 }
 
