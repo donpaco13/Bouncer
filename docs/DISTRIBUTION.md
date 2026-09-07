@@ -123,14 +123,14 @@ Dépôt à créer : `donpaco13/homebrew-tap`, fichier `Casks/bouncer.rb`.
 ```ruby
 cask "bouncer" do
   version "0.1.0"
-  sha256 "<sha256 du dmg>"
+  sha256 "<sha256 de l'archive, écrit par release.sh>"
 
-  url "https://github.com/donpaco13/bouncer/releases/download/v#{version}/Bouncer-#{version}.dmg"
+  url "https://github.com/donpaco13/bouncer/releases/download/v#{version}/Bouncer-#{version}.zip"
   name "Bouncer"
   desc "Arbitre l'affichage de l'encoche entre plusieurs applications"
   homepage "https://github.com/donpaco13/bouncer"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "Bouncer.app"
 
@@ -209,3 +209,40 @@ chez l'utilisateur.
 « Devrait » : le trust local reste nécessaire au moment de signer, et seule une
 installation sur une machine vierge le prouvera. À tester avant le premier
 lancement public, parce que c'est le mécanisme central de Bouncer.
+
+## La chaîne, essayée à blanc le 2026-09-07
+
+Rien n'a été publié : pas de release, pas de tap distant, aucun `git push`. Le tap
+`donpaco13/tap` a été créé en local (`brew tap-new --no-git`), le cask y a été copié
+avec son `url` réécrite en `file://` vers l'archive locale, puis le tap a été retiré.
+
+Ce que ça a prouvé :
+
+- `./release.sh` construit `dist/Bouncer-0.1.0.zip`, en calcule le sha256 et réécrit
+  lui-même les lignes `version` et `sha256` de `Casks/bouncer.rb`. Le hash n'est plus
+  recopié à la main, donc il ne peut plus dater d'un build antérieur.
+- L'archive survit au tour complet : `ditto -x -k` puis
+  `codesign --verify --strict` répond « valid on disk / satisfies its Designated
+  Requirement », et la DR extraite est bien
+  `identifier "io.github.donpaco13.bouncer" and certificate leaf = H"30b31538..."`,
+  identique à celle du bundle d'origine. Le `Bouncer_BouncerCore.bundle` est dans
+  l'archive.
+- `brew audit --cask` et `brew style --cask` ne relèvent rien.
+- `brew info` lit `Required: macOS >= 14`. Le symbole nu `depends_on macos: :sonoma`
+  est bien un minimum, pas une égalité : `MacOSRequirement.parse` reçoit
+  `comparator: ">="` par défaut (`cask/dsl/depends_on.rb:112`). La forme chaîne
+  `">= :sonoma"` que ce document donnait plus haut est, elle, dépréciée.
+- `brew install --cask` télécharge, **vérifie le sha256**, déplace l'app dans
+  `/Applications` et exécute le `postflight`. Le fichier resté en cache porte
+  `com.apple.quarantine: 0281;...` et l'app installée n'en porte aucun : le
+  contournement fonctionne, sur une archive `file://` comme sur un téléchargement web.
+- Homebrew refuse d'installer par-dessus une app existante : « It seems there is
+  already an App at '/Applications/Bouncer.app' ». Une machine où `build.sh` a déjà
+  posé le bundle doit le supprimer avant de tester le cask.
+
+Ce qui reste non vérifié, et pourquoi : le `url` réel pointe vers une release GitHub
+qui n'existe pas, donc ni le téléchargement HTTPS, ni le tap distant, ni la première
+installation sur une machine vierge n'ont pu être essayés. Le point ouvert du chapitre
+précédent — l'autorisation Accessibilité chez quelqu'un dont le trousseau ne contient
+pas le certificat — reste ouvert : la DR est stable et ne demande pas de chaîne de
+confiance, mais seule une machine vierge le prouvera.
