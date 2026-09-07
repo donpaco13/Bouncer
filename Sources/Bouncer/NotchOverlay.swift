@@ -412,8 +412,9 @@ final class NotchOverlayController: NSObject {
         // sous l'encoche, loin d'elles.
         // Troisième raison de ne rien montrer, et elle vient d'un défaut réel : l'app d'encoche
         // est déployée sous les chevrons. Cf. `encocheOccupee` (BouncerCore) pour le choix du
-        // signal — c'est le curseur sur l'encoche, pas le curseur sur la fenêtre, sans quoi les
-        // flèches s'effaceraient au moment même où l'on va les cliquer.
+        // signal — le curseur sur l'encoche OU sur la fenêtre déployée hors de l'abord des deux
+        // cibles de clic, sans quoi les flèches s'effaceraient au moment même où l'on va les
+        // cliquer.
         let geometrique = (reglages.modeActivation.flechesActives && cycleAUneCible
                            && !encocheOccupeeParLApp(curseur: curseur, cadreFleches: panel.frame))
             ? opaciteFleches(curseur: curseur, zone: panel.frame, portee: reglages.porteeApproche)
@@ -459,10 +460,20 @@ final class NotchOverlayController: NSObject {
 
     /// L'app d'encoche occupe-t-elle la place ? Passe-plat vers `encocheOccupee` (BouncerCore),
     /// où vivent la règle et son raisonnement.
+    ///
+    /// Les cibles sont recalculées ici plutôt que lues sur `arrowsView.leftButton.frame` : ces
+    /// cadres-là glissent de `revelation.decalage` pendant le déploiement, et une zone protégée
+    /// qui bouge avec l'animation qu'elle commande est une boucle.
     private func encocheOccupeeParLApp(curseur: CGPoint, cadreFleches: CGRect) -> Bool {
         guard let bande = bandeEncocheCourante else { return false }
+        let cadres = cadresFleches(overlay: cadreFleches.size, marge: reglages.margeLaterale,
+                                   alignement: reglages.alignementFleches)
+        let cibles = [cadres.gauche, cadres.droite].map {
+            $0.offsetBy(dx: cadreFleches.minX, dy: cadreFleches.minY)
+        }
         return encocheOccupee(curseur: curseur, bandeEncoche: bande, cadreFleches: cadreFleches,
-                              fenetre: windowManager.cadreFenetresEncoche)
+                              fenetre: windowManager.cadreFenetresEncoche,
+                              ciblesFleches: cibles, portee: reglages.porteeApproche)
     }
 
     /// Attache ou détache le ticker des pistes temporelles, exactement sous la condition où un

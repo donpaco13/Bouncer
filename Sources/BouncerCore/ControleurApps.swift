@@ -249,29 +249,65 @@ public func bandeEncoche(survol: CGRect, hauteurRangee: CGFloat = hauteurBarreDe
 ///      apps d'encoche NE BOUGENT PAS au déploiement (relevé du 2026-09-05, cf.
 ///      `WindowManager.cadreFenetresEncoche` — boringNotch 640×210, Vibe Island 740×520, fixes,
 ///      transparents). Il n'y a pas de croissance à observer.
-///   2. *Le curseur est entré dans la surface de la fenêtre.* Écarté aussi, et c'est le piège :
+///   2. *Le curseur est entré dans la surface de la fenêtre.* Écarté d'abord, et c'était le piège :
 ///      cette surface couvre la bande des flèches elle-même, donc les chevrons s'effaceraient
-///      exactement au moment où l'on va les cliquer. Ça ne corrige pas un défaut, ça en crée un.
+///      exactement au moment où l'on va les cliquer. **Retenu depuis, mais amputé** — cf. la
+///      seconde règle plus bas : la crainte était juste, la conclusion trop large.
 ///   3. *Le curseur est sur l'encoche.* Retenu. C'est le geste qui fait se déployer l'app tierce —
 ///      c'est même sa seule commande —, et c'est littéralement ce que dit le rapport : « quand on
 ///      est sur le NOTCH ». La bande est une rangée AU-DESSUS de celle des chevrons : une main qui
 ///      descend vers un chevron n'y entre jamais, une main qui monte vers l'encoche y entre
 ///      toujours. Le bouton est intact, la révélation graduelle aussi.
 ///
-/// La seconde condition n'est pas décorative : sans recouvrement réel, il n'y a rien de sale à
+/// La garde de recouvrement n'est pas décorative : sans recouvrement réel, il n'y a rien de sale à
 /// corriger, et effacer les flèches ne serait qu'une perte. C'est la même règle que la pastille de
 /// contraste (`flechesPoseesSurUneAppTierce`) — c'est la géométrie qui décide, pas le réglage.
 ///
-/// ponytail: le signal est le curseur, pas l'état réel de l'app tierce, qui ne se publie nulle
-/// part. Une app d'encoche qui resterait déployée après que le curseur en est sorti (épinglage,
-/// lecture en cours) laisserait les flèches revenir par-dessus. La mesure à relever serait alors
-/// la région DESSINÉE de sa fenêtre (`CGWindowListCreateImage` sur le cadre du chevron), au prix
-/// d'une capture d'écran par approche et de l'autorisation qui va avec.
+/// **La seconde règle, et pourquoi la première ne suffisait pas** (capture du 2026-09-07, app
+/// d'encoche déployée en widget média large, les deux chevrons toujours dessinés à ses
+/// extrémités). `bandeEncoche.contains` ne rend vrai que si le curseur est sur la RANGÉE de
+/// l'encoche. Or une fois l'app déployée, la main descend sur le widget — une rangée plus bas ou
+/// davantage — et la condition redevient fausse alors que le widget, lui, est toujours là. C'est
+/// exactement le défaut que le `ponytail` ci-dessous annonçait.
+///
+/// On reprend donc le candidat 2, mais amputé de ce qui le rendait dangereux. Ce qu'il fallait
+/// protéger, ce n'est pas la bande des flèches entière : ce sont les deux CIBLES DE CLIC, et leur
+/// abord. Partout ailleurs dans la fenêtre, le chrome n'a rien à faire.
+///
+/// « Et leur abord », pas « les 22 pt » : c'est là qu'était le trou. Une cible nue laisserait le
+/// chevron s'éteindre dès que la main s'en approche par le bas ou par le côté sans encore la
+/// toucher — donc n'apparaître qu'une fois le curseur DESSUS, une cible qu'on ne voit pas. La
+/// zone protégée est donc celle où la flèche est encore atteignable, mesurée par la fonction qui
+/// décide déjà de son opacité (`opaciteFleches`) : aucune constante nouvelle, et le protégé colle
+/// par construction au visible. À `portee = 0` la protection retombe sur les 22 pt nus, ce qui est
+/// cohérent : ce réglage-là rend déjà les flèches binaires.
+///
+/// **Ce qu'on ne peut pas savoir, et qu'on ne suppose donc pas.** Rien ne distingue « déployée »
+/// de « repliée » par la géométrie : les conteneurs des apps d'encoche sont fixes et transparents
+/// dans les deux états (relevé du 2026-09-05, cf. `WindowManager.cadreFenetresEncoche`).
+/// `fenetre` donne l'emprise MAXIMALE, pas l'état. Le raisonnement porte donc uniquement sur la
+/// position du curseur. Conséquence assumée : app repliée, un curseur posé dans le conteneur
+/// transparent loin des deux chevrons les efface aussi. Il n'y perd rien — les chevrons
+/// reviennent dès qu'il se rapproche de l'un d'eux, à la portée près, qui est exactement la
+/// distance à laquelle ils étaient devinables auparavant.
+///
+/// ponytail: le signal reste le curseur, pas l'état réel de l'app tierce, qui ne se publie nulle
+/// part. La mesure qui trancherait serait la région DESSINÉE de sa fenêtre
+/// (`CGWindowListCreateImage` sur le cadre du chevron), au prix d'une capture d'écran par
+/// approche et de l'autorisation qui va avec.
+///
+/// - Parameters:
+///   - ciblesFleches: les cadres des deux chevrons EN REPÈRE ÉCRAN (cf. `cadresFleches`, décalés
+///     de l'origine du panel). Vide = aucune protection, donc à ne pas laisser vide.
+///   - portee: la portée d'approche du réglage, celle qui sert déjà à `opaciteFleches`.
 public func encocheOccupee(
-    curseur: CGPoint, bandeEncoche: CGRect, cadreFleches: CGRect, fenetre: CGRect?
+    curseur: CGPoint, bandeEncoche: CGRect, cadreFleches: CGRect, fenetre: CGRect?,
+    ciblesFleches: [CGRect], portee: CGFloat
 ) -> Bool {
     guard let fenetre, !fenetre.isEmpty, fenetre.intersects(cadreFleches) else { return false }
-    return bandeEncoche.contains(curseur)
+    if bandeEncoche.contains(curseur) { return true }
+    guard fenetre.contains(curseur) else { return false }
+    return !ciblesFleches.contains { opaciteFleches(curseur: curseur, zone: $0, portee: portee) > 0 }
 }
 
 /// Ce que Bouncer ÉCOUTE : la bande des flèches, détendue de 6 pt en haut et en bas (elle fait
