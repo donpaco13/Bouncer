@@ -1,0 +1,172 @@
+<meta charset="utf-8">
+<title>Flèches propres — correctif et pistes — Bouncer</title>
+<style>
+  :root {
+    --bg: #0f1117; --card-bg: #181b24; --text: #e2e8f0; --text-muted: #94a3b8;
+    --border: #2d3748; --accent: #3b82f6; --crit: #ef4444; --maj: #f97316;
+    --med: #eab308; --ok: #22c55e; --code-bg: #11141c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6; padding: 2.5rem 1.5rem; max-width: 940px; margin: 0 auto;
+  }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; color: #fff; }
+  h2 { font-size: 1.3rem; color: #fff; margin: 2.75rem 0 1rem; }
+  h3 { font-size: 1.05rem; color: #fff; margin: 1.5rem 0 0.6rem; }
+  p { margin-bottom: 0.9rem; }
+  .meta { color: var(--text-muted); font-size: 0.9rem; }
+  .box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.4rem; margin-bottom: 1.5rem; }
+  .box.reco { border-left: 3px solid var(--ok); }
+  .box.warn { border-left: 3px solid var(--maj); }
+  .piste { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.4rem; margin-bottom: 1.25rem; }
+  .piste h3 { margin-top: 0; }
+  .piste .tag { display: inline-block; font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--bg); background: var(--text-muted); border-radius: 4px; padding: 0.1rem 0.45rem; margin-left: 0.5rem; vertical-align: 0.15em; }
+  .piste .tag.first { background: var(--ok); }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86rem; }
+  code { background: var(--code-bg); padding: 0.1rem 0.35rem; border-radius: 4px; color: #cbd5e1; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.85rem 1rem; overflow-x: auto; margin: 0.75rem 0; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  ul, ol { margin: 0.5rem 0 0.9rem 1.3rem; }
+  li { margin-bottom: 0.35rem; }
+  dl { margin: 0.6rem 0; }
+  dt { font-weight: 600; color: #fff; margin-top: 0.7rem; }
+  dd { margin-left: 0; color: var(--text); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem; }
+  th, td { border: 1px solid var(--border); padding: 0.55rem 0.7rem; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); color: #fff; font-weight: 600; }
+  .muted { color: var(--text-muted); }
+  footer { border-top: 1px solid var(--border); margin-top: 3rem; padding-top: 1.25rem; color: var(--text-muted); font-size: 0.88rem; }
+</style>
+
+<header>
+  <h1>Flèches propres — le correctif, et quatre pistes à essayer</h1>
+  <p class="meta">Bouncer · 7 septembre 2026 · branche <code>agent/worker-fleches-propres</code> · 176 tests verts</p>
+</header>
+
+<div class="box">
+  <p><strong>Le correctif est livré et testé.</strong> Les chevrons ne se dessinent plus par-dessus une app d'encoche déployée. Rien d'autre n'a bougé : la révélation graduelle à l'approche et les boutons sont intacts, et cinq tests le vérifient.</p>
+  <p><strong>Les quatre pistes sont livrées aussi, mais éteintes.</strong> Aux valeurs par défaut, elles ne changent pas un point ni une milliseconde. Chacune s'allume par une clé de préférence, sans recompiler, l'app relancée. Elles n'apparaissent pas dans la fenêtre de réglages : ce sont des propositions, pas des décisions.</p>
+</div>
+
+<h2>1. Le correctif</h2>
+
+<h3>Le défaut</h3>
+<p>Tes mots : « quand on est sur le notch les flèches restent visibles alors que l'application du notch est ouverte, donc c'est pas propre propre ».</p>
+<p>La mécanique : les chevrons vivent une rangée sous la barre des menus, et leur panel monte au niveau <code>statusBar + 10</code>. Quand une app d'encoche déploie son panneau, elle occupe cette rangée, et nos chevrons sont dessinés dessus. Ils y étaient à pleine opacité : la portée d'approche fait 72 pt, et il n'y a que 6 pt entre la rangée de la barre des menus et la leur. Curseur sur l'encoche, le calcul rendait 0,92.</p>
+
+<h3>Quand exactement elles doivent s'effacer</h3>
+<p>Tu posais trois candidats. Deux ne tiennent pas, et c'est mesuré :</p>
+<dl>
+  <dt>« La fenêtre a grandi au-delà de la bande » — non, il n'y a rien à observer.</dt>
+  <dd>Le relevé du 5 septembre est formel : les conteneurs des apps d'encoche ne bougent pas au déploiement. boringNotch publie 640×210, Vibe Island 740×520, fixes et transparents, ouverts comme fermés. <code>cadreFenetresEncoche</code> mesure l'emprise maximale de l'app, pas son état. Elle reste la bonne source pour savoir <em>si</em> l'app couvre les chevrons ; elle ne dira jamais <em>quand</em> elle est ouverte.</dd>
+  <dt>« Le curseur est entré dans sa surface » — non, ça crée un défaut pire.</dt>
+  <dd>Cette surface couvre la bande des chevrons elle-même. S'effacer là-dessus, c'est éteindre le bouton au moment exact où la main va le cliquer. C'était le piège du correctif, et c'est le test que j'ai écrit en premier.</dd>
+  <dt>« Le curseur est sur le notch » — oui, et c'est ce que tu as dit.</dt>
+  <dd>C'est le geste qui fait se déployer l'app tierce, c'est même sa seule commande. Et la bande de l'encoche est une rangée <em>au-dessus</em> de celle des chevrons : une main qui descend vers un chevron n'y entre jamais, une main qui monte vers l'encoche y entre toujours.</dd>
+</dl>
+
+<p>La règle finale demande deux conditions, et il en faut deux :</p>
+<ol>
+  <li>le curseur est dans la rangée de la barre des menus au-dessus du boîtier, marges comprises ;</li>
+  <li>la fenêtre d'une app d'encoche recouvre effectivement la bande des chevrons.</li>
+</ol>
+<p>La seconde n'est pas décorative : sans recouvrement réel, il n'y a rien de sale à corriger, et effacer serait une perte sèche. C'est la même règle que la pastille de contraste : la géométrie décide, pas le réglage.</p>
+
+<h3>Un détail qui a été corrigé au passage</h3>
+<p>Le boîtier caméra fait 29 pt, la rangée que macOS réserve en fait 35. Les 6 pt d'écart ne tombaient dans aucune des deux bandes. Un curseur qui monte du chevron vers l'encoche les traverse à chaque fois, et les chevrons se rallumaient au passage. <code>bandeEncoche</code> couvre la rangée entière, il n'y a plus de trou.</p>
+
+<h3>Ce que ça ne touche pas</h3>
+<ul>
+  <li><strong>Le swipe.</strong> Le monitor de défilement ne dépend pas de l'opacité des chevrons ; il reste attaché quand ils s'effacent. App déployée, le geste reste le moyen de changer d'app.</li>
+  <li><strong>Les boutons.</strong> Un chevron reste cliquable partout où il l'était.</li>
+  <li><strong>La révélation graduelle.</strong> Même courbe, même portée, même glissement.</li>
+</ul>
+
+<div class="box warn">
+  <p><strong>La limite connue.</strong> Le signal est le curseur, pas l'état réel de l'app tierce, qui ne se publie nulle part. Une app d'encoche qui resterait déployée après que le curseur en est sorti (épinglage, lecture en cours) laisserait les chevrons revenir par-dessus. Le seul signal fiable serait la région <em>dessinée</em> de sa fenêtre, ce qui veut dire une capture d'écran par approche et l'autorisation qui va avec. Si tu croises le cas en réel, c'est la mesure à relever.</p>
+</div>
+
+<h2>2. Les quatre pistes</h2>
+
+<p>Chacune s'allume par une clé, puis relance de Bouncer. Aucune ne demande de recompiler. Les valeurs hors domaine sont ramenées dans les bornes plutôt que rejetées, donc tu peux taper un chiffre au jugé sans casser quoi que ce soit.</p>
+
+<div class="piste">
+  <h3>P1 — les chevrons s'effacent quand la main s'arrête <span class="tag first">à essayer en premier</span></h3>
+  <p>Le curseur est là, mais immobile depuis un moment : la main a choisi autre chose. Passé ce délai, les chevrons s'en vont en fondu de 0,18 s. Le moindre mouvement les ramène.</p>
+  <pre><code>defaults write io.github.donpaco13.bouncer bouncer.inactiviteFleches -float 3.0</code></pre>
+  <p><strong>Ce que ça gagne.</strong> Le chrome n'existe plus que pendant l'approche, c'est-à-dire pendant qu'il sert. C'est la réponse la plus directe à « plus propre », et la seule des quatre qui n'enlève rien : tout ce que tu pouvais faire, tu peux encore le faire, il suffit de bouger de deux points.</p>
+  <p><strong>Ce que ça coûte.</strong> Un timer à 30 Hz tant que le curseur est dans la portée : quelques secondes par approche, jamais au repos. Et un réglage trop court (moins d'une seconde) transforme une hésitation en clignotement.</p>
+  <p><strong>À essayer :</strong> 3 s d'abord. Si ça traîne encore, 1,5 s. En dessous de 1 s, ça devient nerveux.</p>
+</div>
+
+<div class="piste">
+  <h3>P2 — les chevrons attendent un temps d'arrêt avant de se montrer</h3>
+  <p>Le curseur doit être resté dans la portée un moment avant que quoi que ce soit apparaisse. Un trajet vers la barre des menus ne mérite pas de chevrons ; s'arrêter à côté de l'encoche, si.</p>
+  <pre><code>defaults write io.github.donpaco13.bouncer bouncer.delaiRevelation -float 0.25</code></pre>
+  <p><strong>Ce que ça gagne.</strong> Ça supprime le bruit le plus fréquent : les chevrons qui s'allument au passage à chaque fois que la souris monte vers le menu. C'est le pendant de P1 sur l'autre bout du geste.</p>
+  <p><strong>Ce que ça coûte.</strong> Ça retarde le bouton, y compris quand tu le vises. C'est la seule des quatre qui prend quelque chose. Et ça mange le début de la révélation graduelle : le « soupçon » de loin arrive après le délai, plus pendant.</p>
+  <p><strong>À essayer :</strong> 0,25 s. Au-delà de 0,4 s, l'attente se sent au moment de cliquer.</p>
+</div>
+
+<div class="piste">
+  <h3>P3 — les chevrons épousent le contour du boîtier au lieu de flotter</h3>
+  <p>Un chevron se pose aujourd'hui au milieu de sa marge de 44 pt. Le réglage le fait glisser dans cette marge : 0 le colle contre le bord du boîtier caméra, 1 le pousse au bord extérieur, 0,5 est la position actuelle. Symétrique des deux côtés.</p>
+  <pre><code>defaults write io.github.donpaco13.bouncer bouncer.alignementFleches -float 0.0</code></pre>
+  <p><strong>Ce que ça gagne.</strong> Collés au boîtier, les deux chevrons se lisent comme appartenant à l'encoche, pas comme deux objets posés à côté. C'est la piste « épouser le contour » dans sa version qui ne coûte rien à construire.</p>
+  <p><strong>Ce que ça coûte.</strong> À 0, un chevron se retrouve plus souvent sur l'île déployée, donc la pastille sombre apparaît plus souvent. À 1, l'inverse : plus de dégagement, mais le chevron droit se rapproche du bandeau des icônes de statut. Il reste hors de portée, la géométrie le garantit ; il paraît seulement moins lié à l'encoche.</p>
+  <p><strong>À essayer :</strong> 0,0 puis 0,25. C'est un choix de forme, il se juge à l'œil en trois secondes.</p>
+  <p class="muted">La version complète de cette piste, une forme dessinée qui prolonge le contour arrondi de l'encoche, n'est pas là. Elle demande de dessiner un tracé plutôt que de poser deux boutons, et ça se décide après avoir vu si la position collée te plaît.</p>
+</div>
+
+<div class="piste">
+  <h3>P4 — la courbe de révélation, plus tôt ou plus tard</h3>
+  <p>L'opacité suit déjà la distance en continu, sans palier. Ce qui se règle ici, c'est <em>où</em> dans le trajet elle monte. En dessous de 1, le chevron se devine de loin : c'est le comportement actuel, à 0,65. Au-dessus, il reste invisible presque jusqu'au bout puis arrive d'un coup.</p>
+  <pre><code>defaults write io.github.donpaco13.bouncer bouncer.courbeRevelation -float 2.2</code></pre>
+  <p><strong>Ce que ça gagne.</strong> Une valeur haute donne la version discrète : rien à l'écran tant que la main n'est pas franchement engagée. C'est « moins de chrome » sans rien retirer du geste.</p>
+  <p><strong>Ce que ça coûte.</strong> Le « soupçon » de loin est ce que tu as validé, et une valeur haute le supprime. C'est un arbitrage : tu échanges le soupçon de loin contre l'absence de chrome.</p>
+  <p><strong>À essayer :</strong> 1,0 pour une montée linéaire, 2,2 pour la version discrète. Le glissement et l'échelle ne bougent pas ; seule l'opacité suit la courbe.</p>
+</div>
+
+<h2>3. Dans quel ordre</h2>
+
+<p>Du moins coûteux au plus engageant. Chaque étape se juge seule, en revenant au défaut avant la suivante.</p>
+
+<table>
+  <tr><th>Ordre</th><th>Piste</th><th>Pourquoi là</th></tr>
+  <tr><td>1</td><td>P1 à 3 s</td><td>La seule qui n'enlève rien. Si elle suffit, les trois autres deviennent facultatives.</td></tr>
+  <tr><td>2</td><td>P3 à 0,0</td><td>Un choix de forme, jugeable en trois secondes, indépendant du reste.</td></tr>
+  <tr><td>3</td><td>P2 à 0,25 s</td><td>Attaque l'autre bout du geste, mais prend quelque chose. À n'essayer que si P1 ne suffit pas.</td></tr>
+  <tr><td>4</td><td>P4 à 2,2</td><td>Le grain fin. À garder pour la fin, quand la position et le moment sont arrêtés.</td></tr>
+</table>
+
+<div class="box reco">
+  <p><strong>Ma recommandation : P1 seule, à 3 secondes.</strong> Le défaut que tu décris est du chrome qui traîne. P1 le fait partir sans toucher ni à la sensation du geste, ni à la portée, ni au bouton, les trois choses qui t'appartiennent. Les autres pistes échangent quelque chose contre la propreté ; celle-là n'échange rien.</p>
+  <p>Si après P1 il reste du bruit, il viendra des trajets de passage, et c'est P2 qu'il faut alors, pas P4.</p>
+</div>
+
+<h3>Tout remettre au défaut</h3>
+<pre><code>defaults delete io.github.donpaco13.bouncer bouncer.inactiviteFleches
+defaults delete io.github.donpaco13.bouncer bouncer.delaiRevelation
+defaults delete io.github.donpaco13.bouncer bouncer.alignementFleches
+defaults delete io.github.donpaco13.bouncer bouncer.courbeRevelation</code></pre>
+<p class="muted">Le bouton « valeurs par défaut du geste » des réglages les remet aussi.</p>
+
+<h2>4. Ce qui a changé dans le code</h2>
+<table>
+  <tr><th>Fichier</th><th>Quoi</th></tr>
+  <tr><td><code>BouncerCore/ControleurApps.swift</code></td><td><code>bandeEncoche</code> (la rangée entière), <code>encocheOccupee</code> (la règle du correctif), <code>abscissesFleches</code> reçoit un alignement.</td></tr>
+  <tr><td><code>BouncerCore/Swipe.swift</code></td><td><code>facteurTemporel</code> (les deux horloges), <code>revelationFleches</code> reçoit une courbe.</td></tr>
+  <tr><td><code>BouncerCore/Reglages.swift</code></td><td>Les quatre clés, bornées et relues depuis <code>defaults</code>.</td></tr>
+  <tr><td><code>Bouncer/NotchOverlay.swift</code></td><td>La garde dans <code>updateHover</code>, le ticker des horloges, le passage de l'alignement à la vue.</td></tr>
+  <tr><td><code>Tests/EncocheOccupeeTests.swift</code></td><td>5 tests. Le plus important est celui qui vérifie qu'on n'éteint pas le bouton en descendant vers lui.</td></tr>
+  <tr><td><code>Tests/PistesFlechesTests.swift</code></td><td>11 tests, dont quatre qui verrouillent qu'au défaut, rien ne change.</td></tr>
+</table>
+
+<footer>
+  Bouncer · rapport rédigé le 7 septembre 2026 · <code>swift test</code> : 176 tests, 0 échec.
+</footer>

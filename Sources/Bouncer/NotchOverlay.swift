@@ -92,7 +92,23 @@ final class NotchOverlayController: NSObject {
     /// Zone sensible courante, calculée par `rebuild()`. Cf. commentaire d'en-tête : la relire à
     /// chaque événement souris coûtait une publication SwiftUI par mouvement.
     private var zoneSensible: CGRect?
+    /// La RANGÉE de la barre des menus au-dessus du boîtier : l'endroit où le curseur fait se
+    /// déployer l'app d'encoche tierce, et donc celui où les chevrons n'ont plus rien à faire.
+    /// Mise en cache pour la même raison que `zoneSensible` — la calculer interroge `NSScreen`, et
+    /// `updateHover` tourne à chaque mouvement du curseur.
+    private var bandeEncocheCourante: CGRect?
     private var opaciteCourante: CGFloat = 0
+
+    /// Les deux horloges des pistes temporelles (P1/P2). Repère `systemUptime` : monotone, donc
+    /// insensible au changement d'heure système, contrairement à `Date()`.
+    /// `instantEntree` vaut 0 tant que le curseur n'est pas dans la portée.
+    private var instantEntree: TimeInterval = 0
+    private var instantMouvement: TimeInterval = 0
+    private var dernierePosition: CGPoint = .zero
+    /// Ne tourne QUE si une des deux horloges est réglée ET que le curseur est dans la portée.
+    /// Aux valeurs par défaut (les deux à zéro) il n'existe jamais : les pistes ne coûtent rien
+    /// tant qu'on ne les essaie pas.
+    private var tickerTemporel: Timer?
 
     // `sideMargin` (44 pt) et `porteeApproche` (72 pt) étaient des constantes ici. La seconde
     // était la SEULE du projet restée réglée à l'œil, et les deux décident de la sensation du
@@ -149,6 +165,7 @@ final class NotchOverlayController: NSObject {
     deinit {
         if let m = hoverMonitor { NSEvent.removeMonitor(m) }
         if let m = scrollMonitor { NSEvent.removeMonitor(m) }
+        tickerTemporel?.invalidate()
     }
 
     /// La fenêtre d'encoche à prendre en compte, ou `nil` si l'utilisateur a choisi de se caler
@@ -187,11 +204,13 @@ final class NotchOverlayController: NSObject {
     @objc private func rebuild() {
         guard let survol = bandeSurvol() else {
             zoneSensible = nil
+            bandeEncocheCourante = nil
             teardownPanel()
             return
         }
         let zone = bandeFleches(survol: survol)
         zoneSensible = zoneSwipe(bande: survol, fenetre: fenetreDeReference())
+        bandeEncocheCourante = bandeEncoche(survol: survol)
         if let panel {
             panel.setFrame(zone, display: true)
             arrowsView?.frame = NSRect(origin: .zero, size: zone.size)
@@ -200,6 +219,7 @@ final class NotchOverlayController: NSObject {
             buildPanel(zone: zone)
         }
         arrowsView?.retrait = reglages.retraitFleches
+        arrowsView?.alignement = reglages.alignementFleches
         // La pastille sombre n'est pas un parti pris graphique, c'est un correctif de contraste :
         // elle n'a de raison d'être que si la flèche est dessinée PAR-DESSUS la fenêtre d'une app
         // tierce, dont on ne sait rien (noir de l'île, pochette d'album, visualiseur). Calées sur
@@ -226,7 +246,8 @@ final class NotchOverlayController: NSObject {
     private func flechesPoseesSurUneAppTierce(cadre: CGRect) -> Bool {
         guard let fenetre = windowManager.cadreFenetresEncoche, let vue = arrowsView else { return false }
         let taille = vue.tailleFleche
-        let x = abscissesFleches(largeurOverlay: cadre.width, marge: reglages.margeLaterale, taille: taille)
+        let x = abscissesFleches(largeurOverlay: cadre.width, marge: reglages.margeLaterale,
+                                 taille: taille, alignement: reglages.alignementFleches)
         return [x.gauche, x.droite].contains { abscisse in
             fenetre.intersects(CGRect(x: cadre.minX + abscisse, y: cadre.minY, width: taille, height: cadre.height))
         }
@@ -253,6 +274,8 @@ final class NotchOverlayController: NSObject {
 
     private func teardownPanel() {
         if let m = scrollMonitor { NSEvent.removeMonitor(m); scrollMonitor = nil }
+        tickerTemporel?.invalidate()
+        tickerTemporel = nil
         panel?.orderOut(nil)
         panel = nil
         arrowsView = nil
@@ -362,6 +385,16 @@ final class NotchOverlayController: NSObject {
         // fenêtre sans quitter son process n'émet aucune notification, seul le sondage la voit.
         // Distingue « le curseur passe » de « le curseur s'arrête » : une simple traversée vers la
         // barre des menus ou les onglets ne réveille pas le sondage.
+        let curseur = NSEvent.mouseLocation
+        let maintenant = ProcessInfo.processInfo.systemUptime
+        // `updateHover` est appelée par le monitor souris ET par le ticker temporel : mesurer
+        // l'immobilité à la POSITION plutôt qu'à l'origine de l'appel évite de traiter un tour de
+        // ticker comme un mouvement.
+        if curseur != dernierePosition {
+            dernierePosition = curseur
+            instantMouvement = maintenant
+        }
+
         let dansLaZone = curseurDansLaZone()
         if dansLaZone != curseurEtaitDansLaZone {
             windowManager.curseurDansZone(dansLaZone)
@@ -377,10 +410,33 @@ final class NotchOverlayController: NSObject {
         // La progression se mesure à la BANDE des flèches, pas à la zone de swipe : celle-ci
         // descend jusqu'en bas de l'île déployée, et les flèches s'allumeraient dès qu'on passe
         // sous l'encoche, loin d'elles.
-        let progression = (reglages.modeActivation.flechesActives && cycleAUneCible)
-            ? opaciteFleches(curseur: NSEvent.mouseLocation, zone: panel.frame,
-                             portee: reglages.porteeApproche)
+        // Troisième raison de ne rien montrer, et elle vient d'un défaut réel : l'app d'encoche
+        // est déployée sous les chevrons. Cf. `encocheOccupee` (BouncerCore) pour le choix du
+        // signal — c'est le curseur sur l'encoche, pas le curseur sur la fenêtre, sans quoi les
+        // flèches s'effaceraient au moment même où l'on va les cliquer.
+        let geometrique = (reglages.modeActivation.flechesActives && cycleAUneCible
+                           && !encocheOccupeeParLApp(curseur: curseur, cadreFleches: panel.frame))
+            ? opaciteFleches(curseur: curseur, zone: panel.frame, portee: reglages.porteeApproche)
             : 0
+        // L'horloge d'entrée démarre au franchissement de la portée et se remet à zéro à la
+        // sortie : c'est ce qui fait qu'un aller-retour ne CUMULE pas du temps de présence.
+        if geometrique <= 0 {
+            instantEntree = 0
+        } else if instantEntree == 0 {
+            instantEntree = maintenant
+        }
+        // Aux valeurs par défaut (les deux horloges à zéro), `facteurTemporel` rend 1 : la
+        // progression est exactement celle d'avant.
+        let progression = geometrique * facteurTemporel(
+            depuisEntree: instantEntree > 0 ? maintenant - instantEntree : 0,
+            depuisMouvement: maintenant - instantMouvement,
+            delai: reglages.delaiRevelation,
+            inactivite: reglages.inactiviteFleches
+        )
+        // AVANT la garde : un curseur immobile n'émet plus rien, donc sans ce ticker le délai ne
+        // s'écoulerait jamais et l'effacement sur inactivité n'arriverait jamais.
+        majTickerTemporel(dansLaPortee: geometrique > 0)
+
         guard progression != opaciteCourante else { return }
         let etaitVisible = opaciteCourante > 0
         opaciteCourante = progression
@@ -390,7 +446,8 @@ final class NotchOverlayController: NSObject {
         } else {
             panel.orderOut(nil)
         }
-        let r = revelationFleches(progression: progression, retrait: reglages.retraitFleches)
+        let r = revelationFleches(progression: progression, retrait: reglages.retraitFleches,
+                                  courbe: reglages.courbeRevelation)
         arrowsView?.revelation = r
         TraceSwipe.note("survol", "progression=\(String(format: "%.2f", progression))",
                         "opacite=\(String(format: "%.2f", r.opacite))",
@@ -398,6 +455,34 @@ final class NotchOverlayController: NSObject {
                         "echelle=\(String(format: "%.2f", r.echelle))",
                         "pastille=\(arrowsView?.pastilleNecessaire ?? false)",
                         "cadre=\(panel.frame)", "curseur=\(NSEvent.mouseLocation)")
+    }
+
+    /// L'app d'encoche occupe-t-elle la place ? Passe-plat vers `encocheOccupee` (BouncerCore),
+    /// où vivent la règle et son raisonnement.
+    private func encocheOccupeeParLApp(curseur: CGPoint, cadreFleches: CGRect) -> Bool {
+        guard let bande = bandeEncocheCourante else { return false }
+        return encocheOccupee(curseur: curseur, bandeEncoche: bande, cadreFleches: cadreFleches,
+                              fenetre: windowManager.cadreFenetresEncoche)
+    }
+
+    /// Attache ou détache le ticker des pistes temporelles, exactement sous la condition où un
+    /// tour pourrait changer quelque chose : une horloge réglée, et le curseur dans la portée.
+    ///
+    /// Même principe que `majMoniteurScroll` : on change QUAND on écoute, jamais quoi. Hors
+    /// portée il n'y a rien à faire descendre ni à faire monter, et aux valeurs par défaut le
+    /// ticker n'est jamais créé du tout.
+    private func majTickerTemporel(dansLaPortee: Bool) {
+        let voulu = dansLaPortee && reglages.revelationTemporelleActive
+        if voulu, tickerTemporel == nil {
+            // 1/30 s : la transition dure 0,18 s, donc cinq pas au minimum — assez pour que
+            // l'effacement se lise comme un fondu et pas comme une coupure.
+            tickerTemporel = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+                Task { @MainActor in self?.updateHover() }
+            }
+        } else if !voulu, let t = tickerTemporel {
+            t.invalidate()
+            tickerTemporel = nil
+        }
     }
 
     private func handleScroll(_ event: NSEvent) {
@@ -475,6 +560,15 @@ private final class NotchArrowsView: NSView {
     /// De combien de points la flèche sort pendant la révélation. 0 = fondu seul.
     var retrait: CGFloat = 0
 
+    /// Où le chevron se pose DANS sa marge : 0 = collé au boîtier caméra, 1 = au bord extérieur.
+    /// Cf. `abscissesFleches` (BouncerCore) — piste P3, réglable, défaut inchangé.
+    var alignement: CGFloat = alignementFlechesDefaut {
+        didSet {
+            guard alignement != oldValue else { return }
+            layoutArrows()
+        }
+    }
+
     /// Vrai seulement si la flèche se retrouve dessinée PAR-DESSUS la fenêtre d'une app tierce.
     /// Cf. `fondPastille` : c'est le seul cas où le contraste ne nous appartient plus.
     var pastilleNecessaire: Bool = false {
@@ -549,7 +643,7 @@ private final class NotchArrowsView: NSView {
     }
 
     private func layoutArrows() {
-        let cadres = cadresFleches(overlay: bounds.size, marge: margeLaterale)
+        let cadres = cadresFleches(overlay: bounds.size, marge: margeLaterale, alignement: alignement)
         // Le décalage est SIGNÉ par côté : la flèche gauche sort vers la gauche, la droite vers la
         // droite. Un décalage commun les ferait glisser toutes les deux du même côté, ce qui se
         // lit comme un défaut d'alignement et pas comme un déploiement.
