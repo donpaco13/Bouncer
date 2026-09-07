@@ -1,0 +1,232 @@
+/*
+   Localizable.strings (es) — la traducción al español (variante España).
+
+   El inglés es la lengua fuente (en.lproj); este archivo lo sigue. Debe llevar EXACTAMENTE
+   las mismas claves, si no `CatalogueDeChainesTests` falla.
+
+   Vocabulario: notch (préstamo, masculino), app de notch, cambio/cambiar, ocultar, apartar,
+   relanzar, deslizamiento (swipe), despliegue (slide de las flechas), en el notch (on stage).
+*/
+
+/* MARK: - Menu bar */
+
+"menu.grantAccess" = "⚠️ Permitir en Ajustes del Sistema…";
+"menu.noNotchApp" = "No se ha encontrado ninguna app de notch";
+"menu.settings" = "Ajustes…";
+"menu.welcomeGuide" = "Guía de bienvenida…";
+"menu.refresh" = "Actualizar";
+"menu.quit" = "Salir de Bouncer";
+
+/* State of one app in the menu, read out by VoiceOver. Same words as the landing page. */
+"menu.state.onStage" = "en el notch";
+"menu.state.waiting" = "en espera, un clic la trae de vuelta";
+"menu.state.switching" = "cambiando";
+
+/* Secondary detail on a menu row: what the switch route means for the user. */
+"menu.detail.testing" = "Probando el cambio…";
+"menu.detail.instant" = "Cambio instantáneo";
+"menu.detail.relaunch" = "Cambia relanzándose, alrededor de un segundo";
+"menu.detail.notRunning" = "No está abierta, se relanzará";
+
+/* MARK: - Welcome guide, footer */
+
+"welcome.button.getStarted" = "Empezar";
+"welcome.button.continue" = "Continuar";
+"welcome.button.finish" = "Empezar a usar Bouncer";
+"welcome.button.back" = "Atrás";
+"welcome.button.skip" = "Omitir";
+"welcome.skip.hint" = "Cierra la guía y empieza a usar Bouncer";
+"welcome.close.commandW" = "Cierra la guía con Comando W";
+/* %1$d: current step, %2$d: total number of steps. */
+"welcome.pagination.step" = "Paso %1$d de %2$d";
+
+/* MARK: - Welcome guide, step 1 */
+
+"welcome.window.title" = "Te damos la bienvenida a Bouncer";
+"welcome.hello.title" = "Te damos la bienvenida a Bouncer";
+"welcome.hello.body" = "Tus apps de notch dejan de montarse unas encima de otras. Una ocupa el notch, y un deslizamiento elige cuál.";
+
+/* MARK: - Welcome guide, step 2 */
+
+"welcome.problem.title" = "Tres apps, un solo notch";
+"welcome.problem.body" = "macOS no coordina nada: cada app de notch dibuja su ventana en el mismo sitio, al mismo tiempo. La última en abrirse tapa a las demás. Bouncer mantiene una visible y aparta las otras.";
+"welcome.problem.illustration" = "Tres apps de notch —NotchNook, Boring Notch y Vibe Island— dibujan su ventana en el mismo sitio bajo el notch, y se tapan entre sí.";
+
+/* MARK: - Welcome guide, step 3 (Accessibility) */
+
+"welcome.access.granted.title" = "Permiso concedido";
+"welcome.access.granted.body" = "Bouncer puede ocultar y recuperar las ventanas de tus apps de notch. Aquí no hay nada más que hacer.";
+"welcome.access.missing.title" = "macOS necesita tu permiso";
+"welcome.access.missing.body" = "Ocultar la ventana de otra app pasa por Accesibilidad. Sin ese permiso, Bouncer ve tus apps de notch pero no puede hacer nada con ellas.";
+"welcome.access.openSettings" = "Abrir Ajustes del Sistema…";
+"welcome.access.openSettings.hint" = "Abre la lista de Accesibilidad en Ajustes del Sistema, dentro de Privacidad y seguridad";
+"welcome.access.tip" = "Activa Bouncer en la lista. Esta pantalla se pone en verde sola, sin relanzar nada.";
+
+/* MARK: - Welcome guide, step 4 (the gesture) */
+
+"welcome.gesture.title" = "Pasa el puntero por el notch y desliza con dos dedos";
+"welcome.gesture.body" = "Un deslizamiento horizontal avanza una app, a la izquierda o a la derecha: no hay que recordar ninguna dirección. Las flechas ‹ › sí la tienen.";
+"welcome.gesture.shortcutNote" = "avanza el ciclo desde cualquier app.";
+
+/* Interactive notch simulator. Fake content, shown to teach the gesture. */
+"welcome.sim.app1.name" = "Reproduciendo";
+"welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
+"welcome.sim.app2.subtitle" = "Batería 94% · 45 W";
+"welcome.sim.app3.subtitle" = "2 notificaciones en espera";
+/* %1$@: app name, %2$@: its subtitle. */
+"welcome.sim.app.label" = "App simulada: %1$@, %2$@";
+"welcome.sim.arrow.previous.label" = "Flecha izquierda: app anterior";
+"welcome.sim.arrow.previous.hint" = "Vuelve a la app anterior del ciclo";
+"welcome.sim.arrow.previous.tooltip" = "Haz clic para volver a la app anterior";
+"welcome.sim.arrow.next.label" = "Flecha derecha: app siguiente";
+"welcome.sim.arrow.next.hint" = "Pasa a la app siguiente del ciclo";
+"welcome.sim.arrow.next.tooltip" = "Haz clic para pasar a la app siguiente";
+
+/* MARK: - Welcome guide, step 5 (ready) */
+
+"welcome.ready.title" = "Todo listo";
+"welcome.ready.title.incomplete" = "Todavía falta algo";
+"welcome.ready.access.ok" = "Accesibilidad concedida";
+"welcome.ready.access.missing" = "Accesibilidad aún sin conceder";
+/* %@: a list of app names, already joined by the formatter ("Vibe Island o Boring Notch"). */
+"welcome.ready.noAppInstalled" = "No hay ninguna app de notch instalada. Prueba %@";
+"welcome.ready.menuBarNote" = "Bouncer vive en la barra de menús, no en el Dock.";
+"welcome.ready.menuBarPreview" = "El icono de Bouncer en la barra de menús son dos rectángulos apilados, arriba a la derecha de la pantalla.";
+/* Fake Finder menu drawn in the menu bar preview. */
+"welcome.ready.fakeMenu.file" = "Archivo";
+
+/* MARK: - Global keyboard shortcut */
+
+"shortcut.none" = "Ninguno";
+"shortcut.none.spoken" = "Sin atajo";
+"shortcut.ctrlOptCmdSpace" = "⌃⌥⌘Espacio";
+"shortcut.ctrlOptCmdB.spoken" = "Control Opción Comando B";
+"shortcut.ctrlOptCmdN.spoken" = "Control Opción Comando N";
+"shortcut.ctrlOptCmdSpace.spoken" = "Control Opción Comando Espacio";
+/* %@: the shortcut as written, e.g. "⌃⌥⌘B". */
+"shortcut.refused" = "El sistema ha rechazado %@, seguramente porque otra app ya lo usa. Elige otro.";
+
+/* MARK: - Settings, General */
+
+"settings.general.relaunch" = "Relanzar Bouncer";
+"settings.general.language" = "Idioma";
+/* The entry that lets macOS pick the language. It is NOT the default: Bouncer starts in English. */
+"settings.general.language.system" = "Idioma del sistema";
+"settings.general.language.note" = "Se aplica al momento. El título de la ventana lo pone macOS y cambia tras relanzar.";
+
+/* MARK: - Settings, tabs */
+
+"settings.tab.general" = "General";
+"settings.tab.gesture" = "Gesto";
+"settings.tab.apps" = "Apps";
+
+/* MARK: - Settings, General (continued) */
+
+"settings.general.launchAtLogin" = "Abrir Bouncer al iniciar sesión";
+"settings.general.launchAtLogin.note" = "Bouncer solo arbitra el notch mientras está abierto. Sin esto, tienes que acordarte de abrirlo después de cada reinicio.";
+/* Path in System Settings, exactly as macOS labels it. */
+"settings.general.launchAtLogin.needsApproval" = "macOS espera tu aprobación: abre Ajustes del Sistema › General › Ítems de inicio y extensiones y activa Bouncer.";
+/* %@: the error message macOS gave. */
+"settings.general.launchAtLogin.refused" = "macOS lo ha rechazado: %@";
+"settings.general.refresh" = "Comprobar las apps cada";
+"settings.general.refresh.note" = "Cada cuánto mira Bouncer qué apps ocupan el notch y si el permiso de Accesibilidad ha cambiado. Más corto: el menú se actualiza antes. Más largo: menos trabajo en segundo plano.";
+
+/* MARK: - Settings, Gesture */
+
+"settings.gesture.trigger" = "Cambiar de app con";
+"settings.gesture.shortcut.header" = "Atajo de teclado";
+"settings.gesture.shortcut" = "Atajo";
+"settings.gesture.shortcut.note" = "Funciona desde cualquier app, incluso a pantalla completa. Mientras Bouncer está abierto, la combinación elegida ya no llega a las demás apps.";
+"settings.gesture.zone.header" = "Zona sensible";
+"settings.gesture.zone" = "Bouncer se ancla a";
+"settings.gesture.zone.measured" = "Medido: la carcasa de la cámara mide 166 pt de ancho; una app de notch mide entre 640 y 740 pt y baja hasta 520 pt por debajo de la barra de menús. Anclado a la carcasa, el deslizamiento solo escuchaba el 3%% de la isla que ves.";
+"settings.gesture.arrows.header" = "Flechas";
+/* %@: one of settings.gesture.reveal.summary / .summary.zero. Em dash separates label and current value. */
+"settings.gesture.reveal" = "Aparición — %@";
+"settings.gesture.reveal.min" = "Al pasar el puntero";
+"settings.gesture.reveal.max" = "De lejos";
+"settings.gesture.reveal.label" = "Distancia de aparición de las flechas";
+"settings.gesture.reveal.value.zero" = "0 puntos, solo dentro de la franja del notch";
+"settings.gesture.reveal.note" = "La opacidad de las flechas sigue la distancia del puntero al notch. Esto fija dónde empieza la rampa.";
+"settings.gesture.reveal.summary.zero" = "solo dentro de la franja del notch";
+/* %d: points. */
+"settings.gesture.reveal.summary" = "%d pt antes de la franja";
+/* %d: points on each side. */
+"settings.gesture.margin" = "Franjas laterales — %d pt a cada lado";
+"settings.gesture.margin.min" = "Estrechas";
+"settings.gesture.margin.max" = "Anchas";
+"settings.gesture.margin.label" = "Ancho de las franjas laterales de las flechas";
+"settings.gesture.margin.value" = "%d puntos a cada lado";
+"settings.gesture.margin.note" = "Las flechas se colocan a ambos lados de lo que cubre el notch, nunca encima. Más anchas: un objetivo de clic más fácil; más estrechas: la barra de menús queda tranquila.";
+/* %@: one of settings.gesture.slide.summary / .summary.zero. */
+"settings.gesture.slide" = "Despliegue — %@";
+"settings.gesture.slide.min" = "Solo fundido";
+"settings.gesture.slide.max" = "Completo";
+"settings.gesture.slide.label" = "Distancia de despliegue de las flechas";
+"settings.gesture.slide.value.zero" = "ninguno, solo fundido";
+"settings.gesture.slide.note" = "Cuando el puntero se acerca, la flecha sale de detrás del notch mientras aparece: un indicio de lejos, del todo fuera de cerca. A cero, solo aparece con un fundido, sin moverse.";
+"settings.gesture.slide.summary.zero" = "la flecha no se mueve";
+"settings.gesture.slide.summary" = "%d pt de despliegue";
+/* VoiceOver value of a slider. %d: points. */
+"settings.gesture.points" = "%d puntos";
+"settings.gesture.reset" = "Restablecer valores por omisión";
+"settings.gesture.reset.hint" = "Devuelve la distancia de aparición y las franjas a sus valores originales";
+"settings.gesture.preview.noArrows" = "Vista previa: el notch solo, sin flechas; el modo elegido no las muestra.";
+/* %1$d: band width in points, %2$d: reveal distance in points. */
+"settings.gesture.preview" = "Vista previa: el notch, una franja de %1$d puntos a cada lado con una flecha, y una zona de aproximación de %2$d puntos más allá.";
+
+/* MARK: - Settings, Apps */
+
+"settings.apps.empty" = "No se ha detectado ninguna app de notch en este Mac. Aparecerán aquí en cuanto Bouncer vea una.";
+"settings.apps.header" = "Apps por las que pasan el deslizamiento y las flechas";
+"settings.apps.allUnchecked" = "Todas las apps están desmarcadas: al gesto no le queda nada que recorrer. El menú de la barra de menús las sigue listando.";
+"settings.apps.note" = "Una app desmarcada sigue en el menú y sigue siendo clicable; solo sale del ciclo. Útil para una app de notch que tienes siempre abierta.";
+"settings.apps.orphan.detail" = "No detectada en este Mac";
+"settings.apps.orphan.remove" = "Eliminar";
+"settings.apps.orphan.header" = "Exclusiones huérfanas";
+"settings.apps.orphan.note" = "Estas apps se excluyeron antes pero ya no se detectan. Eliminarlas evita que sigan excluidas si se reinstalan o se vuelven a detectar.";
+
+/* MARK: - Gesture modes (Reglages) */
+
+"mode.both" = "Deslizamiento y flechas";
+"mode.swipeOnly" = "Solo deslizamiento";
+"mode.arrowsOnly" = "Solo flechas";
+"mode.both.note" = "Un deslizamiento horizontal con dos dedos sobre el notch, o un clic en una flecha.";
+"mode.swipeOnly.note" = "No se muestra ninguna flecha. Nada cubre nunca la barra de menús.";
+"mode.arrowsOnly.note" = "El deslizamiento se ignora. Útil con un ratón, o si el gesto se dispara solo.";
+"anchor.notchWindow" = "La ventana de la app de notch";
+"anchor.cameraHousing" = "Solo la carcasa de la cámara";
+"anchor.notchWindow.note" = "El deslizamiento funciona en toda la isla que ves, y las flechas se sitúan a ambos lados. Sin app de notch en pantalla, recurre a la carcasa.";
+"anchor.cameraHousing.note" = "Una zona estrecha, pegada al notch físico. Merece la pena probarla si un desplazamiento horizontal provoca un cambio que no querías.";
+
+/* MARK: - Switch failures (WindowManager). Shown in the menu bar menu, under the warning icon. */
+
+"notch.none" = "No se ha detectado ningún notch en este Mac.";
+/* %@: the app that stayed on screen. */
+"error.accessRevoked.twoApps" = "A Bouncer le han retirado el acceso a Accesibilidad: tienes dos apps en el notch, y %@ se ha quedado junto a la nueva. Bouncer no la obligará a salir sin ese permiso; podrías perder trabajo sin guardar. Devuélvele el acceso en Ajustes del Sistema; hasta entonces, ningún gesto ordenará el notch.";
+"error.accessRevoked.intact" = "Tus apps abiertas siguen intactas: Bouncer no cambia nada y no cerrará ninguna app.";
+/* %@: a list of app names, already joined ("Vibe Island y Boring Notch"). */
+"error.accessRevoked.hidden" = "Siguen ocultas en segundo plano: %@. Bouncer no cambia nada y no cerrará ninguna app.";
+/* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
+"error.accessRevoked" = "A Bouncer le han retirado el acceso a Accesibilidad: el cambio de app ya no funciona. %@ Devuélvele el acceso en Ajustes del Sistema para volver a cambiar.";
+/* %@: the app being switched to. */
+"error.switchInProgress" = "Ya se está cambiando a %@; espera, acaba de recibir la orden de cerrarse. Un segundo gesto ahora apagaría la app que el primero acaba de encender.";
+/* %@: the app that hasn't closed. */
+"error.previousNotClosed" = "%@ todavía no se ha cerrado; probablemente espera una respuesta en pantalla (“¿Guardar los cambios?”). Bouncer la sigue vigilando y liberará el notch en cuanto desaparezca; nunca la forzará, perderías tu trabajo.";
+/* %@: the app being relaunched. */
+"error.targetNotClosed" = "%@ tiene que relanzarse para volver al notch, y todavía no se ha cerrado. Bouncer la relanzará en cuanto desaparezca.";
+/* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
+"error.targetNotClosed.thenHide" = "%1$@ tiene que relanzarse para volver al notch, y todavía no se ha cerrado. Bouncer la relanzará en cuanto desaparezca, y después apartará %2$@, que mientras tanto sigue en pantalla.";
+"error.launchFailed" = "No se ha podido abrir %@.";
+/* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
+"error.accessNeverGranted" = "Bouncer todavía no tiene acceso a Accesibilidad: el cambio a %1$@ se ha rechazado. %2$@ Bouncer no cambia nada y no cerrará ninguna app. Permite Bouncer en Ajustes del Sistema e inténtalo de nuevo.";
+"error.noNotchScreen.notAttempted" = "Ya no se detecta ninguna pantalla con notch; no se ha intentado el cambio a %1$@. %2$@ Vuelve a conectar la pantalla con notch (o abre la tapa) e inténtalo de nuevo.";
+"error.noNotch.abandoned" = "Ya no se detecta ningún notch; el cambio a %1$@ se ha abandonado. %2$@";
+"error.targetNeverAppeared" = "%1$@ se ha abierto sin mostrar nada en el notch. %2$@";
+"error.relaunchFailed" = "%@ se ha cerrado bien, pero no se ha podido relanzar: está desinstalada o el sistema ha rechazado abrirla.";
+"error.noNotch.relaunchedUnverified" = "Ya no se detecta ningún notch; %@ se ha relanzado, pero Bouncer ya no puede comprobar qué muestra ahí. Vuelve a conectar la pantalla con notch (o abre la tapa).";
+"error.relaunchedNothingShown" = "%@ se ha relanzado sin mostrar nada en el notch.";
+"error.fallback.unchanged" = "El notch no ha cambiado.";
+"error.fallback.staysPut" = "%@ se queda donde está.";
+"error.noAppDetected" = "No se ha detectado ninguna app de notch. Abre una para que Bouncer la aprenda.";
+"error.allAppsUnchecked" = "Todas las apps de notch están desmarcadas en Ajustes.";

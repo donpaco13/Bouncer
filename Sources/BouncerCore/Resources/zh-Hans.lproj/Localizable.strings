@@ -1,0 +1,231 @@
+/*
+   Localizable.strings (zh-Hans) — 简体中文翻译。
+
+   英文 (en.lproj) 是源语言，本文件跟随它。键必须与英文完全一致，否则 `CatalogueDeChainesTests` 会失败。
+
+   词汇：刘海 (notch)、刘海 App (notch app)、切换 (switch)、隐藏 / 收起 (hide / set aside)、
+   重新启动 (relaunch)、占据刘海 (on stage)、轻扫 (swipe)、摄像头外壳 (camera housing，Apple 官方用语)。
+*/
+
+/* MARK: - Menu bar */
+
+"menu.grantAccess" = "⚠️ 在“系统设置”中允许…";
+"menu.noNotchApp" = "未找到刘海 App";
+"menu.settings" = "设置…";
+"menu.welcomeGuide" = "欢迎指南…";
+"menu.refresh" = "刷新";
+"menu.quit" = "退出 Bouncer";
+
+/* State of one app in the menu, read out by VoiceOver. */
+"menu.state.onStage" = "正占据刘海";
+"menu.state.waiting" = "等待中，点按一下即可调回";
+"menu.state.switching" = "正在切换";
+
+/* Secondary detail on a menu row. */
+"menu.detail.testing" = "正在测试切换方式…";
+"menu.detail.instant" = "即时切换";
+"menu.detail.relaunch" = "通过重新启动切换，约需一秒";
+"menu.detail.notRunning" = "未运行，将重新启动";
+
+/* MARK: - Welcome guide, footer */
+
+"welcome.button.getStarted" = "开始";
+"welcome.button.continue" = "继续";
+"welcome.button.finish" = "开始使用 Bouncer";
+"welcome.button.back" = "返回";
+"welcome.button.skip" = "跳过";
+"welcome.skip.hint" = "关闭指南并开始使用 Bouncer";
+"welcome.close.commandW" = "按 Command W 关闭指南";
+/* %1$d: current step, %2$d: total number of steps. */
+"welcome.pagination.step" = "第 %1$d 步，共 %2$d 步";
+
+/* MARK: - Welcome guide, step 1 */
+
+"welcome.window.title" = "欢迎使用 Bouncer";
+"welcome.hello.title" = "欢迎使用 Bouncer";
+"welcome.hello.body" = "你的刘海 App 不再互相叠在一起。一次只有一个占据刘海，轻扫一下就能挑选是哪一个。";
+
+/* MARK: - Welcome guide, step 2 */
+
+"welcome.problem.title" = "三个 App，一个刘海";
+"welcome.problem.body" = "macOS 不做任何协调：每个刘海 App 都把窗口画在同一位置，同时显示。最后启动的那个盖住其余的。Bouncer 只保留一个可见，把其他的收起来。";
+"welcome.problem.illustration" = "三个刘海 App — NotchNook、Boring Notch 和 Vibe Island — 把窗口画在刘海下方的同一位置，彼此遮盖。";
+
+/* MARK: - Welcome guide, step 3 (Accessibility) */
+
+"welcome.access.granted.title" = "已授权";
+"welcome.access.granted.body" = "Bouncer 可以隐藏和调回刘海 App 的窗口。这里无需再做任何操作。";
+"welcome.access.missing.title" = "macOS 需要你的授权";
+"welcome.access.missing.body" = "隐藏其他 App 的窗口要经过“辅助功能”。没有这项权限，Bouncer 看得到你的刘海 App，却拿它们没办法。";
+"welcome.access.openSettings" = "打开“系统设置”…";
+"welcome.access.openSettings.hint" = "打开“系统设置”中“隐私与安全性”下的“辅助功能”列表";
+"welcome.access.tip" = "在列表中打开 Bouncer。此界面会自动变绿，无需重新启动。";
+
+/* MARK: - Welcome guide, step 4 (the gesture) */
+
+"welcome.gesture.title" = "悬停在刘海上，双指轻扫";
+"welcome.gesture.body" = "横向轻扫切到下一个 App，向左向右都一样：没有方向需要记。箭头 ‹ › 则各有方向。";
+"welcome.gesture.shortcutNote" = "可在任何 App 中推进循环。";
+
+/* Interactive notch simulator. Fake content, shown to teach the gesture. */
+"welcome.sim.app1.name" = "正在播放";
+"welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
+"welcome.sim.app2.subtitle" = "电池 94% · 45 W";
+"welcome.sim.app3.subtitle" = "2 条通知待处理";
+/* %1$@: app name, %2$@: its subtitle. */
+"welcome.sim.app.label" = "模拟 App：%1$@，%2$@";
+"welcome.sim.arrow.previous.label" = "左箭头：上一个 App";
+"welcome.sim.arrow.previous.hint" = "回到循环中的上一个 App";
+"welcome.sim.arrow.previous.tooltip" = "点按以回到上一个 App";
+"welcome.sim.arrow.next.label" = "右箭头：下一个 App";
+"welcome.sim.arrow.next.hint" = "前往循环中的下一个 App";
+"welcome.sim.arrow.next.tooltip" = "点按以前往下一个 App";
+
+/* MARK: - Welcome guide, step 5 (ready) */
+
+"welcome.ready.title" = "一切就绪";
+"welcome.ready.title.incomplete" = "还差一点";
+"welcome.ready.access.ok" = "已授予辅助功能权限";
+"welcome.ready.access.missing" = "尚未授予辅助功能权限";
+/* %@: a list of app names, already joined by the formatter. */
+"welcome.ready.noAppInstalled" = "未安装任何刘海 App。试试 %@";
+"welcome.ready.menuBarNote" = "Bouncer 住在菜单栏里，不在程序坞中。";
+"welcome.ready.menuBarPreview" = "Bouncer 的菜单栏图标是两个叠放的矩形，位于屏幕右上角。";
+/* Fake Finder menu drawn in the menu bar preview. */
+"welcome.ready.fakeMenu.file" = "文件";
+
+/* MARK: - Global keyboard shortcut */
+
+"shortcut.none" = "无";
+"shortcut.none.spoken" = "无快捷键";
+"shortcut.ctrlOptCmdSpace" = "⌃⌥⌘空格";
+"shortcut.ctrlOptCmdB.spoken" = "Control Option Command B";
+"shortcut.ctrlOptCmdN.spoken" = "Control Option Command N";
+"shortcut.ctrlOptCmdSpace.spoken" = "Control Option Command 空格键";
+/* %@: the shortcut as written, e.g. "⌃⌥⌘B". */
+"shortcut.refused" = "系统拒绝了 %@，可能已被其他 App 占用。请换一个。";
+
+/* MARK: - Settings, General */
+
+"settings.general.relaunch" = "重新启动 Bouncer";
+"settings.general.language" = "语言";
+/* The entry that lets macOS pick the language. It is NOT the default: Bouncer starts in English. */
+"settings.general.language.system" = "系统语言";
+"settings.general.language.note" = "立即生效。窗口标题由 macOS 提供，重新启动后跟随。";
+
+/* MARK: - Settings, tabs */
+
+"settings.tab.general" = "通用";
+"settings.tab.gesture" = "手势";
+"settings.tab.apps" = "App";
+
+/* MARK: - Settings, General (continued) */
+
+"settings.general.launchAtLogin" = "登录时打开 Bouncer";
+"settings.general.launchAtLogin.note" = "Bouncer 只在运行时管理刘海。不开启这一项，每次重新启动电脑后都得记得手动打开它。";
+/* Path in System Settings, exactly as macOS labels it. */
+"settings.general.launchAtLogin.needsApproval" = "macOS 正在等待你的批准：打开“系统设置”›“通用”›“登录项与扩展”，然后打开 Bouncer。";
+/* %@: the error message macOS gave. */
+"settings.general.launchAtLogin.refused" = "macOS 拒绝了：%@";
+"settings.general.refresh" = "检查 App 间隔";
+"settings.general.refresh.note" = "Bouncer 多久查看一次哪些 App 占据刘海、辅助功能权限有没有变化。更短：菜单更新更快。更长：后台工作更少。";
+
+/* MARK: - Settings, Gesture */
+
+"settings.gesture.trigger" = "切换方式";
+"settings.gesture.shortcut.header" = "键盘快捷键";
+"settings.gesture.shortcut" = "快捷键";
+"settings.gesture.shortcut.note" = "在任何 App 中都有效，包括全屏。Bouncer 运行期间，所选组合键不再传给其他 App。";
+"settings.gesture.zone.header" = "悬停区域";
+"settings.gesture.zone" = "Bouncer 锚定到";
+"settings.gesture.zone.measured" = "实测：摄像头外壳宽 166 点；刘海 App 宽 640 到 740 点，向下延伸到菜单栏以下 520 点。锚定到外壳时，轻扫只监听你看到的岛状区域的 3%%。";
+"settings.gesture.arrows.header" = "箭头";
+/* %@: one of settings.gesture.reveal.summary / .summary.zero. Em dash separates label and current value. */
+"settings.gesture.reveal" = "显现 — %@";
+"settings.gesture.reveal.min" = "悬停时";
+"settings.gesture.reveal.max" = "远处";
+"settings.gesture.reveal.label" = "箭头显现距离";
+"settings.gesture.reveal.value.zero" = "0 点，仅限刘海区内";
+"settings.gesture.reveal.note" = "箭头的不透明度随指针到刘海的距离变化。此项设定渐变从哪里开始。";
+"settings.gesture.reveal.summary.zero" = "仅限刘海区内";
+/* %d: points. */
+"settings.gesture.reveal.summary" = "刘海区外 %d 点";
+/* %d: points on each side. */
+"settings.gesture.margin" = "侧边区 — 每侧 %d 点";
+"settings.gesture.margin.min" = "窄";
+"settings.gesture.margin.max" = "宽";
+"settings.gesture.margin.label" = "箭头侧边区宽度";
+"settings.gesture.margin.value" = "每侧 %d 点";
+"settings.gesture.margin.note" = "箭头位于遮盖刘海的内容两侧，从不压在上面。更宽，点按目标更大；更窄，不打扰菜单栏。";
+/* %@: one of settings.gesture.slide.summary / .summary.zero. */
+"settings.gesture.slide" = "滑出 — %@";
+"settings.gesture.slide.min" = "仅淡入";
+"settings.gesture.slide.max" = "完全";
+"settings.gesture.slide.label" = "箭头滑出距离";
+"settings.gesture.slide.value.zero" = "无，仅淡入";
+"settings.gesture.slide.note" = "指针靠近时，箭头从刘海后面滑出并同时淡入：远处只露一点，近处完全滑出。设为零时，只淡入不移动。";
+"settings.gesture.slide.summary.zero" = "箭头不移动";
+"settings.gesture.slide.summary" = "滑出 %d 点";
+/* VoiceOver value of a slider. %d: points. */
+"settings.gesture.points" = "%d 点";
+"settings.gesture.reset" = "恢复默认";
+"settings.gesture.reset.hint" = "将显现距离和侧边区恢复为原始值";
+"settings.gesture.preview.noArrows" = "预览：只有刘海，没有箭头 — 所选模式不显示箭头。";
+/* %1$d: band width in points, %2$d: reveal distance in points. */
+"settings.gesture.preview" = "预览：刘海，两侧各 %1$d 点宽的侧边区，各带一个箭头，再往外是 %2$d 点的接近区。";
+
+/* MARK: - Settings, Apps */
+
+"settings.apps.empty" = "这台 Mac 上未检测到刘海 App。Bouncer 一发现就会显示在这里。";
+"settings.apps.header" = "轻扫和箭头循环切换的 App";
+"settings.apps.allUnchecked" = "所有 App 都已取消勾选：手势没有可切换的对象了。菜单栏菜单仍会列出它们。";
+"settings.apps.note" = "取消勾选的 App 仍留在菜单里、仍可点按 — 只是退出循环。适合一直开着的刘海 App。";
+"settings.apps.orphan.detail" = "这台 Mac 上未检测到";
+"settings.apps.orphan.remove" = "移除";
+"settings.apps.orphan.header" = "失效的排除项";
+"settings.apps.orphan.note" = "这些 App 之前被排除，现在已检测不到。移除它们，以免重新安装或再次检测到时仍被排除。";
+
+/* MARK: - Gesture modes (Settings) */
+
+"mode.both" = "轻扫和箭头";
+"mode.swipeOnly" = "仅轻扫";
+"mode.arrowsOnly" = "仅箭头";
+"mode.both.note" = "在刘海上双指横向轻扫，或点按箭头。";
+"mode.swipeOnly.note" = "不显示箭头。菜单栏永远不会被遮盖。";
+"mode.arrowsOnly.note" = "忽略轻扫。适合用鼠标，或手势会自己误触发的情况。";
+"anchor.notchWindow" = "刘海 App 的窗口";
+"anchor.cameraHousing" = "仅摄像头外壳";
+"anchor.notchWindow.note" = "在你看到的整个岛状区域内轻扫都有效，箭头位于其两侧。屏幕上没有刘海 App 时，回退到摄像头外壳。";
+"anchor.cameraHousing.note" = "紧贴硬件刘海的窄小区域。如果横向滚动误触发了切换，值得一试。";
+
+/* MARK: - Switch failures (WindowManager). Shown in the menu bar menu, under the warning icon. */
+
+"notch.none" = "这台 Mac 上未检测到刘海。";
+/* %@: the app that stayed on screen. */
+"error.accessRevoked.twoApps" = "Bouncer 的辅助功能权限已被撤销：刘海里有两个 App，%@ 留在了新 App 旁边。没有这项权限，Bouncer 不会强制退出它 — 你可能会丢失未存储的工作。请在“系统设置”中重新授权；在此之前，任何手势都无法整理刘海。";
+"error.accessRevoked.intact" = "你打开的 App 原样未动：Bouncer 不做任何更改，也不会退出任何 App。";
+/* %@: a list of app names, already joined. */
+"error.accessRevoked.hidden" = "仍在后台隐藏：%@。Bouncer 不做任何更改，也不会退出任何 App。";
+/* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
+"error.accessRevoked" = "Bouncer 的辅助功能权限已被撤销：无法再切换。%@ 请在“系统设置”中重新授权以恢复切换。";
+/* %@: the app being switched to. */
+"error.switchInProgress" = "正在切换到 %@ — 请稍等，刚刚才请它关闭。此时再做一次手势，会把第一次手势刚打开的 App 又关掉。";
+/* %@: the app that hasn't closed. */
+"error.previousNotClosed" = "%@ 尚未关闭 — 它可能正在屏幕上等待你的回答（“要存储更改吗？”）。Bouncer 会继续盯着它，它一退出就释放刘海；Bouncer 绝不会强制它退出，那会丢失你的工作。";
+/* %@: the app being relaunched. */
+"error.targetNotClosed" = "%@ 需要重新启动才能回到刘海，而它尚未关闭。它一退出，Bouncer 就会重新启动它。";
+/* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
+"error.targetNotClosed.thenHide" = "%1$@ 需要重新启动才能回到刘海，而它尚未关闭。它一退出，Bouncer 就会重新启动它，然后收起 %2$@ — 在此期间后者仍留在屏幕上。";
+"error.launchFailed" = "无法启动 %@。";
+/* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
+"error.accessNeverGranted" = "Bouncer 尚未获得辅助功能权限：切换到 %1$@ 被拒绝。%2$@ Bouncer 不做任何更改，也不会退出任何 App。请在“系统设置”中允许 Bouncer，然后重试。";
+"error.noNotchScreen.notAttempted" = "检测不到带刘海的显示器了 — 未尝试切换到 %1$@。%2$@ 请重新接上带刘海的显示器（或打开盖子），然后重试。";
+"error.noNotch.abandoned" = "检测不到刘海了 — 已放弃切换到 %1$@。%2$@";
+"error.targetNeverAppeared" = "%1$@ 已启动，但没有在刘海中显示任何内容。%2$@";
+"error.relaunchFailed" = "%@ 已正常关闭，但无法重新启动 — 可能已卸载，或系统拒绝了启动。";
+"error.noNotch.relaunchedUnverified" = "检测不到刘海了 — %@ 已重新启动，但 Bouncer 无法再检查它在刘海中显示了什么。请重新接上带刘海的显示器（或打开盖子）。";
+"error.relaunchedNothingShown" = "%@ 已重新启动，但没有在刘海中显示任何内容。";
+"error.fallback.unchanged" = "刘海保持不变。";
+"error.fallback.staysPut" = "%@ 留在原处。";
+"error.noAppDetected" = "未检测到刘海 App。请打开一个，让 Bouncer 认识它。";
+"error.allAppsUnchecked" = "所有刘海 App 都已在设置中取消勾选。";

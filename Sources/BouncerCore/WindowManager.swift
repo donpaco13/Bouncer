@@ -19,10 +19,11 @@ import Combine
 import CoreGraphics
 import Foundation
 
+/// Le verdict du test de support. Le `rawValue` n'est PAS de l'interface : il ne sort que dans la
+/// table de `--self-test`, qui est en anglais et sans clés (cf. main.swift). Le menu, lui, passe
+/// par `EntreeMenu`, qui traduit le verdict en ce qu'il veut dire pour l'utilisateur.
 public enum SupportStatus: String {
-    case testing = "Test en cours…"
-    case supported = "Régissable"
-    case unsupported = "Non supportée"
+    case testing, supported, unsupported
 }
 
 /// L'identité d'une app est son bundleID, jamais son pid : une app qu'on a quittée n'a plus de
@@ -510,14 +511,16 @@ public final class WindowManager: ObservableObject {
     /// garde d'entrée de la bascule refusera tant que le droit n'est pas rendu.
     private func signalerRevocation(precedenteRestee: NotchAppInfo? = nil) {
         if let restee = precedenteRestee {
-            echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer : vous avez deux apps dans l'encoche, \(restee.name) est restée à côté de la nouvelle. Bouncer ne la quitte pas de force sans ce droit — vous pourriez y perdre du travail non enregistré. Rendez-lui l'accès dans les Réglages Système ; d'ici là, aucun geste ne rangera l'encoche."
+            echecBascule = texte("error.accessRevoked.twoApps", restee.name)
             return
         }
         let coincees = apps.filter(\.isHiddenByUs).map(\.name)
+        // La liste est jointe par le formateur de la langue active, et la phrase est tournée pour
+        // ne pas accorder de verbe au nombre d'apps : un pluriel de plus à traduire pour rien.
         let impactApps = coincees.isEmpty
-            ? "Vos apps ouvertes restent intactes : Bouncer ne touche à rien et ne quittera aucune app."
-            : "\(coincees.joined(separator: ", ")) \(coincees.count > 1 ? "restent masquées" : "reste masquée") en arrière-plan : Bouncer ne touche à rien et ne quittera aucune app."
-        echecBascule = "L'accès à l'Accessibilité a été retiré à Bouncer : les bascules ne fonctionnent plus. \(impactApps) Rendez-lui l'accès dans les Réglages Système pour réactiver les bascules."
+            ? texte("error.accessRevoked.intact")
+            : texte("error.accessRevoked.hidden", coincees.formatted(.list(type: .and)))
+        echecBascule = texte("error.accessRevoked", impactApps)
     }
 
     /// Lève le masquage sur toutes les apps d'encoche connues qui tournent.
@@ -554,7 +557,7 @@ public final class WindowManager: ObservableObject {
     /// publiée vers l'UI.
     public func notchZone() -> CGRect? {
         guard let (rect, ecran, _) = geometrie() else {
-            publier(description: "Aucune encoche détectée sur cette machine.")
+            publier(description: texte("notch.none"))
             return nil
         }
         publier(description: "\(ecran) — \(rect)")
@@ -672,7 +675,7 @@ public final class WindowManager: ObservableObject {
     /// le timer et les réveils système passent par ici, le menu par `refresh()`.
     func sonder() {
         guard let (zone, ecran, cadreEcran) = geometrie() else {
-            publier(description: "Aucune encoche détectée sur cette machine.")
+            publier(description: texte("notch.none"))
             // Écran débranché, résolution changée, session verrouillée : le `apps = []` d'avant
             // jetait AUSSI les apps qu'on venait de masquer, et avec elles le seul drapeau qui
             // permettait de les réafficher. Débrancher un écran ne doit pas faire oublier ce
@@ -793,7 +796,7 @@ public final class WindowManager: ObservableObject {
         // ouvrir quoi que ce soit.
         guard bundleIDEnCoursDeBascule == nil else {
             if let enCours = infoPourBascule(bundleIDEnCoursDeBascule ?? "") {
-                echecBascule = "Bascule vers \(enCours.name) déjà en cours — patientez, elle vient de recevoir sa demande de fermeture. Un second geste maintenant éteindrait l'app que le premier vient d'allumer."
+                echecBascule = texte("error.switchInProgress", enCours.name)
             }
             return
         }
@@ -827,7 +830,7 @@ public final class WindowManager: ObservableObject {
             // `actuelle ?? cible` : dans la branche interrupteur (une seule app au catalogue), la
             // précédente EST la cible.
             let restee = actuelle ?? cible
-            echecBascule = "\(restee.name) n'est pas encore fermée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Bouncer continue de la surveiller et libérera l'encoche dès qu'elle sera partie ; il ne la forcera jamais, ce serait perdre votre travail."
+            echecBascule = texte("error.previousNotClosed", restee.name)
             surveiller(restee, puisRelancer: false)
         case .cibleFermetureEnCours:
             // Le cas où Bouncer a DEUX dettes, et n'en soldait qu'une (QA passe 5, D1). La
@@ -842,11 +845,11 @@ public final class WindowManager: ObservableObject {
             // millisecondes plus tard. Le message dit les deux moitiés, parce que l'utilisateur
             // voit bien les deux apps pendant ce temps-là et doit savoir que c'est transitoire.
             let aEteindre = actuelle.flatMap { $0.bundleID == cible.bundleID ? nil : $0 }
-            let attente = "\(cible.name) doit être relancée pour revenir dans l'encoche, et elle n'est pas encore fermée. Bouncer la relancera dès qu'elle sera partie"
-            echecBascule = aEteindre.map { "\(attente), puis rangera \($0.name) — qui reste à l'écran en attendant." } ?? "\(attente)."
+            echecBascule = aEteindre.map { texte("error.targetNotClosed.thenHide", cible.name, $0.name) }
+                ?? texte("error.targetNotClosed", cible.name)
             surveiller(cible, puisRelancer: true, puisEteindre: aEteindre)
         case .lancementImpossible:
-            echecBascule = "\(cible.name) n'a pas pu être lancée."
+            echecBascule = texte("error.launchFailed", cible.name)
         case .precedenteNonRangeableSansAccessibilite:
             // Inatteignable par cette porte-ci : `Bascule.basculer` a son garde de trust en
             // entrée, et ce verdict ne naît que sur le chemin de la surveillance, qui n'en a pas.
@@ -858,20 +861,20 @@ public final class WindowManager: ObservableObject {
             // Le menu affiche déjà sa ligne « ⚠️ Autoriser dans les Réglages… » — `accessibilityTrusted`
             // est faux par définition dans ce cas. Ce message-ci porte ce qu'elle ne dit pas : que
             // le geste qu'on vient de faire n'a rien produit, et pourquoi.
-            echecBascule = "Bouncer n'a pas encore l'accès à l'Accessibilité : la bascule vers \(cible.name) est refusée. \(repliInchange(actuelle)) Bouncer ne touche à rien et ne quittera aucune app. Autorisez Bouncer dans les Réglages Système, puis réessayez."
+            echecBascule = texte("error.accessNeverGranted", cible.name, repliInchange(actuelle))
         case .encocheIndisponible:
             // Le geste n'a rien touché : la bascule s'est arrêtée à son garde d'entrée. Le message
             // dit donc l'état, pas un échec de l'app — accuser \(cible.name) d'un capot fermé
             // enverrait l'utilisateur la déboguer pour rien.
-            echecBascule = "Plus aucun écran à encoche détecté — la bascule vers \(cible.name) n'a pas été tentée. \(repliInchange(actuelle)) Rebranchez l'écran à encoche (ou rouvrez le capot) et réessayez."
+            echecBascule = texte("error.noNotchScreen.notAttempted", cible.name, repliInchange(actuelle))
         case .cibleJamaisApparue:
             // Une bascule qui traverse un changement d'écrans sonde une encoche qui n'existe
             // plus : elle expire donc au bout du délai, sans que la cible y soit pour quoi que ce
             // soit. Le garde d'entrée couvre l'encoche déjà absente au moment du geste ; ce
             // cas-ci reste pour l'encoche qui disparaît PENDANT, entre le garde et le sondage.
             echecBascule = geometrie() == nil
-                ? "Plus aucune encoche détectée — la bascule vers \(cible.name) a été abandonnée. \(repliInchange(actuelle))"
-                : "\(cible.name) s'est lancée sans rien afficher dans l'encoche. \(repliInchange(actuelle))"
+                ? texte("error.noNotch.abandoned", cible.name, repliInchange(actuelle))
+                : texte("error.targetNeverAppeared", cible.name, repliInchange(actuelle))
         }
     }
 
@@ -910,7 +913,7 @@ public final class WindowManager: ObservableObject {
                 // La chaîne s'arrête donc ici, elle ne peut pas se rappeler indéfiniment.
                 self.appliquerReussite(cible: app.bundleID, actuelle: nil)
                 if let precedente {
-                    echecBascule = "\(precedente.name) n'est pas encore fermée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Bouncer continue de la surveiller et libérera l'encoche dès qu'elle sera partie ; il ne la forcera jamais, ce serait perdre votre travail."
+                    echecBascule = texte("error.previousNotClosed", precedente.name)
                     self.surveiller(precedente, puisRelancer: false)
                 }
             case .precedenteNonRangeableSansAccessibilite:
@@ -921,7 +924,7 @@ public final class WindowManager: ObservableObject {
                 self.appliquerReussite(cible: app.bundleID, actuelle: nil)
                 self.signalerRevocation(precedenteRestee: precedente)
             case .lancementImpossible:
-                echecBascule = "\(app.name) s'est bien fermée, mais n'a pas pu être relancée — désinstallée, ou lancement refusé par le système."
+                echecBascule = texte("error.relaunchFailed", app.name)
             case .cibleJamaisApparue:
                 // La même distinction que `basculer` fait à son propre `.cibleJamaisApparue`, et
                 // que cette branche-ci avait perdue (QA passe 5, D3). `poursuivreFermeture` ne
@@ -930,8 +933,8 @@ public final class WindowManager: ObservableObject {
                 // JUSQU'ICI, et il arrivait sous la forme d'un message qui accuse l'app. Fermer
                 // son capot ne doit pas envoyer l'utilisateur déboguer Vibe Island.
                 echecBascule = geometrie() == nil
-                    ? "Plus aucune encoche détectée — \(app.name) a bien été relancée, mais Bouncer ne peut plus vérifier ce qu'elle y affiche. Rebranchez l'écran à encoche (ou rouvrez le capot)."
-                    : "\(app.name) s'est relancée sans rien afficher dans l'encoche."
+                    ? texte("error.noNotch.relaunchedUnverified", app.name)
+                    : texte("error.relaunchedNothingShown", app.name)
             default:
                 // `.cibleFermetureEnCours` ne sort de `poursuivreFermeture` que sur annulation, et
                 // on vient de vérifier qu'il n'y en a pas eu. Les autres ne sont pas atteignables
@@ -943,7 +946,7 @@ public final class WindowManager: ObservableObject {
 
     /// Ce que devient l'encoche quand la bascule n'a rien tenté ou a échoué avant d'agir.
     private func repliInchange(_ actuelle: NotchAppInfo?) -> String {
-        actuelle.map { "\($0.name) reste en place." } ?? "L'encoche est inchangée."
+        actuelle.map { texte("error.fallback.staysPut", $0.name) } ?? texte("error.fallback.unchanged")
     }
 
     /// L'app telle que la bascule doit la connaître. Une app arrêtée n'est pas dans `apps` — c'est
@@ -1052,8 +1055,8 @@ public final class WindowManager: ObservableObject {
             // l'utilisateur réessayait. Les deux causes ne se corrigent pas au même endroit —
             // l'une s'installe, l'autre se recoche dans les réglages — donc on les distingue.
             echecBascule = entreesMenu.isEmpty
-                ? "Aucune app d'encoche détectée. Lancez-en une pour que Bouncer l'apprenne."
-                : "Toutes les apps d'encoche sont décochées dans les réglages."
+                ? texte("error.noAppDetected")
+                : texte("error.allAppsUnchecked")
             return
         }
         rendreActive(bundleID: suivant)

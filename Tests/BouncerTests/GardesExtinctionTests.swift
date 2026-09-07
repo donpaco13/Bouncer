@@ -222,8 +222,7 @@ struct CablageDroitRetireTests {
         #expect(double.pid(pour: boring) == 200)
         #expect(wm.apps.first { $0.bundleID == boring }?.isHiddenByUs != true)
         // Et le message dit les deux choses qui comptent : la cause, et l'app qu'on voit.
-        #expect(wm.echecBascule?.contains("Accessibilité") == true)
-        #expect(wm.echecBascule?.contains(boring) == true)
+        #expect(wm.echecBascule == texte("error.accessRevoked.twoApps", boring))
         // Pas de surveillance chaînée : personne n'a tué la précédente, il n'y a rien à attendre.
         #expect(wm.surveillanceFermeture == nil)
     }

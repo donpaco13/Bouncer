@@ -329,7 +329,6 @@ struct CablageSurveillanceTests {
 
         // L'app est bel et bien revenue : c'est ce que la relance sans garde nous doit.
         #expect(double.journal.contains(.lance(vibe)))
-        #expect(wm.echecBascule?.contains("Plus aucune encoche détectée") == true)
-        #expect(wm.echecBascule?.contains("sans rien afficher") == false)
+        #expect(wm.echecBascule == texte("error.noNotch.relaunchedUnverified", vibe))
     }
 }

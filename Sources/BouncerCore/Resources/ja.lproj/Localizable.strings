@@ -1,0 +1,232 @@
+/*
+   Localizable.strings (ja) — 日本語訳。
+
+   ソース言語は英語（en.lproj）。このファイルはそれに従い、キーを一つ残らず同じにする必要があります。
+   そうでなければ `CatalogueDeChainesTests` が失敗します。
+
+   用語：ノッチ（notch）、ノッチApp（notch app）、切り替え（switch）、隠す（hide）、
+   再起動（relaunch）、ノッチに表示中（on stage）。
+*/
+
+/* MARK: - Menu bar */
+
+"menu.grantAccess" = "⚠️ システム設定で許可…";
+"menu.noNotchApp" = "ノッチAppが見つかりません";
+"menu.settings" = "設定…";
+"menu.welcomeGuide" = "ようこそガイド…";
+"menu.refresh" = "更新";
+"menu.quit" = "Bouncerを終了";
+
+/* State of one app in the menu, read out by VoiceOver. Same words as the landing page. */
+"menu.state.onStage" = "ノッチに表示中";
+"menu.state.waiting" = "待機中、クリックで戻ります";
+"menu.state.switching" = "切り替え中";
+
+/* Secondary detail on a menu row: what the switch route means for the user. */
+"menu.detail.testing" = "切り替えをテスト中…";
+"menu.detail.instant" = "即時に切り替え";
+"menu.detail.relaunch" = "再起動で切り替え、約1秒";
+"menu.detail.notRunning" = "起動していません。再起動されます";
+
+/* MARK: - Welcome guide, footer */
+
+"welcome.button.getStarted" = "はじめる";
+"welcome.button.continue" = "続ける";
+"welcome.button.finish" = "Bouncerを使いはじめる";
+"welcome.button.back" = "戻る";
+"welcome.button.skip" = "スキップ";
+"welcome.skip.hint" = "ガイドを閉じてBouncerの使用を開始します";
+"welcome.close.commandW" = "コマンド W でガイドを閉じます";
+/* %1$d: current step, %2$d: total number of steps. */
+"welcome.pagination.step" = "ステップ %1$d / %2$d";
+
+/* MARK: - Welcome guide, step 1 */
+
+"welcome.window.title" = "Bouncerへようこそ";
+"welcome.hello.title" = "Bouncerへようこそ";
+"welcome.hello.body" = "ノッチAppが重なり合うことはもうありません。ノッチを持つのは1つだけ。どれにするかはスワイプで選びます。";
+
+/* MARK: - Welcome guide, step 2 */
+
+"welcome.problem.title" = "3つのApp、1つのノッチ";
+"welcome.problem.body" = "macOSは何も調整しません。ノッチAppはどれも同じ場所に、同時にウインドウを描きます。最後に起動したものが残りを覆い隠します。Bouncerは1つだけを表示し、ほかは脇にどけておきます。";
+"welcome.problem.illustration" = "3つのノッチApp（NotchNook、Boring Notch、Vibe Island）がノッチの下の同じ場所にウインドウを描き、互いに覆い隠している。";
+
+/* MARK: - Welcome guide, step 3 (Accessibility) */
+
+"welcome.access.granted.title" = "許可されました";
+"welcome.access.granted.body" = "BouncerはノッチAppのウインドウを隠したり、戻したりできます。ここでほかにすることはありません。";
+"welcome.access.missing.title" = "macOSの許可が必要です";
+"welcome.access.missing.body" = "ほかのAppのウインドウを隠すにはアクセシビリティの権限が必要です。それがないと、BouncerはノッチAppを見つけられても、何もできません。";
+"welcome.access.openSettings" = "システム設定を開く…";
+"welcome.access.openSettings.hint" = "システム設定の「プライバシーとセキュリティ」にあるアクセシビリティのリストを開きます";
+"welcome.access.tip" = "リストでBouncerをオンにしてください。この画面は自動で緑になります。再起動は不要です。";
+
+/* MARK: - Welcome guide, step 4 (the gesture) */
+
+"welcome.gesture.title" = "ノッチにポインタを置き、2本指でスワイプ";
+"welcome.gesture.body" = "左右どちらへスワイプしてもAppが1つ進みます。方向を覚える必要はありません。矢印 ‹ › には方向があります。";
+"welcome.gesture.shortcutNote" = "どのAppからでも次のAppに進めます。";
+
+/* Interactive notch simulator. Fake content, shown to teach the gesture. */
+"welcome.sim.app1.name" = "再生中";
+"welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
+"welcome.sim.app2.subtitle" = "バッテリー 94% · 45 W";
+"welcome.sim.app3.subtitle" = "未読の通知が2件";
+/* %1$@: app name, %2$@: its subtitle. */
+"welcome.sim.app.label" = "模擬App: %1$@、%2$@";
+"welcome.sim.arrow.previous.label" = "左矢印: 前のApp";
+"welcome.sim.arrow.previous.hint" = "サイクル内の前のAppに戻ります";
+"welcome.sim.arrow.previous.tooltip" = "クリックで前のAppに戻る";
+"welcome.sim.arrow.next.label" = "右矢印: 次のApp";
+"welcome.sim.arrow.next.hint" = "サイクル内の次のAppに進みます";
+"welcome.sim.arrow.next.tooltip" = "クリックで次のAppに進む";
+
+/* MARK: - Welcome guide, step 5 (ready) */
+
+"welcome.ready.title" = "準備完了";
+"welcome.ready.title.incomplete" = "まだ足りないものがあります";
+"welcome.ready.access.ok" = "アクセシビリティは許可済み";
+"welcome.ready.access.missing" = "アクセシビリティはまだ許可されていません";
+/* %@: a list of app names, already joined by the formatter ("Vibe Island or Boring Notch"). */
+"welcome.ready.noAppInstalled" = "ノッチAppがインストールされていません。%@ を試してみてください";
+"welcome.ready.menuBarNote" = "BouncerはDockではなく、メニューバーに常駐します。";
+"welcome.ready.menuBarPreview" = "Bouncerのメニューバーアイコンは、画面右上にある2つ重なった長方形です。";
+/* Fake Finder menu drawn in the menu bar preview. */
+"welcome.ready.fakeMenu.file" = "ファイル";
+
+/* MARK: - Global keyboard shortcut */
+
+"shortcut.none" = "なし";
+"shortcut.none.spoken" = "ショートカットなし";
+"shortcut.ctrlOptCmdSpace" = "⌃⌥⌘スペース";
+"shortcut.ctrlOptCmdB.spoken" = "コントロール オプション コマンド B";
+"shortcut.ctrlOptCmdN.spoken" = "コントロール オプション コマンド N";
+"shortcut.ctrlOptCmdSpace.spoken" = "コントロール オプション コマンド スペース";
+/* %@: the shortcut as written, e.g. "⌃⌥⌘B". */
+"shortcut.refused" = "%@ はシステムに拒否されました。ほかのAppがすでに使っている可能性があります。別の組み合わせを選んでください。";
+
+/* MARK: - Settings, General */
+
+"settings.general.relaunch" = "Bouncerを再起動";
+"settings.general.language" = "言語";
+/* The entry that lets macOS pick the language. It is NOT the default: Bouncer starts in English. */
+"settings.general.language.system" = "システムの言語";
+"settings.general.language.note" = "すぐに反映されます。ウインドウのタイトルはmacOSが付けるため、再起動後に切り替わります。";
+
+/* MARK: - Settings, tabs */
+
+"settings.tab.general" = "一般";
+"settings.tab.gesture" = "ジェスチャ";
+"settings.tab.apps" = "App";
+
+/* MARK: - Settings, General (continued) */
+
+"settings.general.launchAtLogin" = "ログイン時にBouncerを開く";
+"settings.general.launchAtLogin.note" = "Bouncerがノッチを調整するのは、起動している間だけです。オフにすると、再起動のたびに自分で開く必要があります。";
+/* Path in System Settings, exactly as macOS labels it. */
+"settings.general.launchAtLogin.needsApproval" = "macOSが承認を待っています。システム設定 › 一般 › ログイン項目と機能拡張 を開き、Bouncerをオンにしてください。";
+/* %@: the error message macOS gave. */
+"settings.general.launchAtLogin.refused" = "macOSに拒否されました: %@";
+"settings.general.refresh" = "Appを確認する間隔";
+"settings.general.refresh.note" = "どのAppがノッチを持っているか、アクセシビリティの許可が変わっていないかをBouncerが確認する頻度です。短いほどメニューが早く更新され、長いほどバックグラウンドの負荷が減ります。";
+
+/* MARK: - Settings, Gesture */
+
+"settings.gesture.trigger" = "切り替え方法";
+"settings.gesture.shortcut.header" = "キーボードショートカット";
+"settings.gesture.shortcut" = "ショートカット";
+"settings.gesture.shortcut.note" = "フルスクリーンを含め、どのAppからでも使えます。Bouncerの起動中、選んだ組み合わせはほかのAppには届かなくなります。";
+"settings.gesture.zone.header" = "反応するゾーン";
+"settings.gesture.zone" = "Bouncerの基準";
+"settings.gesture.zone.measured" = "実測値: カメラの収容部の幅は166 pt。ノッチAppの幅は640〜740 ptで、メニューバーの下520 ptまで広がります。収容部を基準にすると、スワイプが反応するのは見えている島のわずか3%%でした。";
+"settings.gesture.arrows.header" = "矢印";
+/* %@: one of settings.gesture.reveal.summary / .summary.zero. Em dash separates label and current value. */
+"settings.gesture.reveal" = "表示 — %@";
+"settings.gesture.reveal.min" = "重ねたとき";
+"settings.gesture.reveal.max" = "遠くから";
+"settings.gesture.reveal.label" = "矢印が表示されはじめる距離";
+"settings.gesture.reveal.value.zero" = "0ポイント、ノッチの帯の内側のみ";
+"settings.gesture.reveal.note" = "矢印の不透明度は、ポインタとノッチの距離に応じて変わります。この設定は、その変化がどこから始まるかを決めます。";
+"settings.gesture.reveal.summary.zero" = "ノッチの帯の内側のみ";
+/* %d: points. */
+"settings.gesture.reveal.summary" = "帯の手前 %d pt から";
+/* %d: points on each side. */
+"settings.gesture.margin" = "両側の帯 — 片側 %d pt";
+"settings.gesture.margin.min" = "狭い";
+"settings.gesture.margin.max" = "広い";
+"settings.gesture.margin.label" = "矢印を置く両側の帯の幅";
+"settings.gesture.margin.value" = "片側 %d ポイント";
+"settings.gesture.margin.note" = "矢印はノッチを覆っているものの両側に置かれ、その上に重なることはありません。広いほどクリックしやすく、狭いほどメニューバーの邪魔になりません。";
+/* %@: one of settings.gesture.slide.summary / .summary.zero. */
+"settings.gesture.slide" = "スライド — %@";
+"settings.gesture.slide.min" = "フェードのみ";
+"settings.gesture.slide.max" = "最大";
+"settings.gesture.slide.label" = "矢印のスライド距離";
+"settings.gesture.slide.value.zero" = "なし、フェードのみ";
+"settings.gesture.slide.note" = "ポインタが近づくと、矢印はフェードインしながらノッチの裏から滑り出します。遠くではわずかに、近くでは完全に出ます。0では動かず、フェードインするだけです。";
+"settings.gesture.slide.summary.zero" = "矢印は動きません";
+"settings.gesture.slide.summary" = "%d pt スライド";
+/* VoiceOver value of a slider. %d: points. */
+"settings.gesture.points" = "%d ポイント";
+"settings.gesture.reset" = "デフォルトに戻す";
+"settings.gesture.reset.hint" = "表示距離と帯を元の値に戻します";
+"settings.gesture.preview.noArrows" = "プレビュー: ノッチのみ、矢印なし。選んだモードでは矢印は表示されません。";
+/* %1$d: band width in points, %2$d: reveal distance in points. */
+"settings.gesture.preview" = "プレビュー: ノッチ、その両側に矢印を載せた %1$d ポイントの帯、さらにその外側に %2$d ポイントの接近ゾーン。";
+
+/* MARK: - Settings, Apps */
+
+"settings.apps.empty" = "このMacではノッチAppが検出されていません。Bouncerが見つけ次第、ここに表示されます。";
+"settings.apps.header" = "スワイプと矢印で切り替えるApp";
+"settings.apps.allUnchecked" = "すべてのAppのチェックが外れています。ジェスチャで切り替える対象がありません。メニューバーのメニューには引き続き表示されます。";
+"settings.apps.note" = "チェックを外したAppもメニューに残り、クリックできます。サイクルから外れるだけです。常に開いておくノッチAppに便利です。";
+"settings.apps.orphan.detail" = "このMacでは検出されていません";
+"settings.apps.orphan.remove" = "削除";
+"settings.apps.orphan.header" = "残っている除外設定";
+"settings.apps.orphan.note" = "これらのAppは以前に除外されましたが、現在は検出されていません。削除しておけば、再インストールや再検出のときに除外されたままになりません。";
+
+/* MARK: - Gesture modes (Reglages) */
+
+"mode.both" = "スワイプと矢印";
+"mode.swipeOnly" = "スワイプのみ";
+"mode.arrowsOnly" = "矢印のみ";
+"mode.both.note" = "ノッチの上で2本指の横スワイプ、または矢印をクリック。";
+"mode.swipeOnly.note" = "矢印は表示されません。メニューバーを覆うものは何もありません。";
+"mode.arrowsOnly.note" = "スワイプは無視されます。マウスを使う場合や、ジェスチャが勝手に反応する場合に。";
+"anchor.notchWindow" = "ノッチAppのウインドウ";
+"anchor.cameraHousing" = "カメラの収容部のみ";
+"anchor.notchWindow.note" = "見えている島のどこでもスワイプが効き、矢印はその両側に置かれます。画面にノッチAppがないときは、収容部を基準にします。";
+"anchor.cameraHousing.note" = "ハードウェアのノッチにぴったり沿った狭いゾーンです。横スクロールで意図しない切り替えが起きるなら試してみてください。";
+
+/* MARK: - Switch failures (WindowManager). Shown in the menu bar menu, under the warning icon. */
+
+"notch.none" = "このMacではノッチが検出されませんでした。";
+/* %@: the app that stayed on screen. */
+"error.accessRevoked.twoApps" = "Bouncerのアクセシビリティの許可が取り消されました。ノッチに2つのAppがあり、%@ が新しいAppの隣に残っています。その権限がない状態で、Bouncerが強制終了することはありません。保存していない作業が失われるおそれがあるためです。システム設定で許可を戻してください。それまで、ジェスチャでノッチが整理されることはありません。";
+"error.accessRevoked.intact" = "開いているAppはそのままです。Bouncerは何も変更せず、どのAppも終了しません。";
+/* %@: a list of app names, already joined ("Vibe Island and Boring Notch"). */
+"error.accessRevoked.hidden" = "バックグラウンドで隠れたままのApp: %@。Bouncerは何も変更せず、どのAppも終了しません。";
+/* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
+"error.accessRevoked" = "Bouncerのアクセシビリティの許可が取り消されました。切り替えはもう動作しません。%@ もう一度切り替えるには、システム設定で許可を戻してください。";
+/* %@: the app being switched to. */
+"error.switchInProgress" = "%@ への切り替えはすでに進行中です。終了の指示を出したところなので、少しお待ちください。今もう一度ジェスチャをすると、たった今オンにしたAppがオフになってしまいます。";
+/* %@: the app that hasn't closed. */
+"error.previousNotClosed" = "%@ はまだ終了していません。おそらく画面上で応答を待っています（「変更を保存しますか？」など）。Bouncerは引き続き監視し、終了し次第ノッチを空けます。強制終了は決してしません。作業が失われてしまうためです。";
+/* %@: the app being relaunched. */
+"error.targetNotClosed" = "%@ がノッチに戻るには再起動が必要ですが、まだ終了していません。終了し次第、Bouncerが再起動します。";
+/* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
+"error.targetNotClosed.thenHide" = "%1$@ がノッチに戻るには再起動が必要ですが、まだ終了していません。終了し次第Bouncerが再起動し、その後 %2$@ を脇にどけます。それまで %2$@ は画面に残ります。";
+"error.launchFailed" = "%@ を起動できませんでした。";
+/* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
+"error.accessNeverGranted" = "Bouncerにはまだアクセシビリティの許可がありません。%1$@ への切り替えは拒否されました。%2$@ Bouncerは何も変更せず、どのAppも終了しません。システム設定でBouncerを許可してから、もう一度お試しください。";
+"error.noNotchScreen.notAttempted" = "ノッチ付きのディスプレイが検出されなくなりました。%1$@ への切り替えは試みていません。%2$@ ノッチ付きのディスプレイを接続し直す（またはふたを開く）と、再試行できます。";
+"error.noNotch.abandoned" = "ノッチが検出されなくなりました。%1$@ への切り替えは中止しました。%2$@";
+"error.targetNeverAppeared" = "%1$@ は起動しましたが、ノッチには何も表示されませんでした。%2$@";
+"error.relaunchFailed" = "%@ は正常に終了しましたが、再起動できませんでした。アンインストールされたか、システムが起動を拒否しました。";
+"error.noNotch.relaunchedUnverified" = "ノッチが検出されなくなりました。%@ は再起動しましたが、そこに何が表示されているかをBouncerはもう確認できません。ノッチ付きのディスプレイを接続し直してください（またはふたを開いてください）。";
+"error.relaunchedNothingShown" = "%@ は再起動しましたが、ノッチには何も表示されませんでした。";
+"error.fallback.unchanged" = "ノッチは変わっていません。";
+"error.fallback.staysPut" = "%@ はそのままです。";
+"error.noAppDetected" = "ノッチAppが検出されていません。Bouncerが認識できるよう、1つ開いてください。";
+"error.allAppsUnchecked" = "設定で、すべてのノッチAppのチェックが外れています。";

@@ -111,3 +111,124 @@
 /* MARK: - Settings, General */
 
 "settings.general.relaunch" = "Relaunch Bouncer";
+"settings.general.language" = "Language";
+/* The entry that lets macOS pick the language. It is NOT the default: Bouncer starts in English. */
+"settings.general.language.system" = "System Language";
+"settings.general.language.note" = "Applies right away. The window title comes from macOS and follows after a relaunch.";
+
+/* MARK: - Settings, tabs */
+
+"settings.tab.general" = "General";
+"settings.tab.gesture" = "Gesture";
+"settings.tab.apps" = "Apps";
+
+/* MARK: - Settings, General (continued) */
+
+"settings.general.launchAtLogin" = "Open Bouncer at Login";
+"settings.general.launchAtLogin.note" = "Bouncer only arbitrates the notch while it's running. Without this, you have to remember to open it after every restart.";
+/* Path in System Settings, exactly as macOS labels it. */
+"settings.general.launchAtLogin.needsApproval" = "macOS is waiting for your approval: open System Settings › General › Login Items & Extensions and turn Bouncer on.";
+/* %@: the error message macOS gave. */
+"settings.general.launchAtLogin.refused" = "macOS refused: %@";
+"settings.general.refresh" = "Check Apps Every";
+"settings.general.refresh.note" = "How often Bouncer looks at which apps hold the notch and whether Accessibility permission has changed. Shorter: the menu updates sooner. Longer: less work in the background.";
+
+/* MARK: - Settings, Gesture */
+
+"settings.gesture.trigger" = "Cycle With";
+"settings.gesture.shortcut.header" = "Keyboard Shortcut";
+"settings.gesture.shortcut" = "Shortcut";
+"settings.gesture.shortcut.note" = "Works from any app, full screen included. While Bouncer is running, the chosen combination no longer reaches other apps.";
+"settings.gesture.zone.header" = "Hover Zone";
+"settings.gesture.zone" = "Bouncer Anchors To";
+"settings.gesture.zone.measured" = "Measured: the camera housing is 166 pt wide; a notch app is 640 to 740 pt wide and reaches 520 pt below the menu bar. Anchored to the housing, the swipe listened to only 3% of the island you see.";
+"settings.gesture.arrows.header" = "Arrows";
+/* %@: one of settings.gesture.reveal.summary / .summary.zero. Em dash separates label and current value. */
+"settings.gesture.reveal" = "Reveal — %@";
+"settings.gesture.reveal.min" = "On hover";
+"settings.gesture.reveal.max" = "From afar";
+"settings.gesture.reveal.label" = "Arrow reveal distance";
+"settings.gesture.reveal.value.zero" = "0 points, only inside the notch band";
+"settings.gesture.reveal.note" = "The arrows' opacity follows the pointer's distance to the notch. This sets where the ramp starts.";
+"settings.gesture.reveal.summary.zero" = "only inside the notch band";
+/* %d: points. */
+"settings.gesture.reveal.summary" = "%d pt before the band";
+/* %d: points on each side. */
+"settings.gesture.margin" = "Side bands — %d pt on each side";
+"settings.gesture.margin.min" = "Narrow";
+"settings.gesture.margin.max" = "Wide";
+"settings.gesture.margin.label" = "Width of the arrow side bands";
+"settings.gesture.margin.value" = "%d points on each side";
+"settings.gesture.margin.note" = "The arrows sit on either side of whatever covers the notch, never on top of it. Wider makes an easier click target; narrower leaves the menu bar alone.";
+/* %@: one of settings.gesture.slide.summary / .summary.zero. */
+"settings.gesture.slide" = "Slide — %@";
+"settings.gesture.slide.min" = "Fade only";
+"settings.gesture.slide.max" = "Full";
+"settings.gesture.slide.label" = "Arrow slide distance";
+"settings.gesture.slide.value.zero" = "none, fade only";
+"settings.gesture.slide.note" = "As the pointer approaches, the arrow slides out from behind the notch while it fades in: a hint from afar, fully out up close. At zero, it only fades in without moving.";
+"settings.gesture.slide.summary.zero" = "the arrow stays put";
+"settings.gesture.slide.summary" = "%d pt of slide";
+/* VoiceOver value of a slider. %d: points. */
+"settings.gesture.points" = "%d points";
+"settings.gesture.reset" = "Restore Defaults";
+"settings.gesture.reset.hint" = "Restores the reveal distance and the bands to their original values";
+"settings.gesture.preview.noArrows" = "Preview: the notch alone, without arrows — the chosen mode doesn't show them.";
+/* %1$d: band width in points, %2$d: reveal distance in points. */
+"settings.gesture.preview" = "Preview: the notch, a %1$d-point band on each side carrying an arrow, and a %2$d-point approach zone beyond.";
+
+/* MARK: - Settings, Apps */
+
+"settings.apps.empty" = "No notch app detected on this Mac. They'll show up here as soon as Bouncer sees one.";
+"settings.apps.header" = "Apps the swipe and arrows cycle through";
+"settings.apps.allUnchecked" = "Every app is unchecked: the gesture has nothing left to cycle through. The menu bar menu still lists them.";
+"settings.apps.note" = "An unchecked app stays in the menu and stays clickable — it just leaves the cycle. Handy for a notch app you keep open all the time.";
+"settings.apps.orphan.detail" = "Not detected on this Mac";
+"settings.apps.orphan.remove" = "Remove";
+"settings.apps.orphan.header" = "Orphaned Exclusions";
+"settings.apps.orphan.note" = "These apps were excluded earlier but are no longer detected. Removing them keeps them from staying excluded if they're reinstalled or detected again.";
+
+/* MARK: - Gesture modes (Reglages) */
+
+"mode.both" = "Swipe and arrows";
+"mode.swipeOnly" = "Swipe only";
+"mode.arrowsOnly" = "Arrows only";
+"mode.both.note" = "A two-finger horizontal swipe over the notch, or a click on an arrow.";
+"mode.swipeOnly.note" = "No arrows are shown. Nothing ever covers the menu bar.";
+"mode.arrowsOnly.note" = "The swipe is ignored. Useful with a mouse, or if the gesture fires on its own.";
+"anchor.notchWindow" = "The notch app's window";
+"anchor.cameraHousing" = "The camera housing only";
+"anchor.notchWindow.note" = "The swipe works anywhere on the island you see, and the arrows sit on either side of it. With no notch app on screen, falls back to the housing.";
+"anchor.cameraHousing.note" = "A narrow zone, hugging the hardware notch. Worth trying if a horizontal scroll triggers a switch you didn't mean.";
+
+/* MARK: - Switch failures (WindowManager). Shown in the menu bar menu, under the warning icon. */
+
+"notch.none" = "No notch detected on this Mac.";
+/* %@: the app that stayed on screen. */
+"error.accessRevoked.twoApps" = "Bouncer's Accessibility access was revoked: you have two apps in the notch, and %@ stayed next to the new one. Bouncer won't force it to quit without that permission — you could lose unsaved work. Give it access back in System Settings; until then, no gesture will tidy the notch.";
+"error.accessRevoked.intact" = "Your open apps are untouched: Bouncer changes nothing and won't quit any app.";
+/* %@: a list of app names, already joined ("Vibe Island and Boring Notch"). */
+"error.accessRevoked.hidden" = "Still hidden in the background: %@. Bouncer changes nothing and won't quit any app.";
+/* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
+"error.accessRevoked" = "Bouncer's Accessibility access was revoked: switching no longer works. %@ Give it access back in System Settings to switch again.";
+/* %@: the app being switched to. */
+"error.switchInProgress" = "Already switching to %@ — hang on, it was just asked to close. A second gesture now would turn off the app the first one just turned on.";
+/* %@: the app that hasn't closed. */
+"error.previousNotClosed" = "%@ hasn't closed yet — it's probably waiting for an answer on screen (“Save changes?”). Bouncer keeps watching it and will free the notch as soon as it's gone; it will never force it, that would lose your work.";
+/* %@: the app being relaunched. */
+"error.targetNotClosed" = "%@ has to relaunch to come back to the notch, and it hasn't closed yet. Bouncer will relaunch it as soon as it's gone.";
+/* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
+"error.targetNotClosed.thenHide" = "%1$@ has to relaunch to come back to the notch, and it hasn't closed yet. Bouncer will relaunch it as soon as it's gone, then set %2$@ aside — it stays on screen in the meantime.";
+"error.launchFailed" = "%@ could not be launched.";
+/* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
+"error.accessNeverGranted" = "Bouncer doesn't have Accessibility access yet: the switch to %1$@ was refused. %2$@ Bouncer changes nothing and won't quit any app. Allow Bouncer in System Settings, then try again.";
+"error.noNotchScreen.notAttempted" = "No notch display detected anymore — the switch to %1$@ wasn't attempted. %2$@ Plug the notch display back in (or open the lid) and try again.";
+"error.noNotch.abandoned" = "No notch detected anymore — the switch to %1$@ was abandoned. %2$@";
+"error.targetNeverAppeared" = "%1$@ launched without showing anything in the notch. %2$@";
+"error.relaunchFailed" = "%@ closed fine, but couldn't be relaunched — uninstalled, or the system refused the launch.";
+"error.noNotch.relaunchedUnverified" = "No notch detected anymore — %@ was relaunched, but Bouncer can no longer check what it shows there. Plug the notch display back in (or open the lid).";
+"error.relaunchedNothingShown" = "%@ relaunched without showing anything in the notch.";
+"error.fallback.unchanged" = "The notch is unchanged.";
+"error.fallback.staysPut" = "%@ stays put.";
+"error.noAppDetected" = "No notch app detected. Open one so Bouncer can learn it.";
+"error.allAppsUnchecked" = "Every notch app is unchecked in Settings.";

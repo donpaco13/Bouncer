@@ -98,3 +98,107 @@
 /* MARK: - Réglages, Général */
 
 "settings.general.relaunch" = "Relancer Bouncer";
+"settings.general.language" = "Langue";
+"settings.general.language.system" = "Langue du système";
+"settings.general.language.note" = "S'applique tout de suite. Le titre de la fenêtre vient de macOS et suit après une relance.";
+
+/* MARK: - Réglages, onglets */
+
+"settings.tab.general" = "Général";
+"settings.tab.gesture" = "Geste";
+"settings.tab.apps" = "Apps";
+
+/* MARK: - Réglages, Général (suite) */
+
+"settings.general.launchAtLogin" = "Ouvrir Bouncer à l'ouverture de session";
+"settings.general.launchAtLogin.note" = "Bouncer n'arbitre l'encoche que pendant qu'il tourne. Sans ça, il faut penser à l'ouvrir après chaque redémarrage.";
+"settings.general.launchAtLogin.needsApproval" = "macOS attend votre accord : ouvrez Réglages Système › Général › Ouverture et extensions, et activez Bouncer.";
+"settings.general.launchAtLogin.refused" = "macOS a refusé : %@";
+"settings.general.refresh" = "Vérifier les apps toutes les";
+"settings.general.refresh.note" = "Fréquence à laquelle Bouncer regarde quelles apps occupent l'encoche et si l'autorisation d'Accessibilité a changé. Plus court : le menu se met à jour plus vite. Plus long : moins de travail en arrière-plan.";
+
+/* MARK: - Réglages, Geste */
+
+"settings.gesture.trigger" = "Faire tourner le cycle avec";
+"settings.gesture.shortcut.header" = "Raccourci clavier";
+"settings.gesture.shortcut" = "Raccourci";
+"settings.gesture.shortcut.note" = "Fonctionne depuis n'importe quelle app, y compris en plein écran. Tant que Bouncer tourne, la combinaison choisie n'atteint plus les autres apps.";
+"settings.gesture.zone.header" = "Zone sensible";
+"settings.gesture.zone" = "Bouncer se cale sur";
+"settings.gesture.zone.measured" = "Mesuré : le boîtier de la caméra fait 166 pt de large, une app d'encoche en fait 640 à 740 et descend jusqu'à 520 pt sous la barre des menus. Calé sur le boîtier, le swipe n'écoutait que 3 % de l'île qu'on voit.";
+"settings.gesture.arrows.header" = "Flèches";
+"settings.gesture.reveal" = "Apparition — %@";
+"settings.gesture.reveal.min" = "Au survol";
+"settings.gesture.reveal.max" = "De loin";
+"settings.gesture.reveal.label" = "Distance d'apparition des flèches";
+"settings.gesture.reveal.value.zero" = "0 point, uniquement dans la bande de l'encoche";
+"settings.gesture.reveal.note" = "L'opacité des flèches suit la distance du curseur à l'encoche. Ce réglage dit où la montée commence.";
+"settings.gesture.reveal.summary.zero" = "uniquement dans la bande de l'encoche";
+"settings.gesture.reveal.summary" = "%d pt avant la bande";
+"settings.gesture.margin" = "Bandes latérales — %d pt de chaque côté";
+"settings.gesture.margin.min" = "Étroites";
+"settings.gesture.margin.max" = "Larges";
+"settings.gesture.margin.label" = "Largeur des bandes latérales des flèches";
+"settings.gesture.margin.value" = "%d points de chaque côté";
+"settings.gesture.margin.note" = "Les flèches se logent de part et d'autre de ce qui couvre l'encoche, jamais dessus. Élargir donne une cible de clic plus facile ; réduire laisse la barre des menus tranquille.";
+"settings.gesture.slide" = "Déploiement — %@";
+"settings.gesture.slide.min" = "Fondu seul";
+"settings.gesture.slide.max" = "Ample";
+"settings.gesture.slide.label" = "Amplitude du déploiement des flèches";
+"settings.gesture.slide.value.zero" = "aucune, fondu seul";
+"settings.gesture.slide.note" = "À l'approche, la flèche sort de derrière l'encoche en même temps qu'elle apparaît : un soupçon de loin, déployée de près. À zéro, elle se contente de s'éclaircir sans bouger.";
+"settings.gesture.slide.summary.zero" = "la flèche ne bouge pas";
+"settings.gesture.slide.summary" = "%d pt de glissement";
+"settings.gesture.points" = "%d points";
+"settings.gesture.reset" = "Rétablir les valeurs d'origine";
+"settings.gesture.reset.hint" = "Restaure la distance d'apparition et les bandes à leurs valeurs d'origine";
+"settings.gesture.preview.noArrows" = "Aperçu : l'encoche seule, sans flèche — le mode choisi ne les affiche pas.";
+"settings.gesture.preview" = "Aperçu : l'encoche, une bande de %1$d points de chaque côté portant une flèche, et une zone d'approche de %2$d points au-delà.";
+
+/* MARK: - Réglages, Apps */
+
+"settings.apps.empty" = "Aucune app d'encoche détectée sur ce Mac. Elles apparaîtront ici dès que Bouncer en verra une.";
+"settings.apps.header" = "Apps parcourues par le swipe et les flèches";
+"settings.apps.allUnchecked" = "Toutes les apps sont décochées : le geste n'a plus rien à parcourir. Le menu de la barre des menus, lui, continue de les lister.";
+"settings.apps.note" = "Une app décochée reste dans le menu et reste cliquable — elle sort simplement du cycle. Utile pour une app d'encoche qu'on garde ouverte en permanence.";
+"settings.apps.orphan.detail" = "Non détectée sur ce Mac";
+"settings.apps.orphan.remove" = "Retirer";
+"settings.apps.orphan.header" = "Exclusions orphelines";
+"settings.apps.orphan.note" = "Ces apps ont été exclues auparavant mais ne sont plus détectées. Les retirer évite qu'elles restent exclues si elles sont réinstallées ou détectées à nouveau.";
+
+/* MARK: - Modes du geste (Reglages) */
+
+"mode.both" = "Le swipe et les flèches";
+"mode.swipeOnly" = "Le swipe seul";
+"mode.arrowsOnly" = "Les flèches seules";
+"mode.both.note" = "Swipe horizontal à deux doigts sur l'encoche, ou clic sur une flèche.";
+"mode.swipeOnly.note" = "Aucune flèche ne s'affiche. Rien ne recouvre jamais la barre des menus.";
+"mode.arrowsOnly.note" = "Le swipe est ignoré. Utile avec une souris, ou si le geste part tout seul.";
+"anchor.notchWindow" = "La fenêtre de l'app d'encoche";
+"anchor.cameraHousing" = "Le boîtier de la caméra seul";
+"anchor.notchWindow.note" = "Le swipe marche partout sur l'île qu'on voit, et les flèches se posent de part et d'autre. Sans app d'encoche à l'écran, revient au boîtier.";
+"anchor.cameraHousing.note" = "Zone étroite, collée à l'encoche matérielle. À essayer si un défilement horizontal déclenche une bascule sans l'avoir voulu.";
+
+/* MARK: - Échecs de bascule (WindowManager) */
+
+"notch.none" = "Aucune encoche détectée sur ce Mac.";
+"error.accessRevoked.twoApps" = "L'accès à l'Accessibilité a été retiré à Bouncer : vous avez deux apps dans l'encoche, %@ est restée à côté de la nouvelle. Bouncer ne la quitte pas de force sans ce droit — vous pourriez y perdre du travail non enregistré. Rendez-lui l'accès dans Réglages Système ; d'ici là, aucun geste ne rangera l'encoche.";
+"error.accessRevoked.intact" = "Vos apps ouvertes restent intactes : Bouncer ne touche à rien et ne quittera aucune app.";
+"error.accessRevoked.hidden" = "Toujours masquée en arrière-plan : %@. Bouncer ne touche à rien et ne quittera aucune app.";
+"error.accessRevoked" = "L'accès à l'Accessibilité a été retiré à Bouncer : les bascules ne fonctionnent plus. %@ Rendez-lui l'accès dans Réglages Système pour réactiver les bascules.";
+"error.switchInProgress" = "Bascule vers %@ déjà en cours — patientez, elle vient de recevoir sa demande de fermeture. Un second geste maintenant éteindrait l'app que le premier vient d'allumer.";
+"error.previousNotClosed" = "%@ n'est pas encore fermée — elle attend probablement une réponse à l'écran (« Enregistrer les modifications ? »). Bouncer continue de la surveiller et libérera l'encoche dès qu'elle sera partie ; il ne la forcera jamais, ce serait perdre votre travail.";
+"error.targetNotClosed" = "%@ doit être relancée pour revenir dans l'encoche, et elle n'est pas encore fermée. Bouncer la relancera dès qu'elle sera partie.";
+"error.targetNotClosed.thenHide" = "%1$@ doit être relancée pour revenir dans l'encoche, et elle n'est pas encore fermée. Bouncer la relancera dès qu'elle sera partie, puis rangera %2$@ — qui reste à l'écran en attendant.";
+"error.launchFailed" = "%@ n'a pas pu être lancée.";
+"error.accessNeverGranted" = "Bouncer n'a pas encore l'accès à l'Accessibilité : la bascule vers %1$@ est refusée. %2$@ Bouncer ne touche à rien et ne quittera aucune app. Autorisez Bouncer dans Réglages Système, puis réessayez.";
+"error.noNotchScreen.notAttempted" = "Plus aucun écran à encoche détecté — la bascule vers %1$@ n'a pas été tentée. %2$@ Rebranchez l'écran à encoche (ou rouvrez le capot) et réessayez.";
+"error.noNotch.abandoned" = "Plus aucune encoche détectée — la bascule vers %1$@ a été abandonnée. %2$@";
+"error.targetNeverAppeared" = "%1$@ s'est lancée sans rien afficher dans l'encoche. %2$@";
+"error.relaunchFailed" = "%@ s'est bien fermée, mais n'a pas pu être relancée — désinstallée, ou lancement refusé par le système.";
+"error.noNotch.relaunchedUnverified" = "Plus aucune encoche détectée — %@ a bien été relancée, mais Bouncer ne peut plus vérifier ce qu'elle y affiche. Rebranchez l'écran à encoche (ou rouvrez le capot).";
+"error.relaunchedNothingShown" = "%@ s'est relancée sans rien afficher dans l'encoche.";
+"error.fallback.unchanged" = "L'encoche est inchangée.";
+"error.fallback.staysPut" = "%@ reste en place.";
+"error.noAppDetected" = "Aucune app d'encoche détectée. Lancez-en une pour que Bouncer l'apprenne.";
+"error.allAppsUnchecked" = "Toutes les apps d'encoche sont décochées dans les réglages.";

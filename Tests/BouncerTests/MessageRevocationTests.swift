@@ -53,19 +53,11 @@ struct MessageRevocationTests {
 
         let message = try #require(wm.echecBascule)
 
-        // Répond aux 3 questions dans l'ordre :
-        // 1. Qu'est-ce qui ne marche plus
-        #expect(message.contains("Accessibilité"))
-        #expect(message.contains("les bascules ne fonctionnent plus"))
-        // 2. Qu'est-ce que ça change pour mes apps ouvertes
-        #expect(message.contains("Vos apps ouvertes restent intactes : Bouncer ne touche à rien et ne quittera aucune app."))
-        // 3. Qu'est-ce que je fais pour réparer
-        #expect(message.contains("Rendez-lui l'accès dans les Réglages Système pour réactiver les bascules."))
-
-        // Contre-épreuve : le message NE DOIT PAS affirmer les anciens mensonges
-        #expect(!message.contains("quitteront"))
-        #expect(!message.contains("quitterait"))
-        #expect(!message.contains("relancera"))
+        // Le message répond aux 3 questions dans l'ordre — qu'est-ce qui ne marche plus, qu'est-ce
+        // que ça change pour mes apps ouvertes, qu'est-ce que je fais pour réparer — et c'est la
+        // phrase du catalogue qui les porte. L'égalité stricte est aussi la contre-épreuve : il
+        // ne peut pas y avoir dedans une promesse de relance ou une menace de quitter.
+        #expect(message == texte("error.accessRevoked", texte("error.accessRevoked.intact")))
 
         // Preuve comportementale : une tentative de bascule ne quitte rien du tout
         await wm.basculer(vers: vibe)
@@ -108,15 +100,9 @@ struct MessageRevocationTests {
 
         let message = try #require(wm.echecBascule)
 
-        #expect(message.contains("Accessibilité"))
-        #expect(message.contains(vibe))
-        #expect(message.contains("reste masquée en arrière-plan"))
-        #expect(message.contains("Bouncer ne touche à rien et ne quittera aucune app."))
-        #expect(message.contains("Réglages Système"))
-
-        // Contre-épreuve : le message ne doit pas promettre une relance
-        #expect(!message.contains("relancera"))
-        #expect(!message.contains("quitteront"))
+        // La variante « apps masquées » : elle nomme l'app coincée. Égalité stricte, donc aucune
+        // promesse de relance possible dedans.
+        #expect(message == texte("error.accessRevoked", texte("error.accessRevoked.hidden", vibe)))
 
         // Preuve comportementale : tenter une bascule vers l'app masquée ne la relance pas
         await wm.basculer(vers: vibe)
@@ -151,14 +137,9 @@ struct MessageRevocationTests {
 
         let message = try #require(wm.echecBascule)
 
-        #expect(message.contains("Bouncer n'a pas encore l'accès à l'Accessibilité"))
-        #expect(message.contains("la bascule vers \(vibe) est refusée"))
-        #expect(message.contains("Bouncer ne touche à rien et ne quittera aucune app."))
-        #expect(message.contains("Autorisez Bouncer dans les Réglages Système, puis réessayez."))
-
-        // Contre-épreuve : ne contient pas le faux avertissement "quitterait"
-        #expect(!message.contains("quitterait"))
-        #expect(!message.contains("quitteront"))
+        // Le droit jamais accordé : la bascule est refusée, l'app en place le reste, et le
+        // message dit où aller. Égalité stricte : pas de faux avertissement « quitterait ».
+        #expect(message == texte("error.accessNeverGranted", vibe, texte("error.fallback.staysPut", boring)))
 
         // Preuve comportementale : rien dans le journal, aucune action destructive
         #expect(double.journal.isEmpty)
@@ -198,14 +179,8 @@ struct MessageRevocationTests {
 
         let message = try #require(wm.echecBascule)
 
-        #expect(message.contains("Accessibilité"))
-        #expect(message.contains(boring))
-        #expect(message.contains("deux apps dans l'encoche"))
-        #expect(message.contains("ne la quitte pas de force"))
-        #expect(message.contains("aucun geste ne rangera l'encoche"))
-        #expect(message.contains("Réglages Système"))
-
-        #expect(!message.contains("quitteront"))
-        #expect(!message.contains("relancera"))
+        // Deux apps dans l'encoche, et la précédente nommée : c'est la variante de la
+        // surveillance, et rien d'autre.
+        #expect(message == texte("error.accessRevoked.twoApps", boring))
     }
 }
