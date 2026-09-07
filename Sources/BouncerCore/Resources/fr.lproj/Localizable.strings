@@ -94,3 +94,7 @@
 "shortcut.ctrlOptCmdN.spoken" = "Contrôle Option Commande N";
 "shortcut.ctrlOptCmdSpace.spoken" = "Contrôle Option Commande Espace";
 "shortcut.refused" = "%@ est refusé par le système, sans doute déjà pris par une autre app. Choisissez-en un autre.";
+
+/* MARK: - Réglages, Général */
+
+"settings.general.relaunch" = "Relancer Bouncer";

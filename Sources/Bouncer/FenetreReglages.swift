@@ -28,9 +28,11 @@ struct VueReglages: View {
     @ObservedObject var reglages: Reglages
     @ObservedObject var raccourci: RaccourciGlobalController
 
+    var actionRelance: () -> Void = { RelanceurApp.partage.relancer() }
+
     var body: some View {
         TabView {
-            OngletGeneral(reglages: reglages)
+            OngletGeneral(reglages: reglages, actionRelance: actionRelance)
                 .tabItem { Label("Général", systemImage: "gearshape") }
             OngletGeste(reglages: reglages, raccourci: raccourci)
                 .tabItem { Label("Geste", systemImage: "hand.draw") }
@@ -52,6 +54,7 @@ struct VueReglages: View {
 private struct OngletGeneral: View {
     @ObservedObject var reglages: Reglages
     @StateObject private var demarrage = LancementAuDemarrage()
+    var actionRelance: () -> Void = { RelanceurApp.partage.relancer() }
 
     var body: some View {
         Form {
@@ -89,6 +92,15 @@ private struct OngletGeneral: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section {
+                HStack {
+                    Spacer()
+                    Button(texte("settings.general.relaunch")) {
+                        actionRelance()
+                    }
+                }
             }
         }
         .formStyle(.grouped)

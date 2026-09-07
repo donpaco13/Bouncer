@@ -107,3 +107,7 @@
 "shortcut.ctrlOptCmdSpace.spoken" = "Control Option Command Space";
 /* %@: the shortcut as written, e.g. "⌃⌥⌘B". */
 "shortcut.refused" = "The system refused %@, probably because another app already uses it. Pick a different one.";
+
+/* MARK: - Settings, General */
+
+"settings.general.relaunch" = "Relaunch Bouncer";
