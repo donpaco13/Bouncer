@@ -135,13 +135,13 @@ struct PistesFlechesTests {
         let d = UserDefaults(suiteName: suite)!
         defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
 
-        // Absentes : on retombe sur le comportement d'aujourd'hui.
+        // Absentes : on retombe sur le comportement d'aujourd'hui (inactivité activée par défaut à 3.0 s).
         let vierge = Reglages(defaults: d)
         #expect(vierge.delaiRevelation == 0)
-        #expect(vierge.inactiviteFleches == 0)
+        #expect(vierge.inactiviteFleches == 3.0)
         #expect(vierge.alignementFleches == alignementFlechesDefaut)
         #expect(vierge.courbeRevelation == courbeRevelationDefaut)
-        #expect(vierge.revelationTemporelleActive == false)
+        #expect(vierge.revelationTemporelleActive == true)
 
         // Écrites à la main (`defaults write`), y compris hors domaine : bornées, pas rejetées.
         d.set(0.35, forKey: "bouncer.delaiRevelation")
@@ -157,7 +157,9 @@ struct PistesFlechesTests {
 
         regle.reinitialiser()
         #expect(regle.delaiRevelation == 0)
+        #expect(regle.inactiviteFleches == 3.0)
         #expect(regle.alignementFleches == alignementFlechesDefaut)
         #expect(regle.courbeRevelation == courbeRevelationDefaut)
+        #expect(regle.revelationTemporelleActive == true)
     }
 }

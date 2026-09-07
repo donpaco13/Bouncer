@@ -68,13 +68,26 @@ struct EncocheOccupeeTests {
         // n'est pas une raison de l'effacer. C'est l'ABORD de la cible qui est protégé, pas ses
         // 22 pt : une flèche qui n'apparaît qu'une fois le curseur dessus est invisible.
         for curseur in [
-            CGPoint(x: 571, y: 828),  // sur le chevron
-            CGPoint(x: 571, y: 800),  // juste dessous
-            CGPoint(x: 500, y: 828),  // par la gauche, à 60 pt de la cible
+            CGPoint(x: 571, y: 828),  // sur le chevron gauche
+            CGPoint(x: 571, y: 800),  // juste dessous à gauche
             CGPoint(x: 781, y: 828),  // sur le chevron droit
-            CGPoint(x: 830, y: 828),  // par la droite, à 38 pt de la cible droite
+            CGPoint(x: 781, y: 800),  // juste dessous à droite
         ] {
             #expect(!occupee(curseur: curseur, fenetre: fenetreDeployee), "curseur \(curseur)")
+        }
+    }
+
+    @Test("Sur app déployée, les chevrons s'effacent aux extrémités pour libérer les contrôles média")
+    func effacementAuxExtremitesSurAppDeployee() {
+        // Aux extrémités du widget déployé (pochette, piste précédente à gauche, piste suivante à droite),
+        // les chevrons doivent s'effacer pour ne pas recouvrir les contrôles de l'app tierce.
+        for curseur in [
+            CGPoint(x: 500, y: 828),  // pochette / piste précédente
+            CGPoint(x: 488, y: 828),  // ancienne limite latérale gauche
+            CGPoint(x: 830, y: 828),  // piste suivante
+            CGPoint(x: 864, y: 828),  // ancienne limite latérale droite
+        ] {
+            #expect(occupee(curseur: curseur, fenetre: fenetreDeployee), "curseur \(curseur)")
         }
     }
 
@@ -123,11 +136,15 @@ struct EncocheOccupeeTests {
                          fenetre: fenetreDeployee))
         #expect(occupee(curseur: CGPoint(x: cible.midX, y: plancher - 0.5),
                         fenetre: fenetreDeployee))
-        // Latéralement, en revanche, la portée entière reste protégée : c'est par là que la main
-        // arrive quand une app est déployée, la rangée de l'encoche effaçant déjà par le haut.
-        #expect(!occupee(curseur: CGPoint(x: cible.minX - portee + 0.5, y: cible.midY),
+        // Latéralement, la protection s'arrête aux bords du chevron pour ne pas baigner les contrôles
+        // média du widget déployé :
+        #expect(!occupee(curseur: CGPoint(x: cible.minX + 0.5, y: cible.midY),
                          fenetre: fenetreDeployee))
-        #expect(occupee(curseur: CGPoint(x: cible.minX - portee - 0.5, y: cible.midY),
+        #expect(occupee(curseur: CGPoint(x: cible.minX - 0.5, y: cible.midY),
+                        fenetre: fenetreDeployee))
+        #expect(!occupee(curseur: CGPoint(x: cible.maxX - 0.5, y: cible.midY),
+                         fenetre: fenetreDeployee))
+        #expect(occupee(curseur: CGPoint(x: cible.maxX + 0.5, y: cible.midY),
                         fenetre: fenetreDeployee))
     }
 

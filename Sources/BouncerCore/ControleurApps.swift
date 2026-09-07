@@ -339,11 +339,15 @@ public func encocheOccupee(
 /// de la cible. 22 pt sur la machine de référence, ce qui garde couverte la bande entière (le
 /// chevron a 3,5 pt de marge sous lui) et le dépassement franc qu'un doigt produit — mais plus la
 /// nappe de 72. Aucune constante nouvelle : la hauteur sort du cadre reçu. Bornée par `portee`
-/// pour que `portee = 0` retombe exactement sur les 22 pt nus, comme avant.
+/// Pas de débordement latéral de `portee` : cette nappe de 166 pt recouvrait les contrôles
+/// média (pochette, piste précédente à gauche, piste suivante à droite) aux extrémités du widget
+/// déployé, laissant les chevrons visibles par-dessus. La protection s'arrête aux bords du
+/// chevron (sa largeur propre) et s'étend en hauteur pour couvrir la rangée sans trou.
 public func abordChevron(cible: CGRect, portee: CGFloat) -> CGRect {
     let dessous = min(portee, cible.height)
-    return CGRect(x: cible.minX - portee, y: cible.minY - dessous,
-                  width: cible.width + 2 * portee, height: cible.height + dessous + portee)
+    let dessus = min(portee, cible.height)
+    return CGRect(x: cible.minX, y: cible.minY - dessous,
+                  width: cible.width, height: cible.height + dessous + dessus)
 }
 
 /// Ce que Bouncer ÉCOUTE : la bande des flèches, détendue de 6 pt en haut et en bas (elle fait

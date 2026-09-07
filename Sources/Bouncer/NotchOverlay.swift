@@ -109,6 +109,7 @@ final class NotchOverlayController: NSObject {
     /// Aux valeurs par défaut (les deux à zéro) il n'existe jamais : les pistes ne coûtent rien
     /// tant qu'on ne les essaie pas.
     private var tickerTemporel: Timer?
+    private var appDeployee = false
 
     // `sideMargin` (44 pt) et `porteeApproche` (72 pt) étaient des constantes ici. La seconde
     // était la SEULE du projet restée réglée à l'œil, et les deux décident de la sensation du
@@ -280,6 +281,7 @@ final class NotchOverlayController: NSObject {
         panel = nil
         arrowsView = nil
         opaciteCourante = 0
+        appDeployee = false
     }
 
     private func buildPanel(zone: CGRect) {
@@ -401,6 +403,15 @@ final class NotchOverlayController: NSObject {
             curseurEtaitDansLaZone = dansLaZone
         }
 
+        let dansEncoche = bandeEncocheCourante?.contains(curseur) ?? false
+        if dansEncoche && windowManager.cadreFenetresEncoche != nil {
+            appDeployee = true
+        } else if let fenetre = windowManager.cadreFenetresEncoche, !fenetre.contains(curseur) {
+            appDeployee = false
+        } else if windowManager.cadreFenetresEncoche == nil {
+            appDeployee = false
+        }
+
         // Flèches désactivées : le panel ne va JAMAIS à l'écran, donc rien de Bouncer ne recouvre
         // la barre des menus. C'est la différence entre « invisible » et « absent », et c'est ce
         // que promet le mode « swipe seul ».
@@ -416,6 +427,7 @@ final class NotchOverlayController: NSObject {
         // cibles de clic, sans quoi les flèches s'effaceraient au moment même où l'on va les
         // cliquer.
         let geometrique = (reglages.modeActivation.flechesActives && cycleAUneCible
+                           && !appDeployee
                            && !encocheOccupeeParLApp(curseur: curseur, cadreFleches: panel.frame))
             ? opaciteFleches(curseur: curseur, zone: panel.frame, portee: reglages.porteeApproche)
             : 0
@@ -471,8 +483,9 @@ final class NotchOverlayController: NSObject {
         let cibles = [cadres.gauche, cadres.droite].map {
             $0.offsetBy(dx: cadreFleches.minX, dy: cadreFleches.minY)
         }
+        let fenetre = appDeployee ? windowManager.cadreFenetresEncoche : nil
         return encocheOccupee(curseur: curseur, bandeEncoche: bande, cadreFleches: cadreFleches,
-                              fenetre: windowManager.cadreFenetresEncoche,
+                              fenetre: fenetre,
                               ciblesFleches: cibles, portee: reglages.porteeApproche)
     }
 

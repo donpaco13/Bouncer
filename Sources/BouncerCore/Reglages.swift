@@ -125,9 +125,9 @@ public final class Reglages: ObservableObject {
         public static let delaiDefaut: TimeInterval = 0
 
         /// P1 — temps d'immobilité après lequel les chevrons s'effacent, curseur toujours en
-        /// place. 0 = jamais, le comportement actuel.
+        /// place. 0 = jamais. 3.0 s par défaut : fait disparaître le chrome qui traîne.
         public static let inactivite: ClosedRange<TimeInterval> = 0...20
-        public static let inactiviteDefaut: TimeInterval = 0
+        public static let inactiviteDefaut: TimeInterval = 3.0
 
         /// P3 — où le chevron se pose dans sa marge. 0 = collé au boîtier, 1 = au bord extérieur.
         public static let alignement: ClosedRange<CGFloat> = 0...1
