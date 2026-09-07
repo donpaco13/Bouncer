@@ -112,7 +112,7 @@ struct CatalogueDeChainesTests {
     /// format incomplet : `String(format:)` l'interprète, et la phrase sort tronquée ou plante.
     @Test(arguments: langues)
     func aucunPourcentNu(langue: String) throws {
-        let motif = try NSRegularExpression(pattern: "%(?!%|(?:\\d+\\$)?[@dfs])")
+        let motif = try NSRegularExpression(pattern: "(?<!%)%(?!%|(?:\\d+\\$)?[@dfs])")
         for (cle, valeur) in try Self.table(langue) {
             let plage = NSRange(valeur.startIndex..., in: valeur)
             #expect(motif.firstMatch(in: valeur, range: plage) == nil, "\(cle) en \(langue) : « % » nu")

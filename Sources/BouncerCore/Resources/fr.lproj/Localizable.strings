@@ -64,7 +64,7 @@
 
 "welcome.sim.app1.name" = "Now Playing";
 "welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
-"welcome.sim.app2.subtitle" = "Batterie 94% · 45 W";
+"welcome.sim.app2.subtitle" = "Batterie 94%% · 45 W";
 "welcome.sim.app3.subtitle" = "2 notifications en attente";
 "welcome.sim.app.label" = "Application simulée : %1$@, %2$@";
 "welcome.sim.arrow.previous.label" = "Flèche gauche : app précédente";
@@ -125,7 +125,7 @@
 "settings.gesture.shortcut.note" = "Fonctionne depuis n'importe quelle app, y compris en plein écran. Tant que Bouncer tourne, la combinaison choisie n'atteint plus les autres apps.";
 "settings.gesture.zone.header" = "Zone sensible";
 "settings.gesture.zone" = "Bouncer se cale sur";
-"settings.gesture.zone.measured" = "Mesuré : le boîtier de la caméra fait 166 pt de large, une app d'encoche en fait 640 à 740 et descend jusqu'à 520 pt sous la barre des menus. Calé sur le boîtier, le swipe n'écoutait que 3 % de l'île qu'on voit.";
+"settings.gesture.zone.measured" = "Mesuré : le boîtier de la caméra fait 166 pt de large, une app d'encoche en fait 640 à 740 et descend jusqu'à 520 pt sous la barre des menus. Calé sur le boîtier, le swipe n'écoutait que 3 %% de l'île qu'on voit.";
 "settings.gesture.arrows.header" = "Flèches";
 "settings.gesture.reveal" = "Apparition — %@";
 "settings.gesture.reveal.min" = "Au survol";

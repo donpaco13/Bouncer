@@ -71,7 +71,7 @@
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */
 "welcome.sim.app1.name" = "再生中";
 "welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
-"welcome.sim.app2.subtitle" = "バッテリー 94% · 45 W";
+"welcome.sim.app2.subtitle" = "バッテリー 94%% · 45 W";
 "welcome.sim.app3.subtitle" = "未読の通知が2件";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "模擬App: %1$@、%2$@";
@@ -216,7 +216,7 @@
 /* %@: the app being relaunched. */
 "error.targetNotClosed" = "%@ がノッチに戻るには再起動が必要ですが、まだ終了していません。終了し次第、Bouncerが再起動します。";
 /* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
-"error.targetNotClosed.thenHide" = "%1$@ がノッチに戻るには再起動が必要ですが、まだ終了していません。終了し次第Bouncerが再起動し、その後 %2$@ を脇にどけます。それまで %2$@ は画面に残ります。";
+"error.targetNotClosed.thenHide" = "%1$@ がノッチに戻るには再起動が必要ですが、まだ終了していません。終了し次第Bouncerが再起動し、その後 %2$@ を脇にどけます。";
 "error.launchFailed" = "%@ を起動できませんでした。";
 /* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
 "error.accessNeverGranted" = "Bouncerにはまだアクセシビリティの許可がありません。%1$@ への切り替えは拒否されました。%2$@ Bouncerは何も変更せず、どのAppも終了しません。システム設定でBouncerを許可してから、もう一度お試しください。";

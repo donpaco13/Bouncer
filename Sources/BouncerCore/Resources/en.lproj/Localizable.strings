@@ -73,7 +73,7 @@
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */
 "welcome.sim.app1.name" = "Now Playing";
 "welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
-"welcome.sim.app2.subtitle" = "Battery 94% · 45 W";
+"welcome.sim.app2.subtitle" = "Battery 94%% · 45 W";
 "welcome.sim.app3.subtitle" = "2 notifications waiting";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "Simulated app: %1$@, %2$@";
@@ -141,7 +141,7 @@
 "settings.gesture.shortcut.note" = "Works from any app, full screen included. While Bouncer is running, the chosen combination no longer reaches other apps.";
 "settings.gesture.zone.header" = "Hover Zone";
 "settings.gesture.zone" = "Bouncer Anchors To";
-"settings.gesture.zone.measured" = "Measured: the camera housing is 166 pt wide; a notch app is 640 to 740 pt wide and reaches 520 pt below the menu bar. Anchored to the housing, the swipe listened to only 3% of the island you see.";
+"settings.gesture.zone.measured" = "Measured: the camera housing is 166 pt wide; a notch app is 640 to 740 pt wide and reaches 520 pt below the menu bar. Anchored to the housing, the swipe listened to only 3%% of the island you see.";
 "settings.gesture.arrows.header" = "Arrows";
 /* %@: one of settings.gesture.reveal.summary / .summary.zero. Em dash separates label and current value. */
 "settings.gesture.reveal" = "Reveal — %@";

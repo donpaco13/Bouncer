@@ -71,7 +71,7 @@
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */
 "welcome.sim.app1.name" = "Reproduciendo";
 "welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
-"welcome.sim.app2.subtitle" = "Batería 94% · 45 W";
+"welcome.sim.app2.subtitle" = "Batería 94%% · 45 W";
 "welcome.sim.app3.subtitle" = "2 notificaciones en espera";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "App simulada: %1$@, %2$@";

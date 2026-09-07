@@ -73,7 +73,7 @@
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */
 "welcome.sim.app1.name" = "지금 재생 중";
 "welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
-"welcome.sim.app2.subtitle" = "배터리 94% · 45 W";
+"welcome.sim.app2.subtitle" = "배터리 94%% · 45 W";
 "welcome.sim.app3.subtitle" = "대기 중인 알림 2개";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "시뮬레이션 앱: %1$@, %2$@";

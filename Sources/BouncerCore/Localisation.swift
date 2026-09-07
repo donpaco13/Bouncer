@@ -33,8 +33,8 @@ public enum LangueInterface: String, CaseIterable, Identifiable, Sendable {
     /// Celle de macOS. Ce n'est PAS le défaut : l'app part en anglais (cf. `Reglages.langue`).
     case systeme = "system"
     case en, fr, es, de
-    case ptBR = "pt-BR"
-    case zhHans = "zh-Hans"
+    case ptBR = "pt_br"
+    case zhHans = "zh_hans"
     case ja, ko
 
     public var id: String { rawValue }
