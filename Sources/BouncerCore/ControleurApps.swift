@@ -348,8 +348,17 @@ public func abscissesFleches(largeurOverlay: CGFloat, marge: CGFloat, taille: CG
 /// menus du Window Server et l'overlay de capture d'iScreen Shoter font 1352 pt (100 %). Le seuil
 /// est posé au milieu de cet écart, et il garde de la marge des deux côtés.
 ///
-/// ponytail: seule constante ajustée du filtre. Une app d'encoche plus large que 80 % de l'écran
-/// serait rejetée à tort — si le cas se présente, la mesure à relever est sa largeur réelle.
+/// **Le cas annoncé s'est présenté, et le seuil ne bouge pas pour autant** (campagne du
+/// 5 septembre 2026, `docs/COMPATIBILITE.md` §3.2). NotchNook, Notchy et Mew Notch dessinent leur
+/// encoche dans un calque de 1352 pt sur un écran de 1352 pt : exactement le profil du Dock, de la
+/// barre de menus du Window Server et de l'overlay de capture. Aucune mesure `CGWindowList` ne les
+/// en sépare — ni la largeur, ni le sommet, ni le recouvrement du boîtier, et la hauteur n'entre
+/// dans aucune des trois conditions. Relever le plafond pour les faire entrer réadmettrait les
+/// trois autres AU CATALOGUE, c'est-à-dire referait le cycle de bascule qui emmenait sur le Finder.
+///
+/// Ces trois apps sont donc régies par leur bundleID (`appsEncocheConnues`), jamais par la
+/// découverte géométrique — symétrique exact de l'exclusion de Bouncer elle-même, dont l'overlay
+/// EST une fenêtre d'encoche au sens de ce filtre. Cf. `couvreEncoche`.
 private let partEcranMaxFenetreEncoche: CGFloat = 0.8
 
 /// Une entrée `CGWindowList` est-elle la fenêtre d'une app d'encoche ?
@@ -391,6 +400,13 @@ private let partEcranMaxFenetreEncoche: CGFloat = 0.8
 /// deux côtés suffit, et c'est la formulation exacte de ce qui avait été mesuré dès le départ
 /// (sommet À `cadre.maxY`, pas au-dessus). Les alertes de `UserNotificationCenter`, centrées sur
 /// l'écran externe donc à cheval sur les abscisses du boîtier, relevaient de la même fuite.
+///
+/// **Deux questions, deux prédicats, et c'est ce qui gagne trois apps sans rien relâcher.** Celui-ci
+/// répond à « cette fenêtre INCONNUE est-elle une app d'encoche ? » — il alimente la découverte,
+/// donc le catalogue, donc le cycle de bascule, et la moindre indulgence s'y paie en faux positifs
+/// définitifs. `couvreEncoche` répond à l'autre question, « l'app que je viens de nommer par son
+/// bundleID couvre-t-elle l'encoche ? », et elle n'a pas besoin du plafond de largeur : sur un pid
+/// choisi, il n'y a plus rien à départager d'avec le Dock.
 func estFenetreEncoche(
     _ zone: CGRect, cadreEcran: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat
 ) -> Bool {
@@ -398,11 +414,46 @@ func estFenetreEncoche(
                         hauteurEcranPrincipal: hauteurEcranPrincipal) != nil
 }
 
+/// L'app désignée par ce pid couvre-t-elle l'encoche ? Les conditions 1 et 2, sans la 3.
+///
+/// **Pourquoi le plafond de largeur saute ICI et nulle part ailleurs.** Il existe pour départager
+/// un inconnu d'un overlay plein écran, et il ne sait le faire qu'en refusant les deux. Quand
+/// l'appelant tient déjà le pid d'une app de son catalogue — `fenetreVisibleDansNotch`, son seul
+/// appelant — l'inconnu n'existe plus : la question n'est pas « qui est-ce », c'est « sa surface
+/// est-elle à l'écran ». Rien n'est appris par ce chemin (`catalogue.apprendre` ne se lit que dans
+/// le scan de découverte), donc aucun faux positif ne peut en sortir, et NotchNook, Notchy et Mew
+/// Notch redeviennent mesurables alors que leur calque de 1352 pt reste inconnu du scan.
+///
+/// Le catalogue garde donc ses deux portes d'entrée, et les deux restent gardées : la découverte
+/// par la géométrie stricte, l'amorçage par des bundleIDs relevés dans un `Info.plist`.
+func couvreEncoche(
+    _ zone: CGRect, cadreEcran: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat
+) -> Bool {
+    cadreCouvrantLeBoitier(zone, cadreEcran: cadreEcran, bounds: bounds,
+                           hauteurEcranPrincipal: hauteurEcranPrincipal) != nil
+}
+
 /// Le même prédicat, mais qui REND le cadre converti en repère AppKit plutôt qu'un booléen : la
 /// géométrie des flèches et de la zone de swipe se cale dessus (`zoneSwipe`), et
 /// la relire une seconde fois ailleurs rouvrirait la porte aux deux conversions divergentes que
 /// ce fichier existe pour empêcher.
 func cadreFenetreEncoche(
+    _ zone: CGRect, cadreEcran: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat
+) -> CGRect? {
+    guard let fenetre = cadreCouvrantLeBoitier(
+        zone, cadreEcran: cadreEcran, bounds: bounds, hauteurEcranPrincipal: hauteurEcranPrincipal
+    ) else { return nil }
+    guard fenetre.width <= cadreEcran.width * partEcranMaxFenetreEncoche else { return nil }
+    return fenetre
+}
+
+/// Les conditions 1 et 2 seules, et le point unique de la conversion de repère.
+///
+/// Ni l'une ni l'autre ne lit la hauteur de la fenêtre : elle s'annule dans la conversion
+/// (`maxY = hauteurEcranPrincipal - Y`, où `Y` est le sommet du repère CGWindow). C'est ce qui
+/// permet de tester les trois apps de 1352 pt avec la seule mesure que la campagne ait relevée
+/// sur elles — leur largeur.
+private func cadreCouvrantLeBoitier(
     _ zone: CGRect, cadreEcran: CGRect, bounds: [String: CGFloat], hauteurEcranPrincipal: CGFloat
 ) -> CGRect? {
     let repereCGWindow = CGRect(
@@ -422,7 +473,6 @@ func cadreFenetreEncoche(
     // reste un widget.
     guard abs(fenetre.maxY - cadreEcran.maxY) <= 1 else { return nil }
     guard fenetre.minX <= zone.minX, fenetre.maxX >= zone.maxX else { return nil }
-    guard fenetre.width <= cadreEcran.width * partEcranMaxFenetreEncoche else { return nil }
     return fenetre
 }
 
@@ -523,6 +573,10 @@ public final class ControleurAppsSysteme: ControleurApps {
     /// Les seules fenêtres du pid qui croisent l'encoche, et qui sont des overlays
     /// (`kCGWindowLayer > 0`) : une fenêtre de document normale est au layer 0, y compris en
     /// plein écran, et ne doit pas compter comme une présence dans l'encoche.
+    ///
+    /// `couvreEncoche` et non `estFenetreEncoche` : le pid vient du catalogue, l'app est déjà
+    /// identifiée, et le plafond de largeur n'a plus rien à y départager — il ne ferait que rendre
+    /// invisibles les apps d'encoche qui dessinent sur toute la largeur (cf. sa doc).
     private func compteFenetresDansEncoche(pid: pid_t, zone: CGRect, cadreEcran: CGRect) -> Int {
         guard let hauteurEcran = NSScreen.screens.first?.frame.height else { return 0 }
         return fenetres().filter { entree in
@@ -530,7 +584,7 @@ public final class ControleurAppsSysteme: ControleurApps {
                   let layer = entree[kCGWindowLayer as String] as? Int, layer > 0,
                   let bounds = entree[kCGWindowBounds as String] as? [String: CGFloat]
             else { return false }
-            return estFenetreEncoche(
+            return couvreEncoche(
                 zone, cadreEcran: cadreEcran, bounds: bounds, hauteurEcranPrincipal: hauteurEcran
             )
         }.count

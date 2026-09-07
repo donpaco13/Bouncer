@@ -421,20 +421,19 @@ export function Landing() {
 const cellule =
   "border-b border-filet pt-[15px] pr-4 pb-[15px] text-left align-top";
 
-/* Les trois voies de bascule, et ce qu'elles valent à l'œil. « Instantanée »
-   est la seule qui prend l'accent : c'est le cas nominal. « Pas encore vue »
-   reste en gris — c'est un manque connu, chiffré et corrigeable, pas un échec
-   de l'app ni de Bouncer. */
+/* Les deux voies de bascule, et ce qu'elles valent à l'œil. « Instantanée »
+   est la seule qui prend l'accent : c'est le cas nominal. Une troisième
+   colonne existait — « Pas encore vue », en gris — pour les apps que le filtre
+   de détection ne voyait pas ; elle est vide depuis que NotchNook, Notchy et
+   Mew Notch sont régies par leur bundleID (docs/COMPATIBILITE.md §3.2). */
 const LIBELLE_BASCULE = {
   rapide: "basculeRapide",
   relance: "basculeRelance",
-  invisible: "basculeInvisible",
 } as const;
 
 const COULEUR_BASCULE = {
   rapide: "font-semibold text-accent-vif",
   relance: "font-semibold text-encre",
-  invisible: "text-sourdine",
 } as const;
 
 /** Le surtitre d'une section : une petite capitale accentuée, centrée, qui

@@ -16,19 +16,36 @@ import Foundation
 
 /// Apps de notch connues d'avance, pour le premier lancement.
 ///
-/// Les deux bundleIDs ci-dessous ont été relevés dans le `Info.plist` des apps installées sur la
-/// machine de développement — ce ne sont pas des suppositions. Alcove et Notchy manquent
-/// volontairement : elles ne sont installées sur aucune machine à laquelle on a accès, donc leur
-/// bundleID ne serait qu'une devinette, et une devinette fausse ne fait rien (elle ne résout pas)
-/// tout en donnant l'illusion d'une couverture. L'apprentissage les rattrapera à leur première
-/// apparition dans le notch ; les ajouter ici demande seulement de relever leur identifiant réel.
+/// **La règle d'entrée : bundleID relevé dans un `Info.plist`, ET masquage mesuré sur la machine.**
+/// Les sept ci-dessous viennent de la campagne du 5 septembre 2026 (`docs/COMPATIBILITE.md` §3.1 et
+/// §3.2) : chacune a été installée, lancée, et son décompte de fenêtres relevé avant/pendant/après
+/// un masquage. Aucune n'est une devinette, et une devinette fausse ne ferait rien tout en donnant
+/// l'illusion d'une couverture. Les six apps de §3.3 — Alcove, SuperIsland, Atoll, DynamicNotch,
+/// Droppy, MediaMate — ont pourtant leur bundleID relevé, et restent dehors : elles n'ont affiché
+/// aucune surface d'encoche pendant la campagne, donc rien n'a été mesuré sur elles.
+///
+/// **Trois des sept ne peuvent PAS entrer par la découverte, et c'est pour elles que cette liste
+/// compte.** NotchNook, Notchy et Mew Notch dessinent leur encoche sur toute la largeur de l'écran
+/// (1352 pt sur 1352) — un profil que `estFenetreEncoche` refuse, et doit refuser, parce que c'est
+/// aussi celui du Dock et de la barre de menus. Les nommer ici les rend régissables sans toucher au
+/// filtre : le catalogue les tient, `couvreEncoche` les mesure par pid, et le scan de découverte
+/// reste aussi strict qu'avant. C'est le chemin par lequel Bouncer passe de quatre apps régies à
+/// sept sans réapprendre un seul faux positif.
+///
 /// bundleID -> nom d'affichage. Le nom sert à l'accueil de première ouverture, qui doit pouvoir
 /// nommer une app d'encoche ABSENTE de la machine (donc introuvable sur le disque, donc sans nom
 /// à en tirer). Une seule table pour les deux usages : une liste de noms écrite à part finirait
 /// par diverger de la liste de bundleIDs.
 public let appsEncocheConnues: [String: String] = [
+    // Mesurées régies et vues par le scan (§3.1).
     "app.vibeisland.macos": "Vibe Island",
+    "com.cyclop.app": "Cyclop",
+    "company.gh.notch": "gh-notch",
     "theboringteam.boringnotch": "boringNotch",
+    // Mesurées masquables, invisibles au scan : régies par leur seul bundleID (§3.2).
+    "lo.cafe.NotchNook": "NotchNook",
+    "dev.notchy.app": "Notchy",
+    "com.monuk7735.mew.notch": "Mew Notch",
 ]
 
 public let amorcageCatalogue: Set<String> = Set(appsEncocheConnues.keys)

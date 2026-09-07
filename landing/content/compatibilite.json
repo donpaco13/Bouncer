@@ -1,7 +1,7 @@
 {
-  "_source": "Dérivé de docs/COMPATIBILITE.md (campagne du 5 septembre 2026). C'EST CE FICHIER-LÀ QUI FAIT AUTORITÉ : toute correction se fait dans le .md d'abord, et se reporte ici ensuite. Ne jamais écrire une version, un verdict ou un bundleID directement dans le JSX — deux listes finissent toujours par diverger.",
+  "_source": "Dérivé de docs/COMPATIBILITE.md (campagne du 5 septembre 2026, révisée le 7 septembre 2026). C'EST CE FICHIER-LÀ QUI FAIT AUTORITÉ : toute correction se fait dans le .md d'abord, et se reporte ici ensuite. Ne jamais écrire une version, un verdict ou un bundleID directement dans le JSX — deux listes finissent toujours par diverger.",
   "_champs": {
-    "bascule": "rapide = masquage Accessibilité ; relance = quitter puis relancer, la fenêtre d'encoche vit dans un Space CGS privé ; invisible = Bouncer ne voit pas la fenêtre aujourd'hui (filtre de largeur à 80 %), le masquage, lui, est mesuré.",
+    "bascule": "rapide = masquage Accessibilité ; relance = quitter puis relancer, la fenêtre d'encoche vit dans un Space CGS privé. Il n'y a plus de catégorie « invisible » : les trois apps qui dessinent sur toute la largeur de l'écran (NotchNook, Notchy, Mew Notch) sont régies par leur bundleID depuis le 7 septembre 2026, sans que le filtre de largeur à 80 % ait bougé.",
     "preuve": "mesure = l'app a été installée, lancée, et Bouncer a agi dessus sur la machine de banc. predit = le verdict est lu dans la source, pas encore joué de bout en bout.",
     "bundleID": "relevé dans l'Info.plist de l'app téléchargée, pas supposé."
   },
@@ -68,7 +68,7 @@
       "app": "NotchNook",
       "version": "1.6.2",
       "bundleID": "lo.cafe.NotchNook",
-      "bascule": "invisible",
+      "bascule": "rapide",
       "preuve": "mesure"
     },
     {
@@ -76,7 +76,7 @@
       "app": "Notchy",
       "version": "1.0.151",
       "bundleID": "dev.notchy.app",
-      "bascule": "invisible",
+      "bascule": "relance",
       "preuve": "mesure"
     },
     {
@@ -84,7 +84,7 @@
       "app": "Mew Notch",
       "version": "2.2.2",
       "bundleID": "com.monuk7735.mew.notch",
-      "bascule": "invisible",
+      "bascule": "relance",
       "preuve": "mesure"
     }
   ]

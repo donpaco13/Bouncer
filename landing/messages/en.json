@@ -91,7 +91,6 @@
     "colonne4": "Evidence",
     "basculeRapide": "Instant",
     "basculeRelance": "By relaunch",
-    "basculeInvisible": "Not seen yet",
     "preuveMesure": "Measured",
     "preuvePredit": "Predicted",
     "banc": "Campaign of 5 September 2026, on an M4 MacBook Pro running macOS Sequoia. Every “measured” row comes from recounting the windows on screen, before and after hiding.",
@@ -118,13 +117,13 @@
         "note": "Its SkyLightOperator hands the notch window to a private Space: relaunching is the only route."
       },
       "notchNook": {
-        "note": "Hiding works, measured at 57 ms. Its window spans the full width of the screen, and the detection filter stops at 80%."
+        "note": "Hidden and brought back in 57 ms. Its window spans the full width of the screen and the scan never sees it, so Bouncer governs it by bundle ID."
       },
       "notchy": {
-        "note": "Full-width window, same cause. Once seen, it would switch by relaunch."
+        "note": "Full-width window too, invisible to the scan. Governed by its bundle ID, and by relaunch because it pins its window in a private Space."
       },
       "mewNotch": {
-        "note": "Full-width window, same cause. Once seen, it would switch by relaunch."
+        "note": "Full-width window too, invisible to the scan. Governed by its bundle ID, and by relaunch because it pins its window in a private Space."
       }
     },
     "para1": "Bouncer has two questions to settle, and they are independent: can it see the window, and can it turn the window off. For the second, the dividing line is readable in the binary. An app that leaves its windows in your Space answers to hiding, and the switch is imperceptible. An app that pins them in a private Space of its own making steps outside that: Bouncer takes the other route and restarts it.",

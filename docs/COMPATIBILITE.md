@@ -1,6 +1,6 @@
 # Matrice de compatibilité — Bouncer et les apps d'encoche macOS
 
-> Campagne du 5 septembre 2026.
+> Campagne du 5 septembre 2026. Révisée le 7 septembre 2026 (§3.1, §3.2 et §7 : les trois apps de 1352 pt sont désormais régies par leur bundleID).
 > Machine de mesure : MacBook Pro (Apple M4, 16 Go), macOS Sequoia. Écran externe LG IPS QHD 2560×1440 en écran principal, écran interne Liquid Retina XDR 1352×878 pt portant l'encoche physique (166×29 pt, zone relevée par Bouncer : `(1212, -29, 166, 29)`).
 > Outil de mesure : `Bouncer --self-test` (détection + verdict produit) et une sonde de masquage isolée qui rejoue exactement `ControleurAppsSysteme.masquer` sur un pid donné, sans le filtre de zone d'encoche.
 
@@ -46,7 +46,7 @@ D'où les trois verdicts de Bouncer :
 
 Relevé du 5 septembre 2026. Colonne « fenêtres » : nombre de fenêtres à l'écran du pid avant le masquage → pendant → après. C'est le seul juge du succès ; le code retour de l'API Accessibilité ment sur les apps qui résistent.
 
-### 3.1 Régies aujourd'hui, sans rien changer
+### 3.1 Régies par le scan de découverte
 
 | App | Version | bundleID | Fenêtres | Verdict | Détectée par le scan |
 | --- | --- | --- | --- | --- | --- |
@@ -57,19 +57,30 @@ Relevé du 5 septembre 2026. Colonne « fenêtres » : nombre de fenêtres à l'
 
 boringNotch est le cas d'école de la voie par cycle de vie, et sa cause est lisible dans son propre dépôt : `NotchSpaceManager` crée un `CGSSpace(level: 2147483647)` au démarrage de l'app, et `createBoringNotchWindow` y insère la fenêtre juste après l'avoir affichée.
 
-### 3.2 Masquables, mais invisibles au scan actuel
+### 3.2 Régies par leur bundleID, jamais par le scan (7 septembre 2026)
 
-Ces trois apps répondent (ou refusent) au masquage de façon parfaitement déterminée. Bouncer ne les voit simplement pas : leur surface d'encoche est un calque qui couvre toute la largeur de l'écran, et le filtre de détection rejette au-delà de 80 %.
+Ces trois apps répondent (ou refusent) au masquage de façon parfaitement déterminée. Bouncer ne les voyait simplement pas : leur surface d'encoche est un calque qui couvre toute la largeur de l'écran, et le filtre de détection rejette au-delà de 80 %.
 
-| App | Version | bundleID | Largeur de la fenêtre | Fenêtres | Verdict une fois détectée |
+| App | Version | bundleID | Largeur de la fenêtre | Fenêtres | Verdict |
 | --- | --- | --- | --- | --- | --- |
 | **NotchNook** | 1.6.2 | `lo.cafe.NotchNook` | 1352 pt = **100 %** | 3 → 0 → 3 | **Voie rapide** (57 ms) |
 | **Notchy** | 1.0.151 | `dev.notchy.app` | 1352 pt = **100 %** | 2 → 2 → 2 | **Voie par cycle de vie** |
 | **Mew Notch** | 2.2.2 | `com.monuk7735.mew.notch` | 1352 pt = **100 %** | 2 → 2 → 2 | **Voie par cycle de vie** |
 
-Une seule constante décide : `partEcranMaxFenetreEncoche = 0.8`, dans `ControleurApps.swift`. Le commentaire qui l'accompagne annonçait le cas — « une app d'encoche plus large que 80 % de l'écran serait rejetée à tort ; si le cas se présente, la mesure à relever est sa largeur réelle ». Le cas s'est présenté trois fois, et la mesure est 1352 pt sur un écran de 1352 pt.
+**Le seuil de 80 % n'a pas bougé, et il ne bougera pas.** `partEcranMaxFenetreEncoche = 0.8` sépare une app d'encoche d'un overlay plein écran, et c'est la seule mesure qui les sépare : à 100 %, le filtre réadmettrait le Dock, la barre de menus du Window Server et l'overlay de capture, qui ont exactement le même profil — collés au bord haut, couvrant le boîtier, toute la largeur. Ni la hauteur ni le `layer` ne les départagent (la hauteur n'entre dans aucune des trois conditions ; le `layer` d'un overlay système vaut lui aussi plus de 0). Le catalogue de la machine de référence a déjà contenu cinq intrus sur sept pour cette raison, et son cycle de bascule emmenait l'utilisateur sur le Finder. Un assouplissement qui fait entrer une seule fenêtre haute coûte plus cher que les trois apps qu'il gagne.
 
-Relever le seuil ne suffit pas : à 100 %, le filtre réadmettrait le Dock, la barre de menus du Window Server et les overlays de capture d'écran, qui font eux aussi toute la largeur. Il faut un second discriminant. Ce chantier a son propre coût, et son gain est chiffré : trois apps de plus, dont NotchNook et Notchy.
+**Le second discriminant n'est pas géométrique. C'est le bundleID, et il était déjà dans le code.** Le scan de découverte et la mesure de présence répondent à deux questions différentes, et une seule des deux a besoin du plafond :
+
+| | Question | Prédicat | Plafond de largeur | Ce qu'elle alimente |
+| --- | --- | --- | --- | --- |
+| Découverte | « cette fenêtre **inconnue** est-elle une app d'encoche ? » | `estFenetreEncoche` | **oui** | le catalogue appris |
+| Présence | « l'app que je tiens **par son bundleID** couvre-t-elle l'encoche ? » | `couvreEncoche` | non | rien — elle ne fait que mesurer |
+
+`couvreEncoche` n'a qu'un appelant, `fenetreVisibleDansNotch(pid:)`, et ce pid vient toujours du catalogue. Rien n'est appris par ce chemin : `catalogue.apprendre` ne se lit que dans le scan. Le plafond y est donc sans objet — il n'y a plus d'inconnu à départager — et le retirer ne peut produire aucun faux positif.
+
+Restait à faire entrer les trois au catalogue sans passer par le scan : elles sont **amorcées par leur bundleID** (`appsEncocheConnues`), relevé dans leur `Info.plist`. C'est le symétrique exact de l'exclusion de Bouncer elle-même, qui est écartée par bundleID et jamais par géométrie — son overlay EST une fenêtre d'encoche au sens du filtre.
+
+**Le filtre ne paie rien.** Le scan de découverte est mot pour mot celui d'avant, et les trois apps de 1352 pt continuent d'y être refusées ; c'est ce que verrouille `FiltreEncocheTests`. L'amorçage, lui, paie : cette liste de bundleIDs doit rester une liste de **mesures**. La règle d'entrée est « bundleID relevé dans un `Info.plist` **et** masquage mesuré sur la machine » ; les six apps du §3.3 ont le premier et pas le second, et restent dehors (`CatalogueTests`).
 
 ### 3.3 Mesure non concluante
 
@@ -178,6 +189,6 @@ Une famille entière est apparue en 2026 : des apps d'encoche qui affichent l'é
 
 Par ordre d'effet :
 
-1. **Le filtre de détection à 80 % coûte trois apps majeures**, dont NotchNook et Notchy. La cause est mesurée au point près ; le correctif demande un second discriminant contre les overlays plein écran du système, pas seulement un seuil relevé.
-2. **Onze bundleIDs sont désormais relevés à la source**, contre deux dans l'amorçage du catalogue. Chaque ajout dispense l'utilisateur d'attendre que l'apprentissage rattrape son app.
+1. **Bouncer régit sept apps au lieu de quatre** — NotchNook, Notchy et Mew Notch ont rejoint Vibe Island, Cyclop, gh-notch et boringNotch. Le filtre de détection n'a pas été relâché d'un point : les trois entrent par leur bundleID, et le seuil de 80 % continue d'écarter tout ce qui couvre l'écran entier. Cf. §3.2.
+2. **Sept bundleIDs amorcent le catalogue**, contre deux. Chaque ajout dispense l'utilisateur d'attendre que l'apprentissage rattrape son app — et pour trois d'entre eux, l'apprentissage ne viendrait jamais. Les quatre autres bundleIDs relevés à la source restent dehors : aucune mesure de masquage ne les accompagne.
 3. **`--self-test` rend maintenant un verdict.** Il imprimait « Test en cours… » et sortait avant que le test de support ne se termine. Il pompe désormais la boucle principale jusqu'à ce que toutes les apps aient leur verdict, plafonné à 15 s. C'est ce changement qui a rendu la campagne possible.
