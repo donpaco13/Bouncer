@@ -5,7 +5,7 @@ exportée en site statique — aucun serveur à faire tourner en production.
 
 ```
 npm install
-npm run dev        # http://localhost:3000/fr/ (et /en/)
+npm run dev        # http://localhost:3000/en/ (et /fr/)
 npm run build      # écrit out/, servable tel quel
 npm run typecheck
 ```
@@ -50,10 +50,10 @@ dans le JSON ne compile pas.
 `output: "export"` veut dire pas de proxy, donc pas de négociation de langue au
 serveur. Trois conséquences, et ce ne sont pas des choix :
 
-1. **Le préfixe de langue est obligatoire** (`localePrefix: "always"`). Le
-   français est à `/fr/`, l'anglais à `/en/`.
+1. **Le préfixe de langue est obligatoire** (`localePrefix: "always"`). L'anglais
+   est à `/en/`, le français à `/fr/`.
 2. **`/` est une page d'aiguillage** (`app/(racine)/`) : un rafraîchissement
-   immédiat vers `/fr/`, en chemin relatif pour que le site marche aussi servi
+   immédiat vers `/en/`, en chemin relatif pour que le site marche aussi servi
    depuis un sous-dossier.
 3. **Chaque langue doit être pré-rendue**, d'où `generateStaticParams` et
    `setRequestLocale` dans `app/(site)/[locale]/`. Sans eux, le rendu bascule en
