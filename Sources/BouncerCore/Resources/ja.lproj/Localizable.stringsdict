@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    Appの複数形。日本語の CLDR 複数カテゴリは `other` のみ。
+-->
+<plist version="1.0">
+<dict>
+    <key>welcome.ready.appsFound</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@apps@</string>
+        <key>apps</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>other</key>
+            <string>ノッチAppが%d個見つかりました</string>
+        </dict>
+    </dict>
+    <key>settings.general.refresh.interval</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@seconds@</string>
+        <key>seconds</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>other</key>
+            <string>%d秒</string>
+        </dict>
+    </dict>
+</dict>
+</plist>

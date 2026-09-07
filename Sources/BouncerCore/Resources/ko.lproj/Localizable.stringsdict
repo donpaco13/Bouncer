@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    앱의 복수형. 한국어는 CLDR 복수 범주가 `other` 하나뿐이므로 각 항목에 `other`만 있습니다.
+    숫자는 항상 %d로 넣고, 숫자를 직접 쓰지 않습니다.
+-->
+<plist version="1.0">
+<dict>
+    <key>welcome.ready.appsFound</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@apps@</string>
+        <key>apps</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>other</key>
+            <string>노치 앱 %d개 발견</string>
+        </dict>
+    </dict>
+    <key>settings.general.refresh.interval</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@seconds@</string>
+        <key>seconds</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>other</key>
+            <string>%d초</string>
+        </dict>
+    </dict>
+</dict>
+</plist>

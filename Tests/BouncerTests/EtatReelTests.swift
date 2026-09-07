@@ -126,7 +126,7 @@ struct EtatReelTests {
         NotificationCenter.default.post(
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
 
-        #expect(wm.lastNotchZoneDescription == "Aucune encoche détectée sur cette machine.")
+        #expect(wm.lastNotchZoneDescription == texte("notch.none"))
     }
 
     // MARK: - Défaut 9 : « Rafraîchir » ramène à un état propre
