@@ -30,6 +30,11 @@ qu'il vous laisse consiste à quitter une app puis à la relancer quand vous en 
 
 ## Installation
 
+Bouncer se distribue depuis sa [page des releases](https://github.com/donpaco13/Bouncer/releases).
+Le badge de téléchargement en haut de cette page donne la version courante, et affiche
+`no releases` tant qu'aucune n'est publiée ; quoi qu'il affiche, la compilation depuis les
+sources, plus bas, marche à n'importe quel commit.
+
 ### Homebrew
 
 ```bash

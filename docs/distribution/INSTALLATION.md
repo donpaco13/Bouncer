@@ -1,5 +1,11 @@
 # Installer Bouncer
 
+Bouncer se distribue depuis sa
+[page des releases](https://github.com/donpaco13/Bouncer/releases). Tant
+qu'aucune version n'y figure, les deux méthodes ci-dessous n'ont rien à
+installer : la voie qui marche à n'importe quel commit est la compilation depuis
+les sources, décrite dans le README.
+
 ## Avec Homebrew
 
 ```
