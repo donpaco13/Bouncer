@@ -120,7 +120,7 @@ final class RaccourciGlobalController: ObservableObject {
             // Le système ne dit pas POURQUOI il refuse. La collision est la cause de très loin
             // la plus probable, et c'est la seule sur laquelle l'utilisateur peut agir : le
             // message la donne comme hypothèse, pas comme diagnostic.
-            erreur = "\(raccourci.libelle) est refusé par le système, sans doute déjà pris par une autre app. Choisissez-en un autre."
+            erreur = texte("shortcut.refused", raccourci.libelle)
         }
     }
 }

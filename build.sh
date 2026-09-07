@@ -22,6 +22,11 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp .build/release/Bouncer "$APP/Contents/MacOS/Bouncer"
 
+# Le catalogue de chaînes (en.lproj / fr.lproj). SwiftPM le construit à côté du binaire ; sans
+# cette copie, l'app packagée ne le trouve QUE sur cette machine — l'accesseur généré replie sur
+# un chemin absolu vers .build, qui n'existe chez personne d'autre. Cf. Localisation.swift.
+cp -R .build/release/Bouncer_BouncerCore.bundle "$APP/Contents/Resources/"
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -41,6 +46,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>APPL</string>
     <key>CFBundleExecutable</key>
     <string>Bouncer</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>fr</string>
+    </array>
     <key>LSUIElement</key>
     <true/>
     <key>LSMinimumSystemVersion</key>

@@ -1,0 +1,96 @@
+/*
+   Localizable.strings (fr) — la traduction.
+
+   L'anglais est la langue source (en.lproj) ; ce fichier le suit. Il doit porter EXACTEMENT
+   les mêmes clés, sans quoi `CatalogueDeChainesTests` échoue.
+*/
+
+/* MARK: - Barre des menus */
+
+"menu.grantAccess" = "⚠️ Autoriser dans les Réglages Système…";
+"menu.noNotchApp" = "Aucune app d'encoche détectée";
+"menu.settings" = "Réglages…";
+"menu.welcomeGuide" = "Guide de démarrage…";
+"menu.refresh" = "Rafraîchir";
+"menu.quit" = "Quitter Bouncer";
+
+"menu.state.onStage" = "occupe l'encoche";
+"menu.state.waiting" = "n'occupe pas l'encoche, un clic la ramène";
+"menu.state.switching" = "bascule en cours";
+
+"menu.detail.testing" = "Test de bascule en cours…";
+"menu.detail.instant" = "Bascule instantanée";
+"menu.detail.relaunch" = "Bascule par relance, environ 1 s";
+"menu.detail.notRunning" = "Arrêtée — sera relancée";
+
+/* MARK: - Guide de démarrage, pied de page */
+
+"welcome.button.getStarted" = "Commencer";
+"welcome.button.continue" = "Continuer";
+"welcome.button.finish" = "Utiliser Bouncer";
+"welcome.button.back" = "Retour";
+"welcome.button.skip" = "Passer";
+"welcome.skip.hint" = "Ferme la présentation et commence à utiliser Bouncer";
+"welcome.close.commandW" = "Fermer la présentation avec commande W";
+"welcome.pagination.step" = "Écran %1$d sur %2$d";
+
+/* MARK: - Guide de démarrage, écran 1 */
+
+"welcome.window.title" = "Bienvenue dans Bouncer";
+"welcome.hello.title" = "Bienvenue dans Bouncer";
+"welcome.hello.body" = "Vos apps d’encoche ne se marchent plus dessus. Une seule occupe le notch, et un swipe désigne laquelle.";
+
+/* MARK: - Guide de démarrage, écran 2 */
+
+"welcome.problem.title" = "Trois apps, une seule encoche";
+"welcome.problem.body" = "macOS ne coordonne rien : chaque app d’encoche pose sa fenêtre au même endroit, en même temps. La dernière lancée recouvre les autres. Bouncer en garde une visible et met les autres de côté.";
+"welcome.problem.illustration" = "Trois applications d'encoche — NotchNook, Boring Notch et Vibe Island — dessinent leur fenêtre au même endroit, sous l'encoche, et se recouvrent.";
+
+/* MARK: - Guide de démarrage, écran 3 (Accessibilité) */
+
+"welcome.access.granted.title" = "Autorisation accordée";
+"welcome.access.granted.body" = "Bouncer peut masquer et révéler les fenêtres de vos apps d’encoche. Rien d’autre à faire ici.";
+"welcome.access.missing.title" = "macOS demande une autorisation";
+"welcome.access.missing.body" = "Masquer la fenêtre d’une autre application passe par l’Accessibilité. Sans elle, Bouncer voit vos apps d’encoche mais ne peut rien en faire.";
+"welcome.access.openSettings" = "Ouvrir les Réglages Système…";
+"welcome.access.openSettings.hint" = "Ouvre la section Confidentialité et sécurité, Accessibilité, des Réglages Système";
+"welcome.access.tip" = "Activez Bouncer dans la liste. Cet écran passe au vert tout seul, sans relancer l’app.";
+
+/* MARK: - Guide de démarrage, écran 4 (le geste) */
+
+"welcome.gesture.title" = "Survolez l’encoche, swipez à deux doigts";
+"welcome.gesture.body" = "Un swipe horizontal avance d’une app, vers la gauche comme vers la droite : il n’y a aucun sens à retenir. Les flèches ‹ ›, elles, en ont un.";
+"welcome.gesture.shortcutNote" = "fait tourner le cycle depuis n’importe quelle app.";
+
+"welcome.sim.app1.name" = "Now Playing";
+"welcome.sim.app1.subtitle" = "Daft Punk — One More Time";
+"welcome.sim.app2.subtitle" = "Batterie 94% · 45 W";
+"welcome.sim.app3.subtitle" = "2 notifications en attente";
+"welcome.sim.app.label" = "Application simulée : %1$@, %2$@";
+"welcome.sim.arrow.previous.label" = "Flèche gauche : app précédente";
+"welcome.sim.arrow.previous.hint" = "Revient à l'application précédente du cycle";
+"welcome.sim.arrow.previous.tooltip" = "Cliquez pour revenir à l'app précédente";
+"welcome.sim.arrow.next.label" = "Flèche droite : app suivante";
+"welcome.sim.arrow.next.hint" = "Passe à l'application suivante du cycle";
+"welcome.sim.arrow.next.tooltip" = "Cliquez pour passer à l'app suivante";
+
+/* MARK: - Guide de démarrage, écran 5 (prêt) */
+
+"welcome.ready.title" = "Tout est en place";
+"welcome.ready.title.incomplete" = "Il manque encore quelque chose";
+"welcome.ready.access.ok" = "Accessibilité autorisée";
+"welcome.ready.access.missing" = "Accessibilité pas encore autorisée";
+"welcome.ready.noAppInstalled" = "Aucune app d’encoche installée — essayez %@";
+"welcome.ready.menuBarNote" = "Bouncer vit dans la barre des menus, pas dans le Dock.";
+"welcome.ready.menuBarPreview" = "L'icône de Bouncer dans la barre des menus a la forme de deux rectangles superposés, en haut à droite de l'écran.";
+"welcome.ready.fakeMenu.file" = "Fichier";
+
+/* MARK: - Raccourci clavier global */
+
+"shortcut.none" = "Aucun";
+"shortcut.none.spoken" = "Aucun raccourci";
+"shortcut.ctrlOptCmdSpace" = "⌃⌥⌘Espace";
+"shortcut.ctrlOptCmdB.spoken" = "Contrôle Option Commande B";
+"shortcut.ctrlOptCmdN.spoken" = "Contrôle Option Commande N";
+"shortcut.ctrlOptCmdSpace.spoken" = "Contrôle Option Commande Espace";
+"shortcut.refused" = "%@ est refusé par le système, sans doute déjà pris par une autre app. Choisissez-en un autre.";

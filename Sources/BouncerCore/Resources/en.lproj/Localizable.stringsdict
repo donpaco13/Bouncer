@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    Le seul pluriel de l'app. Il vit ici plutôt qu'en ternaire Swift parce que le nombre de
+    formes plurielles dépend de la langue : deux en anglais et en français, trois en polonais,
+    six en arabe. Un ternaire `n == 1 ? … : …` interdit d'avance toute langue à trois formes.
+-->
+<plist version="1.0">
+<dict>
+    <key>welcome.ready.appsFound</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@apps@</string>
+        <key>apps</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>1 notch app found</string>
+            <key>other</key>
+            <string>%d notch apps found</string>
+        </dict>
+    </dict>
+</dict>
+</plist>

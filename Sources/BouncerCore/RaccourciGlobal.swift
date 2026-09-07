@@ -77,20 +77,20 @@ public enum RaccourciGlobal: String, CaseIterable, Identifiable, Sendable {
     /// Ce que l'utilisateur lit dans les réglages, avec les vrais symboles de la barre de menus.
     public var libelle: String {
         switch self {
-        case .aucun: return "Aucun"
+        case .aucun: return texte("shortcut.none")
         case .ctrlOptCmdB: return "⌃⌥⌘B"
         case .ctrlOptCmdN: return "⌃⌥⌘N"
-        case .ctrlOptCmdEspace: return "⌃⌥⌘Espace"
+        case .ctrlOptCmdEspace: return texte("shortcut.ctrlOptCmdSpace")
         }
     }
 
     /// Les symboles ne se lisent pas au VoiceOver : la combinaison est redite en toutes lettres.
     public var libelleAccessible: String {
         switch self {
-        case .aucun: return "Aucun raccourci"
-        case .ctrlOptCmdB: return "Contrôle Option Commande B"
-        case .ctrlOptCmdN: return "Contrôle Option Commande N"
-        case .ctrlOptCmdEspace: return "Contrôle Option Commande Espace"
+        case .aucun: return texte("shortcut.none.spoken")
+        case .ctrlOptCmdB: return texte("shortcut.ctrlOptCmdB.spoken")
+        case .ctrlOptCmdN: return texte("shortcut.ctrlOptCmdN.spoken")
+        case .ctrlOptCmdEspace: return texte("shortcut.ctrlOptCmdSpace.spoken")
         }
     }
 }

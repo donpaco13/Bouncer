@@ -39,9 +39,9 @@ extension SupportStatus {
     /// vocabulaire interne (logs, tests) ; c'est cette phrase-là que le menu montre.
     public var consequencePourUtilisateur: String {
         switch self {
-        case .testing: return "Test de bascule en cours…"
-        case .supported: return "Bascule instantanée"
-        case .unsupported: return "Bascule par relance, environ 1 s"
+        case .testing: return texte("menu.detail.testing")
+        case .supported: return texte("menu.detail.instant")
+        case .unsupported: return texte("menu.detail.relaunch")
         }
     }
 }
@@ -89,7 +89,7 @@ public func construireEntreesMenu(
                 etat: etat(installee.bundleID),
                 detail: lancee
                     ? app!.support.consequencePourUtilisateur
-                    : "Arrêtée — sera relancée"
+                    : texte("menu.detail.notRunning")
             )
         )
     }
@@ -105,7 +105,7 @@ public func construireEntreesMenu(
                 etat: etat(app.bundleID),
                 detail: app.estLancee
                     ? app.support.consequencePourUtilisateur
-                    : "Arrêtée — sera relancée"
+                    : texte("menu.detail.notRunning")
             )
         )
     }
