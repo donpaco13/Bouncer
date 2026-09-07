@@ -160,4 +160,12 @@ struct PiedDePageTests {
             #expect(hauteur == premiere)
         }
     }
+
+    /// L'amorçage réel en compte sept ; la ligne de bilan en suggère trois. Sans ce plafond, la
+    /// phrase « essayez … » énumérait tout le catalogue sur une ligne prévue pour une suggestion.
+    @Test func lesSuggestionsSontPlafonneesATroisMemeQuandLAmorcageEnCompteSept() {
+        let etat = EtatAccueil(accessibiliteAccordee: true, appsEncocheInstallees: 0)
+        #expect(etat.appsAInstaller.count == 3)
+        #expect(etat.appsAInstaller == ["boringNotch", "Cyclop", "gh-notch"])
+    }
 }

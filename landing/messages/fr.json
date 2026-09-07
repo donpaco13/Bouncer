@@ -91,7 +91,6 @@
     "colonne4": "Preuve",
     "basculeRapide": "Instantanée",
     "basculeRelance": "Par relance",
-    "basculeInvisible": "Pas encore vue",
     "preuveMesure": "Mesuré",
     "preuvePredit": "Prédit",
     "banc": "Campagne du 5 septembre 2026, sur MacBook Pro M4 sous macOS Sequoia. Chaque ligne « mesuré » vient d’un recomptage des fenêtres à l’écran, avant et après le masquage.",
@@ -118,13 +117,13 @@
         "note": "Son SkyLightOperator délègue la fenêtre d’encoche à un Space privé : la relance est la seule voie."
       },
       "notchNook": {
-        "note": "Le masquage marche, mesuré en 57 ms. Sa fenêtre couvre toute la largeur de l’écran, et le filtre de détection s’arrête à 80 %."
+        "note": "Masquée et ramenée en 57 ms. Sa fenêtre couvre toute la largeur de l’écran et le scan ne la voit pas, donc Bouncer la régit par son bundleID."
       },
       "notchy": {
-        "note": "Fenêtre pleine largeur, même cause. Une fois vue, elle basculerait par relance."
+        "note": "Fenêtre pleine largeur elle aussi, invisible au scan. Régie par son bundleID, et par relance parce qu’elle épingle sa fenêtre dans un Space privé."
       },
       "mewNotch": {
-        "note": "Fenêtre pleine largeur, même cause. Une fois vue, elle basculerait par relance."
+        "note": "Fenêtre pleine largeur elle aussi, invisible au scan. Régie par son bundleID, et par relance parce qu’elle épingle sa fenêtre dans un Space privé."
       }
     },
     "para1": "Bouncer a deux questions à trancher, et elles sont indépendantes : voit-il la fenêtre, et sait-il l’éteindre. Pour la seconde, la ligne de partage se lit dans le binaire. Une app qui laisse ses fenêtres dans votre Space répond au masquage, et la bascule est imperceptible. Une app qui les épingle dans un Space privé qu’elle crée elle-même en sort : Bouncer prend l’autre voie et la redémarre.",

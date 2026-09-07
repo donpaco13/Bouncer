@@ -22,7 +22,15 @@ public struct EtatAccueil: Equatable {
 
     /// Noms d'apps d'encoche à installer, triés. Vide dès qu'au moins une est présente : Bouncer
     /// n'a rien à arbitrer sans elles, et c'est la seule situation où il faut le dire.
+    ///
+    /// Plafonné à trois, parce que la phrase qui les rend est « essayez A, B ou C » sur une seule
+    /// ligne de bilan : l'amorçage en compte sept depuis la campagne du 5 septembre 2026, et les
+    /// énumérer tous transformerait une suggestion en inventaire qui déborde la fenêtre.
     public let appsAInstaller: [String]
+
+    /// ponytail: trois suggestions, pas un catalogue. Si le parcours d'accueil se met un jour à
+    /// LISTER les apps au lieu d'en suggérer, la mesure à relever est ce que la fenêtre affiche.
+    private static let maxSuggestions = 3
 
     /// Plus rien à faire : l'accueil peut se refermer sans laisser une app inerte derrière lui.
     public var pretAServir: Bool { accessibiliteAccordee && appsAInstaller.isEmpty }
@@ -35,7 +43,10 @@ public struct EtatAccueil: Equatable {
         self.accessibiliteAccordee = accessibiliteAccordee
         appsAInstaller = appsEncocheInstallees > 0
             ? []
-            : connues.values.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+            : connues.values
+                .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+                .prefix(Self.maxSuggestions)
+                .map { $0 }
     }
 }
 

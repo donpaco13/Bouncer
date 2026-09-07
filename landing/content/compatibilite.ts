@@ -15,7 +15,7 @@
 import matrice from "./compatibilite.json";
 import type messages from "@/messages/fr.json";
 
-export type Bascule = "rapide" | "relance" | "invisible";
+export type Bascule = "rapide" | "relance";
 export type Preuve = "mesure" | "predit";
 
 /* La clé qui relie une ligne du JSON à sa note traduite. Elle est tirée du

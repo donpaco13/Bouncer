@@ -113,4 +113,37 @@ struct CatalogueTests {
             #expect(apresReinstallation.installees().map(\.bundleID) == ["app.desinstallee"])
         }
     }
+
+    /// L'amorçage est une liste de MESURES, pas une liste d'apps connues du marché.
+    ///
+    /// `docs/COMPATIBILITE.md` relève onze bundleIDs dans des `Info.plist`, et six d'entre eux
+    /// appartiennent à des apps qui n'ont affiché aucune surface d'encoche pendant la campagne
+    /// (§3.3). Les amorcer donnerait à l'utilisateur une liste d'apps qui figurent au menu et
+    /// échouent à la bascule. La règle est donc : bundleID relevé ET masquage mesuré.
+    ///
+    /// Ce test est le garde-fou de cette règle. Trois de ces sept entrées — NotchNook, Notchy et
+    /// Mew Notch — sont invisibles au scan de découverte par construction (calque de 1352 pt), donc
+    /// l'amorçage est le SEUL chemin par lequel elles arrivent : le relâcher ici serait aussi grave
+    /// que relâcher le filtre.
+    @Test func lAmorcageNeContientQueDesAppsDontLeMasquageAEteMesure() {
+        #expect(Set(appsEncocheConnues.keys) == [
+            "app.vibeisland.macos",
+            "com.cyclop.app",
+            "company.gh.notch",
+            "theboringteam.boringnotch",
+            "lo.cafe.NotchNook",
+            "dev.notchy.app",
+            "com.monuk7735.mew.notch",
+        ])
+    }
+
+    /// Les six apps de §3.3 ont un bundleID relevé et aucune mesure : elles restent dehors.
+    @Test func lesAppsSansSurfaceDEncocheMesureeRestentHorsDeLAmorcage() {
+        for absente in [
+            "com.henrikruscon.Alcove", "com.workview.SuperIsland", "com.Ebullioscopic.Atoll",
+            "com.Jackson.DynamicNotch", "iordv.Droppy", "com.tweety.MediaMate",
+        ] {
+            #expect(appsEncocheConnues[absente] == nil)
+        }
+    }
 }
