@@ -160,7 +160,7 @@ accordée, géométrie d'encoche validée sur écran secondaire, stratégie 1 va
 sa limite connue et sa méthode de vérification correcte. Commande pour reproduire :
 
 ```
-swift "/Users/francoishatem/Documents/💻 Développement & Code/GitHub/Island Switch/Spike.swift" --pid <PID>
+swift Spike.swift --pid <PID>
 ```
 
 (PID de boringNotch et Vibe Island à retrouver via `pgrep -fl -i boringnotch` /

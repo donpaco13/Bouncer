@@ -29,6 +29,7 @@ cp .build/release/Bouncer "$APP/Contents/MacOS/Bouncer"
 # cette copie, l'app packagée ne le trouve QUE sur cette machine — l'accesseur généré replie sur
 # un chemin absolu vers .build, qui n'existe chez personne d'autre. Cf. Localisation.swift.
 cp -R .build/release/Bouncer_BouncerCore.bundle "$APP/Contents/Resources/"
+cp Sources/Bouncer/Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -49,12 +50,19 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>APPL</string>
     <key>CFBundleExecutable</key>
     <string>Bouncer</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleLocalizations</key>
     <array>
         <string>en</string>
         <string>fr</string>
+        <string>es</string>
+        <string>ja</string>
+        <string>ko</string>
     </array>
     <key>LSUIElement</key>
     <true/>

@@ -16,6 +16,7 @@ import Foundation
 import Testing
 @testable import BouncerCore
 
+@Suite(.serialized)
 struct CatalogueDeChainesTests {
 
     /// Les codes `.lproj` de toutes les langues que le sélecteur propose. L'anglais est la
@@ -123,10 +124,8 @@ struct CatalogueDeChainesTests {
     /// et non la clé, dans chaque langue du sélecteur.
     @Test(arguments: LangueInterface.allCases.filter { $0 != .systeme })
     func texteNeRendJamaisLaCle(langue: LangueInterface) throws {
-        activerLangue(langue)
-        defer { activerLangue(.en) }
         for cle in try Self.table("en").keys {
-            #expect(texte(cle) != cle, "\(cle) retombe sur sa clé en \(langue.rawValue)")
+            #expect(chaine(cle, langue: langue) != cle, "\(cle) retombe sur sa clé en \(langue.rawValue)")
         }
     }
 
@@ -162,11 +161,9 @@ struct CatalogueDeChainesTests {
     /// langue à une seule forme (`other`) doit marcher comme celui d'une langue à deux.
     @Test(arguments: LangueInterface.allCases.filter { $0 != .systeme })
     func lesPlurielsDeChaqueLangueSontResolus(langue: LangueInterface) {
-        activerLangue(langue)
-        defer { activerLangue(.en) }
         for cle in ["welcome.ready.appsFound", "settings.general.refresh.interval"] {
             for n in [0, 1, 2, 5] {
-                let rendu = texteAuPluriel(cle, n)
+                let rendu = chainePlurielle(cle, n, langue: langue)
                 #expect(rendu != cle, "\(cle) retombe sur sa clé en \(langue.rawValue)")
                 #expect(!rendu.contains("%"), "\(cle) en \(langue.rawValue) pour \(n) : « \(rendu) » garde un trou")
             }
