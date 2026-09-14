@@ -32,10 +32,7 @@ import Foundation
 public enum LangueInterface: String, CaseIterable, Identifiable, Sendable {
     /// Celle de macOS. Ce n'est PAS le défaut : l'app part en anglais (cf. `Reglages.langue`).
     case systeme = "system"
-    case en, fr, es, de
-    case ptBR = "pt_br"
-    case zhHans = "zh_hans"
-    case ja, ko
+    case en, fr, es, ja, ko
 
     public var id: String { rawValue }
 
@@ -51,9 +48,6 @@ public enum LangueInterface: String, CaseIterable, Identifiable, Sendable {
         case .en: return "English"
         case .fr: return "Français"
         case .es: return "Español"
-        case .de: return "Deutsch"
-        case .ptBR: return "Português (Brasil)"
-        case .zhHans: return "简体中文"
         case .ja: return "日本語"
         case .ko: return "한국어"
         }

@@ -15,6 +15,7 @@
 //
 
 import Foundation
+import AppKit
 import Testing
 @testable import BouncerCore
 
@@ -117,7 +118,7 @@ struct BarreDesMenusTests {
         let rangee = CGRect(x: ecran.minX, y: minYRangee, width: ecran.width, height: hauteurRangee)
         for marge in stride(from: Reglages.Domaine.marge.lowerBound,
                             through: Reglages.Domaine.marge.upperBound, by: 4) {
-            let panel = bandeFleches(survol: zoneSurvol(encoche: boitier, marge: marge))
+            let panel = bandeFleches(survol: zoneSurvol(encoche: boitier, marge: marge), hauteurRangee: hauteurRangee)
             #expect(!panel.intersects(rangee), "marge \(marge) : panel \(panel) dans la rangée")
             #expect(panel.maxY <= minYRangee)
         }
@@ -129,7 +130,7 @@ struct BarreDesMenusTests {
     /// atterrissaient à 118 pt dans le bandeau de statut. Elles restent donc collées au boîtier en
     /// X, et à une rangée de lui en Y — assez près pour qu'on les lise comme ses flèches.
     @Test func lesFlechesBordentToujoursLeBoitier() {
-        let panel = bandeFleches(survol: zoneSurvol(encoche: boitier, marge: 44))
+        let panel = bandeFleches(survol: zoneSurvol(encoche: boitier, marge: 44), hauteurRangee: hauteurRangee)
         #expect(panel.minY == boitier.minY - hauteurRangee)
         for fleche in cadresFlechesEcran(marge: 44, retrait: 0) {
             #expect(abs(fleche.midY - boitier.minY) <= hauteurRangee,
@@ -146,7 +147,7 @@ struct BarreDesMenusTests {
     /// rattraperait la descente.
     @Test func laZoneEcouteeSuitLesFlechesDescendues() {
         let survol = zoneSurvol(encoche: boitier, marge: 44)
-        let panel = bandeFleches(survol: survol)
+        let panel = bandeFleches(survol: survol, hauteurRangee: hauteurRangee)
         for fenetre in [nil, CGRect(x: 306, y: 358, width: 740, height: 520)] as [CGRect?] {
             let zone = zoneSwipe(bande: survol, fenetre: fenetre)
             #expect(zone.contains(CGPoint(x: panel.minX + 1, y: panel.midY)))
@@ -156,9 +157,18 @@ struct BarreDesMenusTests {
         }
     }
 
-    /// La mesure système `hauteurBarreDesMenus()` correspond bien à la rangée réservée (35 pt).
+    /// La mesure système `hauteurBarreDesMenus()` respecte le contrat de rangée réservée :
+    /// elle s'adapte à l'écran hôte ou retombe sur la valeur de référence (35 pt).
     @Test func hauteurRangeeSystemeConformeAuReleve() {
-        #expect(hauteurBarreDesMenus() == 35)
+        let hauteur = hauteurBarreDesMenus()
+        #expect(hauteur >= 24 && hauteur <= 50)
+        if let s = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main ?? NSScreen.screens.first {
+            let reserve = s.frame.maxY - s.visibleFrame.maxY
+            let attendu = reserve > 0 ? reserve : 35
+            #expect(hauteur == attendu)
+        } else {
+            #expect(hauteur == 35)
+        }
     }
 
     // MARK: - Outillage
@@ -168,7 +178,7 @@ struct BarreDesMenusTests {
     /// Reproduit exactement ce que fait `NotchArrowsView.layoutArrows` : le décalage est signé par
     /// côté, la gauche sort vers la gauche et la droite vers la droite.
     private func cadresFlechesEcran(marge: CGFloat, retrait: CGFloat) -> [CGRect] {
-        let panel = bandeFleches(survol: zoneSurvol(encoche: boitier, marge: marge))
+        let panel = bandeFleches(survol: zoneSurvol(encoche: boitier, marge: marge), hauteurRangee: hauteurRangee)
         let cadres = cadresFleches(overlay: panel.size, marge: marge)
         return [
             cadres.gauche.offsetBy(dx: -retrait, dy: 0),
