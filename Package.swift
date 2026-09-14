@@ -19,7 +19,12 @@ let package = Package(
             // Le catalogue de chaînes des DEUX targets (cf. Localisation.swift).
             resources: [.process("Resources")]
         ),
-        .executableTarget(name: "Bouncer", dependencies: ["BouncerCore"], path: "Sources/Bouncer"),
+        .executableTarget(
+            name: "Bouncer",
+            dependencies: ["BouncerCore"],
+            path: "Sources/Bouncer",
+            resources: [.process("Resources")]
+        ),
         .testTarget(name: "BouncerTests", dependencies: ["BouncerCore"], path: "Tests/BouncerTests"),
     ]
 )
