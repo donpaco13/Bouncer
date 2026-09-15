@@ -61,6 +61,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
         <string>en</string>
         <string>fr</string>
         <string>es</string>
+        <string>pt_br</string>
+        <string>zh_hans</string>
         <string>ja</string>
         <string>ko</string>
     </array>
