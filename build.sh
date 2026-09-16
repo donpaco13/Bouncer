@@ -19,6 +19,33 @@ CERT_CN="Bouncer Local Signing"
 
 swift build -c release
 
+# --- dSYM + upload Sentry ---
+# `swift build -c release` d'un package SwiftPM ne produit AUCUN .dSYM à côté du binaire
+# (contrairement à un build Xcode) : sans lui, Sentry ne peut afficher que des adresses
+# hexadécimales dans les stack traces des crashs remontés en prod. dsymutil le régénère
+# depuis les debug symbols embarqués dans le binaire release lui-même.
+SENTRY_ORG_SLUG="${SENTRY_ORG:-}"
+SENTRY_PROJECT_SLUG="${SENTRY_PROJECT:-}"
+DSYM_PATH=".build/release/Bouncer.dSYM"
+rm -rf "$DSYM_PATH"
+dsymutil ".build/release/Bouncer" -o "$DSYM_PATH"
+echo "🩻 dSYM généré : $DSYM_PATH"
+
+if [ -z "${SENTRY_AUTH_TOKEN:-}" ] || [ -z "$SENTRY_ORG_SLUG" ] || [ -z "$SENTRY_PROJECT_SLUG" ]; then
+    # Ne jamais faire échouer le build pour un secret absent : un contributeur qui n'a pas le
+    # token Sentry doit pouvoir builder et itérer localement quand même.
+    echo "⚠️  Upload des symboles Sentry ignoré (SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT manquant)."
+    echo "    Les crashs remontés à Sentry n'auront que des adresses hexadécimales tant que ce dSYM n'est pas envoyé."
+elif ! command -v sentry-cli >/dev/null 2>&1; then
+    echo "⚠️  sentry-cli introuvable, upload des symboles Sentry ignoré."
+    echo "    Installer : brew install getsentry/tools/sentry-cli"
+else
+    sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" debug-files upload \
+        --org "$SENTRY_ORG_SLUG" --project "$SENTRY_PROJECT_SLUG" \
+        "$DSYM_PATH" \
+        || echo "⚠️  Upload des symboles Sentry échoué (build non bloqué) — voir le message ci-dessus."
+fi
+
 APP="Bouncer.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
