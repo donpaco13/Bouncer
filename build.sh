@@ -24,8 +24,12 @@ swift build -c release
 # (contrairement à un build Xcode) : sans lui, Sentry ne peut afficher que des adresses
 # hexadécimales dans les stack traces des crashs remontés en prod. dsymutil le régénère
 # depuis les debug symbols embarqués dans le binaire release lui-même.
-SENTRY_ORG_SLUG="${SENTRY_ORG:-}"
-SENTRY_PROJECT_SLUG="${SENTRY_PROJECT:-}"
+# Org et projet ne sont pas des secrets : l'org ID et le projet ID sont déjà publics dans la
+# DSN embarquée (main.swift). `sentry-cli debug-files upload` accepte indifféremment l'ID ou
+# le slug pour les deux, donc on prend l'ID du projet — il vient de la DSN, c'est un fait,
+# pas une supposition sur le nommage. Surchargeables par l'environnement.
+SENTRY_ORG_SLUG="${SENTRY_ORG:-francois-y0}"
+SENTRY_PROJECT_SLUG="${SENTRY_PROJECT:-4512097601847376}"
 DSYM_PATH=".build/release/Bouncer.dSYM"
 rm -rf "$DSYM_PATH"
 # `set -e` est actif : sans ce garde, un dsymutil en échec tuerait la fabrication du .app.
@@ -43,7 +47,8 @@ if [ -z "$DSYM_PATH" ]; then
 elif [ -z "${SENTRY_AUTH_TOKEN:-}" ] || [ -z "$SENTRY_ORG_SLUG" ] || [ -z "$SENTRY_PROJECT_SLUG" ]; then
     # Ne jamais faire échouer le build pour un secret absent : un contributeur qui n'a pas le
     # token Sentry doit pouvoir builder et itérer localement quand même.
-    echo "⚠️  Upload des symboles Sentry ignoré (SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT manquant)."
+    echo "⚠️  Upload des symboles Sentry ignoré : SENTRY_AUTH_TOKEN absent."
+    echo "    Token : https://francois-y0.sentry.io/settings/auth-tokens/ (scope project:write)"
     echo "    Les crashs remontés à Sentry n'auront que des adresses hexadécimales tant que ce dSYM n'est pas envoyé."
 elif ! command -v sentry-cli >/dev/null 2>&1; then
     echo "⚠️  sentry-cli introuvable, upload des symboles Sentry ignoré."
