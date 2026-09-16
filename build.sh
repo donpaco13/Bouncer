@@ -28,10 +28,19 @@ SENTRY_ORG_SLUG="${SENTRY_ORG:-}"
 SENTRY_PROJECT_SLUG="${SENTRY_PROJECT:-}"
 DSYM_PATH=".build/release/Bouncer.dSYM"
 rm -rf "$DSYM_PATH"
-dsymutil ".build/release/Bouncer" -o "$DSYM_PATH"
-echo "🩻 dSYM généré : $DSYM_PATH"
+# `set -e` est actif : sans ce garde, un dsymutil en échec tuerait la fabrication du .app.
+# Un dSYM manquant dégrade Sentry, il n'empêche pas de livrer l'app — même arbitrage que
+# pour l'upload plus bas.
+if dsymutil ".build/release/Bouncer" -o "$DSYM_PATH"; then
+    echo "🩻 dSYM généré : $DSYM_PATH"
+else
+    echo "⚠️  Génération du dSYM échouée — les crashs Sentry n'auront que des adresses hexadécimales."
+    DSYM_PATH=""
+fi
 
-if [ -z "${SENTRY_AUTH_TOKEN:-}" ] || [ -z "$SENTRY_ORG_SLUG" ] || [ -z "$SENTRY_PROJECT_SLUG" ]; then
+if [ -z "$DSYM_PATH" ]; then
+    : # dSYM absent, rien à envoyer (message déjà affiché ci-dessus)
+elif [ -z "${SENTRY_AUTH_TOKEN:-}" ] || [ -z "$SENTRY_ORG_SLUG" ] || [ -z "$SENTRY_PROJECT_SLUG" ]; then
     # Ne jamais faire échouer le build pour un secret absent : un contributeur qui n'a pas le
     # token Sentry doit pouvoir builder et itérer localement quand même.
     echo "⚠️  Upload des symboles Sentry ignoré (SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT manquant)."
