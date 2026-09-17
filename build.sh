@@ -44,20 +44,18 @@ fi
 
 if [ -z "$DSYM_PATH" ]; then
     : # dSYM absent, rien à envoyer (message déjà affiché ci-dessus)
-elif [ -z "${SENTRY_AUTH_TOKEN:-}" ] || [ -z "$SENTRY_ORG_SLUG" ] || [ -z "$SENTRY_PROJECT_SLUG" ]; then
-    # Ne jamais faire échouer le build pour un secret absent : un contributeur qui n'a pas le
-    # token Sentry doit pouvoir builder et itérer localement quand même.
-    echo "⚠️  Upload des symboles Sentry ignoré : SENTRY_AUTH_TOKEN absent."
-    echo "    Token : https://francois-y0.sentry.io/settings/auth-tokens/ (scope project:write)"
-    echo "    Les crashs remontés à Sentry n'auront que des adresses hexadécimales tant que ce dSYM n'est pas envoyé."
 elif ! command -v sentry-cli >/dev/null 2>&1; then
     echo "⚠️  sentry-cli introuvable, upload des symboles Sentry ignoré."
     echo "    Installer : brew install getsentry/tools/sentry-cli"
+elif sentry-cli debug-files upload --org "$SENTRY_ORG_SLUG" --project "$SENTRY_PROJECT_SLUG" "$DSYM_PATH"; then
+    :
 else
-    sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" debug-files upload \
-        --org "$SENTRY_ORG_SLUG" --project "$SENTRY_PROJECT_SLUG" \
-        "$DSYM_PATH" \
-        || echo "⚠️  Upload des symboles Sentry échoué (build non bloqué) — voir le message ci-dessus."
+    # On ne teste pas SENTRY_AUTH_TOKEN nous-mêmes : sentry-cli résout le token depuis
+    # l'environnement OU depuis ~/.sentryclirc, et nous n'avons pas à connaître ses règles.
+    # Un token absent ou périmé ne doit pas faire échouer la fabrication du .app.
+    echo "⚠️  Upload des symboles Sentry échoué (build non bloqué)."
+    echo "    Token : https://francois-y0.sentry.io/settings/auth-tokens/ — scope org:ci suffit,"
+    echo "    à poser dans ~/.sentryclirc ([auth] token=...) ou dans SENTRY_AUTH_TOKEN."
 fi
 
 APP="Bouncer.app"
