@@ -65,11 +65,15 @@
   "probleme": {
     "titre": "macOS doesn’t coordinate notch apps",
     "chapo": "Vibe Island, boringNotch, NotchNook, Notchy: each one draws its own pill under your notch. Open two and they land on the same rectangle, one over the other.",
-    "corps": "There is no coordination API, and no such thing as an “active notch app”. <fort>The only way out macOS gives you is to quit one app to use the other</fort>, then launch it again when you need it back. Bouncer does that for you, in a few milliseconds when the app allows it.",
+    "corps": "macOS has no idea which one should be in front. <fort>The only way out it gives you is to quit one app to see the other</fort>, then reopen it when you need it back. Bouncer does that rotation for you with one gesture, and only removes the current app once the next one is on screen.",
     "aLecran": "{app}, on screen",
     "memeEndroit": "{app}, drawing in the same place",
     "sans": "Without Bouncer: both apps draw into the same rectangle",
-    "avec": "With Bouncer: one app on screen, the others open and waiting"
+    "avec": "With Bouncer: one app on screen, the others wait their turn",
+    "mainTitre": "By hand",
+    "mainCorps": "Quit the app, reopen the other one from Spotlight, wait for it to load. Then do it all again the other way.",
+    "avecTitre": "With Bouncer",
+    "avecCorps": "One swipe. The switch takes ≈ 50 ms when the app can be hidden, ≈ 1 s when it has to be relaunched."
   },
   "commandes": {
     "titre": "Four ways to change app",

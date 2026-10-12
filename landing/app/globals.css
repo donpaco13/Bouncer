@@ -148,6 +148,12 @@ h2{font:700 clamp(34px,5vw,56px)/1.05 var(--disp);letter-spacing:-.035em;max-wid
 p+p{margin-top:14px}
 .lede+.suite{margin-top:22px}
 strong{font-weight:600}
+.versus{display:grid;gap:10px;margin-top:28px;max-width:34em}
+.versus>div{display:grid;grid-template-columns:7.5em 1fr;gap:12px;padding:14px 16px;border-radius:14px;background:var(--alu)}
+.versus .avec{background:#e3f6e8}
+.versus dt{font-weight:600}
+.versus dd{margin:0;color:var(--muted)}
+.versus .avec dd{color:var(--ink)}
 
 /* Composition. Tous les titres partent du bord gauche de .wrap ; ce qui varie,
    c'est ce qu'il y a dessous. .cols : texte à gauche, visuel en face.
@@ -298,6 +304,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   td:nth-child(3){grid-row:1;grid-column:2}
   td:nth-child(4){grid-column:1/-1;font-size:14px}
   .ways2{grid-template-columns:minmax(0,1fr)}
+  .versus>div{grid-template-columns:minmax(0,1fr);gap:4px}
   .trust{grid-template-columns:minmax(0,1fr);gap:18px}
   .cut span{left:auto;right:8px}
   .closer{height:96px}

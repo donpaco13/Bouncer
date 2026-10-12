@@ -148,6 +148,14 @@ export function Landing() {
               <h2>{t("probleme.titre")}</h2>
               <p className="lede">{t("probleme.chapo")}</p>
               <p className="suite">{t.rich("probleme.corps", { fort })}</p>
+              <dl className="versus">
+                {(["main", "avec"] as const).map((c) => (
+                  <div key={c} className={c}>
+                    <dt>{t(`probleme.${c}Titre`)}</dt>
+                    <dd>{t(`probleme.${c}Corps`)}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
             <div className="scenes" aria-hidden="true">
               <figure className="scene">
