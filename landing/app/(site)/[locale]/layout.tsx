@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { FAVICON } from "@/content/liens";
+import { FAVICON, SITE } from "@/content/liens";
+import { LOCALE_OG, absolue, langues } from "@/content/seo";
 import { routing } from "@/i18n/routing";
 import "../../globals.css";
 
@@ -27,25 +28,34 @@ async function langueDe(params: Params["params"]) {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const locale = await langueDe(params);
   const t = await getTranslations({ locale, namespace: "meta" });
-  const autreLocale =
-    routing.locales.find((l) => l !== locale) ?? routing.defaultLocale;
+  const url = absolue(`/${locale}/`);
+  const image = {
+    url: absolue(`/og/${locale}.png`),
+    width: 1200,
+    height: 630,
+    alt: t("ogAlt"),
+  };
   return {
+    metadataBase: new URL(SITE),
     title: t("titre"),
     description: t("description"),
     icons: { icon: FAVICON },
-    alternates: {
-      canonical: `/${locale}/`,
-      languages: {
-        en: "/en/",
-        fr: "/fr/",
-        "x-default": `/${routing.defaultLocale}/`,
-      },
-    },
+    alternates: { canonical: url, languages: langues() },
     openGraph: {
+      type: "website",
+      siteName: "Bouncer",
+      url,
       title: t("titre"),
       description: t("description"),
-      locale: locale === "fr" ? "fr_FR" : "en_US",
-      alternateLocale: [autreLocale === "fr" ? "fr_FR" : "en_US"],
+      locale: LOCALE_OG[locale],
+      alternateLocale: routing.locales.filter((l) => l !== locale).map((l) => LOCALE_OG[l]),
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("titre"),
+      description: t("description"),
+      images: [image],
     },
   };
 }

@@ -1,5 +1,11 @@
 /* Les URL ne se traduisent pas : elles vivent ici, pas dans les dictionnaires,
    pour qu'une correction de lien n'ait pas à être répétée dans chaque langue. */
+/** L'adresse publique du site, sans barre finale. Toutes les URL absolues en
+    dérivent : canonical, hreflang, og:url, image de partage, sitemap, robots.
+    AUCUN DOMAINE N'EST ENCORE CHOISI : c'est l'adresse GitHub Pages du dépôt,
+    et c'est la seule ligne à changer le jour où la landing a son domaine. */
+export const SITE = "https://donpaco13.github.io/Bouncer";
+
 export const LIENS = {
   depot: "https://github.com/donpaco13/Bouncer",
   versions: "https://github.com/donpaco13/Bouncer/releases",

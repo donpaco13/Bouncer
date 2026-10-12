@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
-import { FAVICON } from "@/content/liens";
+import { FAVICON, SITE } from "@/content/liens";
+import { absolue, langues } from "@/content/seo";
 import { routing } from "@/i18n/routing";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,22 +11,15 @@ export async function generateMetadata(): Promise<Metadata> {
     namespace: "meta",
   });
   return {
+    metadataBase: new URL(SITE),
     title: t("titre"),
     description: t("description"),
     icons: { icon: FAVICON },
+    /* `/` n'est qu'un aiguillage vers la langue par défaut : la page à
+       indexer est celle-là. */
     alternates: {
-      canonical: "/",
-      languages: {
-        en: "/en/",
-        fr: "/fr/",
-        "x-default": `/${routing.defaultLocale}/`,
-      },
-    },
-    openGraph: {
-      title: t("titre"),
-      description: t("description"),
-      locale: routing.defaultLocale === "fr" ? "fr_FR" : "en_US",
-      alternateLocale: routing.defaultLocale === "fr" ? ["en_US"] : ["fr_FR"],
+      canonical: absolue(`/${routing.defaultLocale}/`),
+      languages: langues(),
     },
   };
 }
