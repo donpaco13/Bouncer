@@ -59,8 +59,7 @@
     "mentions": "Free and open source · macOS 14 Sonoma or later · No account"
   },
   "probleme": {
-    "surtitre": "Why it exists",
-    "titre": "macOS coordinates nothing",
+    "titre": "macOS doesn’t coordinate notch apps",
     "chapo": "Vibe Island, boringNotch, NotchNook, Notchy: each one draws its own pill under your notch. Open two and they land on the same rectangle, one over the other.",
     "corps": "There is no coordination API, and no such thing as an “active notch app”. <fort>The only way out macOS gives you is to quit one app to use the other</fort>, then launch it again when you need it back. Bouncer does that for you, in a few milliseconds when the app allows it.",
     "aLecran": "{app}, on screen",
@@ -69,7 +68,6 @@
     "avec": "With Bouncer: one app on screen, the others open and waiting"
   },
   "commandes": {
-    "surtitre": "Switching",
     "titre": "Four ways to change app",
     "chapo": "Take whichever is closest to hand. They all move one step through the cycle, and the cycle loops.",
     "swipeTitre": "Swipe on the notch",
@@ -82,7 +80,6 @@
     "menuCorps": "No Dock icon, no window. ● is the app holding the notch, ○ one waiting, ◐ a switch in progress. Click a waiting app to bring it back."
   },
   "moteur": {
-    "surtitre": "How it works",
     "titre": "What happens when you switch",
     "chapo": "Two routes, picked from what each app’s binary accepts. There is nothing for you to set.",
     "chiffre1": {
@@ -118,7 +115,6 @@
     "detectionCorps": "A notch app is a floating window stuck to the top edge, wide enough to cover the camera housing and narrower than 80% of the screen. A tall browser or Discord window never qualifies. Apps that draw across the full width, like NotchNook, are recognised by their bundle ID."
   },
   "compatibilite": {
-    "surtitre": "Compatibility",
     "titre": "Does it work with your apps?",
     "chapo": "Seven apps measured one by one on a real machine. Three more read from their source code.",
     "legendeTableau": "Compatibility of notch apps with Bouncer",

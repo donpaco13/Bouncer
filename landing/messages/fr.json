@@ -59,8 +59,7 @@
     "mentions": "Gratuit et open source · macOS 14 Sonoma ou plus récent · Sans compte"
   },
   "probleme": {
-    "surtitre": "Pourquoi Bouncer existe",
-    "titre": "macOS ne coordonne rien",
+    "titre": "macOS ne coordonne pas les apps d’encoche",
     "chapo": "Vibe Island, boringNotch, NotchNook, Notchy : chacune dessine sa propre pastille sous votre encoche. Ouvrez-en deux, elles tombent sur le même rectangle, l’une sur l’autre.",
     "corps": "Il n’existe aucune API de coordination et aucune notion d’« app d’encoche active ». <fort>La seule sortie que macOS vous laisse, c’est de quitter une app pour utiliser l’autre</fort>, puis de la relancer quand vous en avez de nouveau besoin. Bouncer le fait pour vous, en quelques millisecondes quand l’app le permet.",
     "aLecran": "{app}, à l’écran",
@@ -69,7 +68,6 @@
     "avec": "Avec Bouncer, une app à l’écran, les autres ouvertes et en attente"
   },
   "commandes": {
-    "surtitre": "Changer d’app",
     "titre": "Quatre façons de changer d’app",
     "chapo": "Prenez celle qui tombe sous la main. Toutes avancent d’un cran dans le cycle, et le cycle boucle.",
     "swipeTitre": "Balayer l’encoche",
@@ -82,7 +80,6 @@
     "menuCorps": "Pas d’icône dans le Dock, pas de fenêtre. ● désigne l’app qui tient l’encoche, ○ une app en attente, ◐ une bascule en cours. Cliquez sur une app en attente pour la ramener."
   },
   "moteur": {
-    "surtitre": "Fonctionnement",
     "titre": "Ce qui se passe quand vous basculez",
     "chapo": "Deux voies, choisies selon ce que le binaire de chaque app accepte. Vous n’avez rien à régler.",
     "chiffre1": {
@@ -118,7 +115,6 @@
     "detectionCorps": "Une app d’encoche est une fenêtre flottante collée au bord haut, assez large pour couvrir le boîtier caméra et plus étroite que 80 % de l’écran. Une grande fenêtre de navigateur ou de Discord n’y passe jamais. Les apps qui dessinent sur toute la largeur, comme NotchNook, sont reconnues par leur bundle ID."
   },
   "compatibilite": {
-    "surtitre": "Compatibilité",
     "titre": "Est-ce que ça marche avec vos apps ?",
     "chapo": "Sept apps mesurées une par une sur une vraie machine. Trois autres lues dans leur code source.",
     "legendeTableau": "Compatibilité des apps d’encoche avec Bouncer",

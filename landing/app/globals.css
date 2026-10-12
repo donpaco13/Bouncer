@@ -141,7 +141,6 @@ h1{font:700 clamp(46px,7.4vw,96px)/1 var(--disp);letter-spacing:-.04em;margin-to
 /* ---------- Sections ---------- */
 section{padding:112px 0;position:relative}
 .paper{background:var(--paper)}
-.kicker{font:600 17px var(--sys);color:var(--muted);margin-bottom:10px}
 h2{font:700 clamp(34px,5vw,56px)/1.05 var(--disp);letter-spacing:-.035em;max-width:15em}
 .lede{font-size:clamp(18px,2vw,21px);color:var(--muted);max-width:34em;margin-top:18px;line-height:1.45}
 p+p{margin-top:14px}
@@ -190,7 +189,7 @@ strong{font-weight:600}
 
 /* Moteur : tuile sombre, chiffres, et la règle « on avant off » en frise */
 .dark{background:var(--night);color:#f5f5f7}
-.dark .kicker,.dark .lede{color:#a1a1a6}
+.dark .lede{color:#a1a1a6}
 .specs{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin:64px 0 0;border-top:1px solid #424245;padding-top:40px}
 .spec b{display:block;font:700 clamp(44px,5.4vw,68px)/1 var(--disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .spec b small{font-size:.5em;letter-spacing:-.01em;margin-left:4px}

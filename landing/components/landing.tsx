@@ -130,7 +130,6 @@ export function Landing() {
         <section className="paper" id="problem">
           <div className="wrap cols">
             <div>
-              <p className="kicker">{t("probleme.surtitre")}</p>
               <h2>{t("probleme.titre")}</h2>
               <p className="lede">{t("probleme.chapo")}</p>
               <p className="suite">{t.rich("probleme.corps", { fort })}</p>
@@ -166,7 +165,6 @@ export function Landing() {
             La même encoche à la même échelle, et le geste dessiné dessus. */}
         <section id="gesture">
           <div className="wrap">
-            <p className="kicker">{t("commandes.surtitre")}</p>
             <h2>{t("commandes.titre")}</h2>
             <p className="lede">{t("commandes.chapo")}</p>
             <div className="ways">
@@ -216,7 +214,6 @@ export function Landing() {
             parte. */}
         <section className="dark" id="engine">
           <div className="wrap">
-            <p className="kicker">{t("moteur.surtitre")}</p>
             <h2>{t("moteur.titre")}</h2>
             <p className="lede">{t("moteur.chapo")}</p>
             <div className="specs">
@@ -276,7 +273,6 @@ export function Landing() {
             mesurées d'abord, la voie instantanée avant la relance. */}
         <section className="paper" id="apps">
           <div className="wrap">
-            <p className="kicker">{t("compatibilite.surtitre")}</p>
             <h2>{t("compatibilite.titre")}</h2>
             <p className="lede">{t("compatibilite.chapo")}</p>
             <div className="tbl">
