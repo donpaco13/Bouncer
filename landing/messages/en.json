@@ -15,7 +15,7 @@
     "nav": {
       "pourquoi": "Why",
       "changer": "Switching",
-      "fonctionnement": "How it works",
+      "fonctionnement": "Reliability",
       "apps": "Apps",
       "installer": "Install"
     },
@@ -85,38 +85,32 @@
   },
   "moteur": {
     "titre": "What happens when you switch",
-    "chapo": "Two routes, picked from what each app’s binary accepts. There is nothing for you to set.",
+    "chapo": "Depending on the app, Bouncer hides it or relaunches it. It picks on its own, there’s nothing to set.",
     "chiffre1": {
-      "valeur": "46",
+      "valeur": "≈ 50",
       "unite": "ms",
-      "libelle": "to take an app out of the notch",
-      "note": "Fast route, measured end to end. About 31 ms of it is propagation inside the WindowServer."
-    },
-    "chiffre2": {
-      "valeur": "5.1",
-      "unite": "ms",
-      "libelle": "to bring it back",
-      "note": "Nothing to relaunch, nothing to reload. The app stays in memory and comes back where you left it."
+      "libelle": "to hide an app",
+      "note": "Vibe Island, Cyclop, gh-notch, NotchNook: 46 to 57 ms measured, faster than a blink. The app stays open and comes back where you left it."
     },
     "chiffre3": {
       "valeur": "≈ 1",
       "unite": "s",
-      "libelle": "when a relaunch is needed",
-      "note": "Some apps pin their windows in a private Space and ignore the hide command. Bouncer restarts them instead."
+      "libelle": "for apps that won’t be hidden",
+      "note": "boringNotch, Notchy and Mew Notch ignore the hide command, so Bouncer quits them when another app takes the notch and reopens them when you come back. In between, they show nothing."
     },
     "friseTitre": "On before off",
-    "friseCorps": "On both routes, Bouncer hides or closes the current app only after it has counted the new window on screen. If the new app will not start, or takes more than five seconds, the current one stays where it is. The notch is never empty.",
-    "friseLegende": "Timeline of a relaunch: {arrive} starts, its window is counted on screen at about two thirds of a second, then {part} closes.",
+    "friseCorps": "Bouncer only removes the current app once the next one is on screen. If the next one won’t start, or takes more than five seconds, nothing moves. You never end up staring at an empty notch halfway through a switch.",
+    "friseLegende": "Timeline of a relaunch: {arrive} starts, shows up at about two thirds of a second, then {part} closes.",
     "arrive": "{app}, arriving",
     "part": "{app}, leaving",
     "demarrage": "Starting",
     "aLecran": "On screen",
     "encore": "Still in the notch",
-    "compte": "Window counted by CGWindowList",
+    "compte": "{app} is on screen",
     "refusTitre": "What Bouncer won’t do",
-    "refusCorps": "No private APIs and no WindowServer injection, the tricks that break on every minor macOS update. An app that refuses to quit is never force-killed. It may have something to save, so Bouncer notes it and leaves it alone.",
-    "detectionTitre": "What it looks for",
-    "detectionCorps": "A notch app is a floating window stuck to the top edge, wide enough to cover the camera housing and narrower than 80% of the screen. A tall browser or Discord window never qualifies. Apps that draw across the full width, like NotchNook, are recognised by their bundle ID."
+    "refusCorps": "No undocumented system tricks, the kind that break on a macOS update. An app that refuses to quit is never force-killed. It may have something to save, so Bouncer leaves it alone.",
+    "detectionTitre": "What about my browser window?",
+    "detectionCorps": "Bouncer never touches it. It only deals with the small windows stuck to the notch. <lien>The full method, for the curious ›</lien>"
   },
   "compatibilite": {
     "titre": "Does it work with your apps?",

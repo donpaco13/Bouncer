@@ -25,8 +25,9 @@ const lienVers = (href: string) => (c: ReactNode) => <a href={href}>{c}</a>;
  *
  * L'ordre des sections répond aux questions dans l'ordre où on se les pose :
  * qu'est-ce que ça fait (on le voit, on y joue), pourquoi j'en ai besoin,
- * comment je m'en sers, qu'est-ce qui se passe dessous, est-ce que ça marche
- * chez moi, comment je l'installe. La page finit sur l'installation.
+ * comment je m'en sers, est-ce que ça marche chez moi (la deuxième question
+ * de tout le monde, et le héros y renvoie), est-ce que ça peut rater, comment
+ * je l'installe. La page finit sur l'installation.
  */
 export function Landing() {
   const t = useTranslations();
@@ -224,69 +225,6 @@ export function Landing() {
           </div>
         </section>
 
-        {/* ---------------------------- LE MOTEUR -------------------------
-            Les trois chiffres mesurés à gauche, le texte en face, puis la
-            règle « on avant off » en frise pleine largeur : la nouvelle app
-            est comptée à l'écran avant que l'ancienne parte. */}
-        <section className="dark" id="engine">
-          <div className="wrap">
-            <h2>{t("moteur.titre")}</h2>
-            <div className="cols inv">
-              <div>
-                <p className="lede">{t("moteur.chapo")}</p>
-                <div className="pair">
-                  <div>
-                    <h3>{t("moteur.refusTitre")}</h3>
-                    <p>{t("moteur.refusCorps")}</p>
-                  </div>
-                  <div>
-                    <h3>{t("moteur.detectionTitre")}</h3>
-                    <p>{t("moteur.detectionCorps")}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="specs">
-                {(["chiffre1", "chiffre2", "chiffre3"] as const).map((c) => (
-                  <div key={c} className="spec">
-                    <b>
-                      {t(`moteur.${c}.valeur`)}
-                      <small>{t(`moteur.${c}.unite`)}</small>
-                    </b>
-                    <span>{t(`moteur.${c}.libelle`)}</span>
-                    <p>{t(`moteur.${c}.note`)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="tl">
-              <h3>{t("moteur.friseTitre")}</h3>
-              <p>{t("moteur.friseCorps")}</p>
-              <div
-                className="lanes"
-                role="img"
-                aria-label={t("moteur.friseLegende", { arrive: bn.nom, part: va.nom })}
-              >
-                <div className="lane">
-                  <span>{t("moteur.arrive", { app: bn.nom })}</span>
-                  <div className="track">
-                    <span className="seg start">{t("moteur.demarrage")}</span>
-                    <span className="seg new">{t("moteur.aLecran")}</span>
-                  </div>
-                </div>
-                <div className="lane">
-                  <span>{t("moteur.part", { app: va.nom })}</span>
-                  <div className="track">
-                    <span className="seg old">{t("moteur.encore")}</span>
-                  </div>
-                </div>
-                <span className="cut">
-                  <span>{t("moteur.compte")}</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* -------------------------- COMPATIBILITÉ -----------------------
             La colonne « Preuve » ne se gomme pas : mesuré et prédit ne se
             mélangent jamais, c'est ce qui rend le tableau crédible. Les lignes
@@ -334,6 +272,69 @@ export function Landing() {
                 lien: lienVers(LIENS.matrice),
               })}
             </p>
+          </div>
+        </section>
+
+        {/* ---------------------------- LE MOTEUR -------------------------
+            Deux chiffres mesurés, une garantie. Le détail technique (scan,
+            bundle ID, Space privé) vit dans docs/COMPATIBILITE.md, pas ici.
+            La frise : la nouvelle app est à l'écran avant que l'ancienne parte. */}
+        <section className="dark" id="engine">
+          <div className="wrap">
+            <h2>{t("moteur.titre")}</h2>
+            <div className="cols inv">
+              <div>
+                <p className="lede">{t("moteur.chapo")}</p>
+                <div className="pair">
+                  <div>
+                    <h3>{t("moteur.refusTitre")}</h3>
+                    <p>{t("moteur.refusCorps")}</p>
+                  </div>
+                  <div>
+                    <h3>{t("moteur.detectionTitre")}</h3>
+                    <p>{t.rich("moteur.detectionCorps", { lien: lienVers(LIENS.matrice) })}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="specs">
+                {(["chiffre1", "chiffre3"] as const).map((c) => (
+                  <div key={c} className="spec">
+                    <b>
+                      {t(`moteur.${c}.valeur`)}
+                      <small>{t(`moteur.${c}.unite`)}</small>
+                    </b>
+                    <span>{t(`moteur.${c}.libelle`)}</span>
+                    <p>{t(`moteur.${c}.note`)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="tl">
+              <h3>{t("moteur.friseTitre")}</h3>
+              <p>{t("moteur.friseCorps")}</p>
+              <div
+                className="lanes"
+                role="img"
+                aria-label={t("moteur.friseLegende", { arrive: bn.nom, part: va.nom })}
+              >
+                <div className="lane">
+                  <span>{t("moteur.arrive", { app: bn.nom })}</span>
+                  <div className="track">
+                    <span className="seg start">{t("moteur.demarrage")}</span>
+                    <span className="seg new">{t("moteur.aLecran")}</span>
+                  </div>
+                </div>
+                <div className="lane">
+                  <span>{t("moteur.part", { app: va.nom })}</span>
+                  <div className="track">
+                    <span className="seg old">{t("moteur.encore")}</span>
+                  </div>
+                </div>
+                <span className="cut">
+                  <span>{t("moteur.compte", { app: bn.nom })}</span>
+                </span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -423,8 +424,8 @@ const LIGNES: readonly LigneCompatibilite[] = [...COMPATIBILITE].sort(
 const NAV = [
   ["#problem", "pourquoi"],
   ["#gesture", "changer"],
-  ["#engine", "fonctionnement"],
   ["#apps", "apps"],
+  ["#engine", "fonctionnement"],
   ["#install", "installer"],
 ] as const;
 

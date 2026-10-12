@@ -15,7 +15,7 @@
     "nav": {
       "pourquoi": "Pourquoi",
       "changer": "Gestes",
-      "fonctionnement": "Moteur",
+      "fonctionnement": "Fiabilité",
       "apps": "Apps",
       "installer": "Installer"
     },
@@ -84,39 +84,33 @@
     "menuCorps": "Pas d’icône dans le Dock, pas de fenêtre. ● désigne l’app qui tient l’encoche, ○ une app en attente, ◐ une bascule en cours. Cliquez sur une app en attente pour la ramener."
   },
   "moteur": {
-    "titre": "Ce qui se passe quand vous basculez",
-    "chapo": "Deux voies, choisies selon ce que le binaire de chaque app accepte. Vous n’avez rien à régler.",
+    "titre": "Ce qui se passe quand vous changez d’app",
+    "chapo": "Selon l’app, Bouncer la cache ou la relance. Il choisit tout seul, vous n’avez rien à régler.",
     "chiffre1": {
-      "valeur": "46",
+      "valeur": "≈ 50",
       "unite": "ms",
-      "libelle": "pour sortir une app de l’encoche",
-      "note": "Voie rapide, mesurée de bout en bout. Environ 31 ms de propagation dans le WindowServer."
-    },
-    "chiffre2": {
-      "valeur": "5,1",
-      "unite": "ms",
-      "libelle": "pour la ramener",
-      "note": "Rien à relancer, rien à recharger. L’app reste en mémoire et revient là où vous l’aviez laissée."
+      "libelle": "pour cacher une app",
+      "note": "Vibe Island, Cyclop, gh-notch, NotchNook : de 46 à 57 ms mesurés, plus vite qu’un clignement d’œil. L’app reste ouverte et revient là où vous l’aviez laissée."
     },
     "chiffre3": {
       "valeur": "≈ 1",
       "unite": "s",
-      "libelle": "quand il faut relancer",
-      "note": "Certaines apps épinglent leurs fenêtres dans un Space privé et ignorent l’ordre de masquage. Bouncer les redémarre à la place."
+      "libelle": "pour les apps qui refusent d’être cachées",
+      "note": "boringNotch, Notchy et Mew Notch ignorent le masquage. Bouncer les ferme quand une autre prend l’encoche et les rouvre quand vous revenez. Entre les deux, elles n’affichent rien."
     },
     "friseTitre": "Allumer avant d’éteindre",
-    "friseCorps": "Sur les deux voies, Bouncer ne masque ou ne ferme l’app en place qu’après avoir compté la nouvelle fenêtre à l’écran. Si la nouvelle app ne démarre pas, ou met plus de cinq secondes, l’app en place ne bouge pas. L’encoche n’est jamais vide.",
-    "friseLegende": "Chronologie d’une relance : {arrive} démarre, sa fenêtre est comptée à l’écran vers les deux tiers de la seconde, puis {part} se ferme.",
+    "friseCorps": "Bouncer ne retire l’app en place qu’une fois la suivante affichée. Si la suivante ne démarre pas, ou met plus de cinq secondes, rien ne bouge. Vous ne restez jamais devant une encoche vide au milieu d’une bascule.",
+    "friseLegende": "Chronologie d’une relance : {arrive} démarre, s’affiche vers les deux tiers de la seconde, puis {part} se ferme.",
     "arrive": "{app}, arrive",
     "part": "{app}, s’en va",
     "demarrage": "Démarrage",
     "aLecran": "À l’écran",
     "encore": "Encore dans l’encoche",
-    "compte": "Fenêtre comptée par CGWindowList",
+    "compte": "{app} est à l’écran",
     "refusTitre": "Ce que Bouncer ne fait pas",
-    "refusCorps": "Pas d’API privée ni d’injection dans le WindowServer, les astuces qui cassent à chaque mise à jour mineure de macOS. Une app qui refuse de quitter n’est jamais tuée de force. Elle a peut-être quelque chose à enregistrer, alors Bouncer le note et la laisse tranquille.",
-    "detectionTitre": "Ce qu’il cherche",
-    "detectionCorps": "Une app d’encoche est une fenêtre flottante collée au bord haut, assez large pour couvrir le boîtier caméra et plus étroite que 80 % de l’écran. Une grande fenêtre de navigateur ou de Discord n’y passe jamais. Les apps qui dessinent sur toute la largeur, comme NotchNook, sont reconnues par leur bundle ID."
+    "refusCorps": "Pas d’astuce système non documentée, de celles qui cassent à chaque mise à jour de macOS. Une app qui refuse de quitter n’est jamais tuée de force. Elle a peut-être quelque chose à enregistrer, alors Bouncer la laisse tranquille.",
+    "detectionTitre": "Et ma fenêtre de navigateur ?",
+    "detectionCorps": "Bouncer n’y touche pas. Il ne s’occupe que des petites fenêtres collées à l’encoche. <lien>La méthode complète, pour les curieux ›</lien>"
   },
   "compatibilite": {
     "titre": "Est-ce que ça marche avec vos apps ?",

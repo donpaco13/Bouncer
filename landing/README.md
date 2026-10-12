@@ -27,10 +27,12 @@ fenêtre du navigateur est le haut de l'écran du Mac.
 2. **Pourquoi** : le conflit entre deux apps dessiné en éclaté, puis la même
    encoche avec Bouncer.
 3. **Quatre façons de changer d'app**, chacune dessinée sur la même encoche.
-4. **Le moteur**, sur fond sombre : 46 ms, 5,1 ms, ≈ 1 s, et la frise
-   « allumer avant d'éteindre ».
-5. **La compatibilité** : 7 apps mesurées, 3 prédites, lues dans
-   `content/compatibilite.json`.
+4. **La compatibilité**, remontée parce que le héros y renvoie : 7 apps
+   mesurées, 3 prédites, lues dans `content/compatibilite.json`, et pour
+   chacune ce qu'elle devient quand elle est cachée.
+5. **La fiabilité**, sur fond sombre : ≈ 50 ms, ≈ 1 s, et la frise
+   « allumer avant d'éteindre ». Le détail technique reste dans
+   `docs/COMPATIBILITE.md`.
 6. **L'installation** : le .zip et Homebrew à poids égal, les prérequis, et
    Gatekeeper replié.
 
