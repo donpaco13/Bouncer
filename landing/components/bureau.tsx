@@ -230,7 +230,7 @@ export function Bureau({
           </li>
         </ul>
         <div className={ouvert ? "menu open" : "menu"} id="bmenu" ref={menu}>
-          <h3>{l.menuTitre}</h3>
+          <p className="mt">{l.menuTitre}</p>
           {apps.map((a, k) => (
             <button key={a.nom} type="button" className="row" onClick={() => go(k)}>
               <span>{k === busy ? "◐" : on && k === cur ? "●" : "○"}</span>

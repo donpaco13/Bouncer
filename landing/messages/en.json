@@ -1,9 +1,9 @@
 {
   "meta": {
-    "titre": "Bouncer, a notch app manager to switch notch apps on MacBook",
-    "description": "Switch notch apps on your MacBook without quitting them. Bouncer keeps Vibe Island, boringNotch and NotchNook open, shows one at a time, and changes app with a two-finger swipe. Free, macOS 14+.",
+    "titre": "Bouncer: run several notch apps on one MacBook",
+    "description": "Vibe Island, boringNotch and NotchNook in the same notch, without drawing over each other. Bouncer shows one, and a two-finger swipe moves to the next. Free, open source, macOS 14+.",
     "accroche": "Notch app manager · free · macOS 14+",
-    "ogAlt": "A MacBook notch showing a single app, with the title “One notch. One app at a time.”"
+    "ogAlt": "A MacBook notch showing a single app, with the title “All your notch apps. One on screen.”"
   },
   "chrome": {
     "evitement": "Skip to content",
@@ -50,13 +50,17 @@
     "annonceEteint": "Bouncer is off. Every notch app draws in the same place."
   },
   "heros": {
-    "surtitre": "Bouncer for macOS",
-    "titreLigne1": "One notch.",
-    "titreLigne2": "One app at a time.",
-    "pourQui": "For MacBook owners who run more than one notch app and are tired of quitting one to see the other. Your notch apps all stay open. Bouncer decides which one you see, and a two-finger swipe changes it.",
-    "telecharger": "Download for macOS",
+    "surtitre": "For notched MacBooks running two notch apps or more",
+    "titreLigne1": "All your notch apps.",
+    "titreLigne2": "One on screen.",
+    "pourQui": "Vibe Island tracks your agents, boringNotch your music, NotchNook your files, and they all draw in the same spot under the notch. Bouncer shows one and puts the others aside. A two-finger swipe on the notch moves to the next.",
     "voirCompatibles": "Does it work with my apps? ›",
-    "mentions": "Free and open source · macOS 14 Sonoma or later · No account"
+    "mentions": "<lien>Source code on GitHub</lien> · macOS 14 or later · no account",
+    "installer": "Install Bouncer, it’s free",
+    "surMac": "Bouncer runs on your Mac. Open this page on your MacBook.",
+    "copierLien": "Copy link",
+    "lienCopie": "Link copied",
+    "echecLien": "Copy the page address"
   },
   "probleme": {
     "titre": "macOS doesn’t coordinate notch apps",
@@ -176,6 +180,7 @@
     "gatekeeperQuestion": "“macOS cannot verify that Bouncer is free of malware”",
     "gatekeeper1": "You will see this on first launch of the downloaded app. Apple charges developers €99 a year for an identity it recognises on sight, and Bouncer doesn’t pay it. The block is about that missing identity. The app is neither damaged nor infected.",
     "gatekeeper2": "To open it anyway, once: double-click Bouncer and let macOS refuse, then open System Settings, Privacy & Security, and click “Open Anyway”.",
-    "gatekeeper3": "Through Homebrew you never see this message, because the cask strips the quarantine attribute itself. That’s a Gatekeeper workaround we write ourselves, and it goes away the day Bouncer is notarised by Apple."
+    "gatekeeper3": "Through Homebrew you never see this message, because the cask strips the quarantine attribute itself. That’s a Gatekeeper workaround we write ourselves, and it goes away the day Bouncer is notarised by Apple.",
+    "telecharger": "Download for macOS"
   }
 }

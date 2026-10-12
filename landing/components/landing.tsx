@@ -3,8 +3,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { CAMPAGNE, COMPATIBILITE, type LigneCompatibilite } from "@/content/compatibilite";
 import { APPS_APERCU, appDemo } from "@/content/demo";
 import { COMMANDE_BREW, LIENS } from "@/content/liens";
+import { absolue } from "@/content/seo";
 import { NOMS_LANGUES, routing } from "@/i18n/routing";
-import { LigneCommande } from "./actions";
+import { BoutonCopie, LigneCommande } from "./actions";
 import { Bureau, type AppBureau } from "./bureau";
 import { Pastille, Pomme } from "./signes";
 
@@ -103,15 +104,27 @@ export function Landing() {
             </h1>
             <p className="who">{t("heros.pourQui")}</p>
             <div className="cta">
-              <a className="btn" href="#install">
+              <a className="btn mac" href="#install">
                 <Pomme />
-                {t("heros.telecharger")}
+                {t("heros.installer")}
               </a>
+              {/* Sur téléphone, un bouton d'installation d'app Mac ne mène
+                  nulle part : on propose d'emporter l'adresse à la place. */}
+              <div className="ailleurs">
+                <p>{t("heros.surMac")}</p>
+                <BoutonCopie
+                  className="btn"
+                  texte={absolue(`/${locale}/`)}
+                  copier={t("heros.copierLien")}
+                  copie={t("heros.lienCopie")}
+                  echec={t("heros.echecLien")}
+                />
+              </div>
               <a className="link" href="#apps">
                 {t("heros.voirCompatibles")}
               </a>
             </div>
-            <p className="fine">{t("heros.mentions")}</p>
+            <p className="fine">{t.rich("heros.mentions", { lien: lienVers(LIENS.depot) })}</p>
           </div>
 
           <svg className="hills" viewBox="0 0 1440 190" preserveAspectRatio="none" aria-hidden="true">
@@ -341,7 +354,7 @@ export function Landing() {
                 <p>{t("installation.zipCorps")}</p>
                 <a className="btn" href={LIENS.versions}>
                   <Pomme />
-                  {t("heros.telecharger")}
+                  {t("installation.telecharger")}
                 </a>
               </div>
               <div className="opt">

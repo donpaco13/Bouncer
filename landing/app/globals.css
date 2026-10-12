@@ -109,7 +109,7 @@ a.mb:hover,button.mb:hover,button.mb[aria-expanded="true"]{background:rgba(255,2
   background:rgba(246,246,248,.86);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
   box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 18px 44px -12px rgba(0,0,0,.45);font-size:14px;display:none}
 .menu.open{display:block}
-.menu h3{font:600 12px var(--sys);color:var(--muted);padding:6px 9px 4px}
+.menu .mt{font:600 12px var(--sys);color:var(--muted);padding:6px 9px 4px}
 .menu .row{display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:4px;width:100%;min-height:30px;padding:0 9px;border:0;border-radius:6px;background:none;text-align:left;cursor:pointer}
 .menu .row:hover,.menu .row:focus-visible{background:var(--blue);color:#fff;outline:none}
 .menu .row small{font-size:12px;opacity:.65}
@@ -133,6 +133,8 @@ h1{font:700 clamp(46px,7.4vw,96px)/1 var(--disp);letter-spacing:-.04em;margin-to
 .link:hover{text-decoration:underline}
 .desk .link{color:#fff}
 .fine{margin-top:16px;font-size:14px;color:rgba(255,255,255,.62)}
+.fine a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.ailleurs{display:none}
 /* Collines : le fond d'écran se pose sur l'aluminium de la page */
 .hills{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:clamp(90px,14vw,190px);display:block;z-index:0}
 
@@ -316,6 +318,9 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .menu{right:4px;width:min(268px,100vw - 8px)}
   .desk{min-height:auto;border-radius:0}
   .intro{padding:92px 16px 128px}
+  .cta .mac{display:none}
+  .ailleurs{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+  .ailleurs p{max-width:22em;color:rgba(255,255,255,.8)}
 }
 /* Sous 380 px, l'heure cède sa place au menu de Bouncer. */
 @media (max-width:379px){.menubar .time{display:none}}

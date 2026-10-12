@@ -1,9 +1,9 @@
 {
   "meta": {
-    "titre": "Bouncer, le gestionnaire d’apps d’encoche (notch) pour MacBook",
-    "description": "Passez d’une app d’encoche à l’autre sans les quitter. Bouncer garde Vibe Island, boringNotch et NotchNook ouvertes, n’en montre qu’une, et change d’app d’un balayage à deux doigts. Gratuit, macOS 14+.",
+    "titre": "Bouncer : plusieurs apps d’encoche sur un seul MacBook",
+    "description": "Vibe Island, boringNotch et NotchNook dans la même encoche, sans qu’elles se superposent. Bouncer en affiche une, un balayage à deux doigts passe à la suivante. Gratuit, open source, macOS 14+.",
     "accroche": "Gestionnaire d’apps d’encoche · gratuit · macOS 14+",
-    "ogAlt": "L’encoche d’un MacBook avec une seule app affichée, et le titre « Une encoche. Une app à la fois. »"
+    "ogAlt": "L’encoche d’un MacBook avec une seule app affichée, et le titre « Toutes vos apps d’encoche. Une seule à l’écran. »"
   },
   "chrome": {
     "evitement": "Aller au contenu",
@@ -50,13 +50,17 @@
     "annonceEteint": "Bouncer est éteint. Toutes les apps d’encoche dessinent au même endroit."
   },
   "heros": {
-    "surtitre": "Bouncer pour macOS",
-    "titreLigne1": "Une encoche.",
-    "titreLigne2": "Une app à la fois.",
-    "pourQui": "Pour ceux qui ont un MacBook à encoche, plusieurs apps d’encoche, et en ont assez de quitter l’une pour voir l’autre. Vos apps d’encoche restent toutes ouvertes. Bouncer décide laquelle se voit, et un balayage à deux doigts en change.",
-    "telecharger": "Télécharger pour macOS",
+    "surtitre": "Pour MacBook à encoche, dès deux apps d’encoche",
+    "titreLigne1": "Toutes vos apps d’encoche.",
+    "titreLigne2": "Une seule à l’écran.",
+    "pourQui": "Vibe Island suit vos agents, boringNotch votre musique, NotchNook vos fichiers, et toutes dessinent au même endroit sous l’encoche. Bouncer en affiche une et met les autres de côté. Un balayage à deux doigts sur l’encoche passe à la suivante.",
     "voirCompatibles": "Est-ce que ça marche avec mes apps ? ›",
-    "mentions": "Gratuit et open source · macOS 14 Sonoma ou plus récent · Sans compte"
+    "mentions": "<lien>Code source sur GitHub</lien> · macOS 14 ou plus récent · sans compte",
+    "installer": "Installer Bouncer, c’est gratuit",
+    "surMac": "Bouncer s’installe sur Mac. Ouvrez cette page sur votre MacBook.",
+    "copierLien": "Copier le lien",
+    "lienCopie": "Lien copié",
+    "echecLien": "Copiez l’adresse de la page"
   },
   "probleme": {
     "titre": "macOS ne coordonne pas les apps d’encoche",
@@ -176,6 +180,7 @@
     "gatekeeperQuestion": "« macOS n’a pas pu vérifier que Bouncer ne contient pas de logiciel malveillant »",
     "gatekeeper1": "Vous verrez ce message au premier lancement de l’app téléchargée. Apple facture 99 € par an aux développeurs pour une identité qu’il reconnaît d’emblée, et Bouncer ne la paie pas. Le blocage porte sur cette identité manquante. L’app n’est ni endommagée ni infectée.",
     "gatekeeper2": "Pour l’ouvrir quand même, une seule fois : double-cliquez Bouncer et laissez macOS refuser, puis ouvrez Réglages Système, Confidentialité et sécurité, et cliquez sur « Ouvrir quand même ».",
-    "gatekeeper3": "Par Homebrew, vous ne voyez pas ce message parce que le cask retire lui-même l’attribut de quarantaine. C’est un contournement de Gatekeeper que nous écrivons nous-mêmes, et il disparaîtra le jour où Bouncer sera notarisée par Apple."
+    "gatekeeper3": "Par Homebrew, vous ne voyez pas ce message parce que le cask retire lui-même l’attribut de quarantaine. C’est un contournement de Gatekeeper que nous écrivons nous-mêmes, et il disparaîtra le jour où Bouncer sera notarisée par Apple.",
+    "telecharger": "Télécharger pour macOS"
   }
 }
