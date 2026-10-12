@@ -61,7 +61,9 @@ a.mb:hover,button.mb:hover,button.mb[aria-expanded="true"]{background:rgba(255,2
 
 /* L'encoche et les pastilles */
 .stage{position:absolute;left:50%;top:0;z-index:6;transform:translateX(-50%);width:calc(var(--nw)*2.3);height:calc(var(--nh) + 28px);touch-action:pan-y}
-.notch{position:absolute;left:50%;top:0;transform:translateX(-50%);width:var(--nw);height:var(--nh);background:#000;border-radius:0 0 calc(var(--nh)*.3) calc(var(--nh)*.3);z-index:3}
+/* L'encoche passe au-dessus de la pastille mais laisse passer le clic : un
+   tap au centre de l'encoche du héros change d'app, comme sur les ailes. */
+.notch{position:absolute;left:50%;top:0;transform:translateX(-50%);width:var(--nw);height:var(--nh);background:#000;border-radius:0 0 calc(var(--nh)*.3) calc(var(--nh)*.3);z-index:3;pointer-events:none}
 .notch::after{content:"";position:absolute;left:50%;top:calc(var(--nh)*.38);width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2a3550,#05070c 70%)}
 .pill{position:absolute;left:50%;top:0;z-index:2;transform:translateX(-50%);width:var(--nw);height:var(--nh);background:#000;
   border-radius:0 0 calc(var(--nh)*.5) calc(var(--nh)*.5);display:flex;align-items:center;justify-content:space-between;
