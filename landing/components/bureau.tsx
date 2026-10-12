@@ -197,7 +197,12 @@ export function Bureau({
               aria-expanded={ouvert}
               aria-controls="bmenu"
               aria-label={l.menu}
-              onClick={() => setOuvert((o) => !o)}
+              onClick={() => {
+                /* Ouvrir le menu compte comme un premier geste : l'infobulle
+                   s'efface, sinon elle passerait devant le menu sur téléphone. */
+                setTouche(true);
+                setOuvert((o) => !o);
+              }}
             >
               <svg viewBox="0 0 18 14" width="18" height="14" aria-hidden="true">
                 <path d="M1 0h16v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" />

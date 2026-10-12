@@ -1,13 +1,13 @@
 {
   "meta": {
     "titre": "Bouncer, a notch app manager to switch notch apps on MacBook",
-    "description": "Switch notch apps on your MacBook without quitting them. Bouncer keeps Vibe Island, boringNotch and NotchNook open, shows one at a time, and changes app with a two-finger swipe. Free, macOS 14+.",
-    "accroche": "Notch app manager · free · macOS 14+",
+    "description": "Switch notch apps on your MacBook without quitting them. Bouncer keeps Vibe Island, boringNotch and NotchNook open, shows one at a time, and changes app with a two-finger swipe. Free, macOS 14+.",
+    "accroche": "Notch app manager · free · macOS 14+",
     "ogAlt": "A MacBook notch showing a single app, with the title “One notch. One app at a time.”"
   },
   "chrome": {
     "evitement": "Skip to content",
-    "piedLigne": "Bouncer, a utility for macOS 14 and later. MIT licence.",
+    "piedLigne": "Bouncer, a utility for macOS 14 and later. MIT licence.",
     "piedGithub": "GitHub",
     "piedVersions": "Releases",
     "navigation": "Site",
@@ -56,7 +56,7 @@
     "pourQui": "For MacBook owners who run more than one notch app and are tired of quitting one to see the other. Your notch apps all stay open. Bouncer decides which one you see, and a two-finger swipe changes it.",
     "telecharger": "Download for macOS",
     "voirCompatibles": "Does it work with my apps? ›",
-    "mentions": "Free and open source · macOS 14 Sonoma or later · No account"
+    "mentions": "Free and open source · macOS 14 Sonoma or later · No account"
   },
   "probleme": {
     "surtitre": "Why it exists",
@@ -89,7 +89,7 @@
       "valeur": "46",
       "unite": "ms",
       "libelle": "to take an app out of the notch",
-      "note": "Fast route, measured end to end. About 31 ms of it is propagation inside the WindowServer."
+      "note": "Fast route, measured end to end. About 31 ms of it is propagation inside the WindowServer."
     },
     "chiffre2": {
       "valeur": "5.1",
@@ -98,7 +98,7 @@
       "note": "Nothing to relaunch, nothing to reload. The app stays in memory and comes back where you left it."
     },
     "chiffre3": {
-      "valeur": "≈ 1",
+      "valeur": "≈ 1",
       "unite": "s",
       "libelle": "when a relaunch is needed",
       "note": "Some apps pin their windows in a private Space and ignore the hide command. Bouncer restarts them instead."
@@ -133,16 +133,16 @@
     "banc": "Campaign of {date}, on an M4 MacBook Pro running macOS Sequoia. Every measured row comes from recounting the windows on screen, before and after hiding. <lien>Full method ›</lien>",
     "lignes": {
       "vibeIsland": {
-        "note": "46 ms end to end"
+        "note": "46 ms end to end"
       },
       "cyclop": {
-        "note": "49 ms end to end"
+        "note": "49 ms end to end"
       },
       "ghNotch": {
-        "note": "47 ms end to end"
+        "note": "47 ms end to end"
       },
       "notchNook": {
-        "note": "57 ms, governed by bundle ID"
+        "note": "57 ms, governed by bundle ID"
       },
       "boringNotch": {
         "note": "About a second"
@@ -174,7 +174,7 @@
     "copier": "Copy",
     "copie": "Copied",
     "echecCopie": "Select the line",
-    "requis1": "macOS 14 Sonoma or later",
+    "requis1": "macOS 14 Sonoma or later",
     "requis2": "A MacBook with a notch",
     "requis3": "The Accessibility permission",
     "gatekeeperQuestion": "“macOS cannot verify that Bouncer is free of malware”",

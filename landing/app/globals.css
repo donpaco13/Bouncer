@@ -258,7 +258,8 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .ways{grid-template-columns:1fr;gap:14px;margin-top:36px}.way{border-radius:22px}
   .way .menu{right:50%;transform:translateX(50%)}
   .way .arw{display:grid}
-  .scene{--nw:100px}
+  /* La valeur doit tenir dans l'aile droite de la pastille, sinon l'encoche la mange. */
+  .scene{--nw:100px}.scene .pill{font-size:11px}
   .specs,.pair{grid-template-columns:1fr}
   .tl{padding:22px 18px;border-radius:18px}
   .lane{grid-template-columns:1fr;gap:6px}
@@ -276,16 +277,28 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .closer{height:96px}
   footer .wrap{flex-direction:column;align-items:flex-start}
   :root{--nw:104px;--nh:32px}
-  .menubar{font-size:13px;grid-template-columns:1fr calc(var(--nw)*2.1) 1fr}
+  /* Le doigt demande 44 px. La barre des menus n'en fait que 32 : chaque
+     commande garde son dessin et prolonge sa zone de toucher sous la barre,
+     d'où le débordement visible. La zone de l'encoche se resserre à la plus
+     large des pastilles (2,05) pour laisser 88 px à chaque côté. */
+  .menubar{font-size:13px;grid-template-columns:1fr calc(var(--nw)*2.05) 1fr}
+  .menubar ul{overflow:visible}
+  a.mb,button.mb{position:relative;min-width:44px;justify-content:center}
+  a.mb::after,button.mb::after{content:"";position:absolute;inset:0 0 -12px}
+  .menu .row,.menu label{min-height:44px}
+  .skip:focus{padding:12px 14px}
+  .hint{white-space:normal;width:max-content;max-width:calc(100vw - 24px)}
   .menubar .l .nav,.menubar .r .gh,.menubar .r .date,.menubar .lang-d,.brand .bt{display:none}
   .menubar .lang-m{display:block}
-  .menubar .l{padding-left:4px}.menubar .r{padding-right:4px}.mb{padding:0 7px}
+  .menubar .l{padding-left:0}.menubar .r{padding-right:0}.mb{padding:0 7px}
   .stage{width:calc(var(--nw)*2.1)}
-  .pill{font-size:11px;padding:0 9px 0 11px}.pill svg{height:10px}.pill .t{gap:4px}
+  .pill{font-size:11px;padding:0 7px 0 10px}.pill svg{height:10px}.pill .t{gap:4px}
   .arw{display:none}
   .hint{font-size:13px;top:calc(var(--nh) + 18px)}
   .menu{right:4px;width:min(268px,100vw - 8px)}
   .desk{min-height:auto;border-radius:0}
   .intro{padding:92px 16px 128px}
 }
+/* Sous 380 px, l'heure cède sa place au menu de Bouncer. */
+@media (max-width:379px){.menubar .time{display:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
