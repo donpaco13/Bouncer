@@ -7,18 +7,23 @@ Mac App Store, et elle réclame ça au premier lancement. Se demander ce qu'elle
 en fait est la bonne réaction.
 
 Ce document répond avec des références au code, fichier et ligne, sur le commit
-`2cb2e63` (5 septembre 2026). Le code est public : chaque affirmation ci-dessous
+`2cb2e63` (5 septembre 2026). Les sections 1, 2, 7 et 8 ont été réécrites le
+13 octobre 2026, au commit `a7f0eec`, quand l'envoi des rapports de plantage est
+passé en option à cocher. Le code est public : chaque affirmation ci-dessous
 se vérifie en ouvrant le fichier cité. Les zones d'ombre trouvées pendant l'audit
 sont dans la dernière section, pas cachées ailleurs.
 
 ---
 
-## 1. Bouncer ne parle à personne
+## 1. Bouncer ne parle à personne, sauf si vous cochez une case
 
-**Aucun code réseau, aucune dépendance tierce.**
+**Une dépendance tierce, `sentry-cocoa`, coupée par défaut.**
 
-`Package.swift` (17 lignes) ne déclare aucune dépendance externe. Bouncer se
-compile à partir de sept frameworks Apple et de rien d'autre :
+`Package.swift` déclare une seule dépendance externe :
+[sentry-cocoa](https://github.com/getsentry/sentry-cocoa) 9.28.0, le SDK de
+rapports de plantage de Sentry. `Package.resolved` fige sa version et celle de
+KSCrash 2.6.0, qu'il embarque pour attraper les plantages. Le reste de l'app se
+compile à partir de frameworks Apple :
 
 | Framework | Ce qu'il sert |
 |---|---|
@@ -27,9 +32,74 @@ compile à partir de sept frameworks Apple et de rien d'autre :
 | ApplicationServices | l'API Accessibilité |
 | ServiceManagement | la case « lancer au démarrage » |
 
-Ni `URLSession`, ni `CFNetwork`, ni `NWConnection`, ni `WKWebView`, ni socket,
-ni bibliothèque d'analytics ou de rapport de crash. Une seule URL apparaît dans
-tout le code :
+### Tant que vous n'avez rien coché, rien ne part
+
+Le SDK n'est démarré que par `PiloteRapportsPlantage`
+(`Sources/BouncerCore/RapportsPlantage.swift`), et seulement quand le réglage
+`bouncer.rapportsPlantage` passe à vrai. Ce réglage vaut faux tant que vous ne
+l'avez pas changé (`Reglages.swift:370`). Sans `SentrySDK.start`, le SDK
+n'ouvre aucune connexion et ne crée pas ses dossiers de cache. Le test
+`RapportsPlantageTests.coupeParDefaut` vérifie qu'avec le réglage par défaut, le
+démarrage n'est jamais appelé.
+
+L'interrupteur est dans le menu de Bouncer, dans la barre des menus :
+« Envoyer les rapports de plantage ». Son infobulle dit ce qui part. Le décocher
+appelle `SentrySDK.close()` (`Sources/Bouncer/App.swift:37`) et le SDK s'arrête
+tout de suite, sans relancer l'app.
+
+### Ce qui part si vous l'activez
+
+Rien pendant que l'app tourne normalement. Quand Bouncer plante, KSCrash écrit
+un rapport sur le disque, et le SDK l'envoie au lancement suivant. Le rapport
+contient :
+
+- la pile d'appels de chaque thread au moment du plantage, et le type d'erreur
+  (`EXC_BAD_ACCESS`, `EXC_BREAKPOINT`…) ;
+- la version de Bouncer (`bouncer@1.2.3`) et l'environnement `production` ;
+- la version de macOS, le modèle du Mac, le processeur et l'état de la mémoire ;
+- un identifiant d'installation tiré au hasard par le SDK et stocké dans son
+  cache. Il sert à compter combien de Mac sont touchés par un même plantage.
+
+Les réglages sont dans `Sources/Bouncer/App.swift:61-73` :
+
+- `sendDefaultPii = false` : le SDK ne joint ni votre adresse IP, ni votre nom
+  d'utilisateur, ni rien qui vous identifie. Le serveur de Sentry voit
+  l'adresse de la connexion, comme n'importe quel serveur que votre Mac
+  contacte ;
+- `enableAutoSessionTracking = false` : pas de signal envoyé à chaque
+  lancement. Seul un plantage produit un envoi ;
+- pas de tracing ni de profiling : aucune mesure de performance ne part.
+
+Bouncer ne lit pas les titres de fenêtres, le contenu des autres apps ou vos
+fichiers (sections 3 à 5). Un rapport de plantage ne peut donc pas les contenir.
+
+### Où ça part
+
+Chez Sentry (Functional Software, Inc.), sur leur région européenne. La DSN,
+l'adresse d'envoi écrite en dur dans `App.swift:63`, pointe sur
+`o4511827012419584.ingest.de.sentry.io`, donc les données sont stockées en
+Allemagne.
+
+### Ce que Bouncer écrit sur le disque quand l'option est active
+
+Le SDK garde ses fichiers dans `~/Library/Caches` : `SentryCrash/Bouncer/` (les
+rapports en attente d'envoi), `io.sentry/` (l'identifiant d'installation et la
+file d'envoi) et `Bouncer/async.log`. Option coupée, ces dossiers ne sont pas
+créés. Pour les effacer après avoir décoché :
+
+```
+rm -rf ~/Library/Caches/SentryCrash/Bouncer ~/Library/Caches/Bouncer
+```
+
+`io.sentry/` peut aussi servir à d'autres apps qui utilisent Sentry. Ses
+sous-dossiers portent un hash de la DSN de chaque app ; n'y supprimez que celui
+de Bouncer si vous savez le reconnaître.
+
+### Le reste du code
+
+Pas de `URLSession`, de `NWConnection`, de `WKWebView` ni de socket dans le code
+de Bouncer. Deux URL y apparaissent : la DSN de Sentry ci-dessus, et
+celle-ci :
 
 ```swift
 // Sources/BouncerCore/WindowManager.swift:160
@@ -44,10 +114,19 @@ Bouncer ne lance pas non plus de sous-processus : pas de `Process`, pas de
 d'encoche que vous avez choisie, par `NSWorkspace.openApplication`
 (`ControleurApps.swift:176`).
 
-Pour vérifier vous-même :
+### Vérifier vous-même
+
+Dans le code :
 
 ```
-grep -rniE 'URLSession|CFNetwork|NWConnection|socket|WKWebView|http' Sources/
+grep -rniE 'URLSession|CFNetwork|NWConnection|socket|WKWebView|http|SentrySDK' Sources/
+```
+
+Sur une app installée, option coupée, aucune connexion ne doit apparaître. Avec
+Little Snitch, LuLu ou, sans rien installer :
+
+```
+nettop -p "$(pgrep -x Bouncer)" -L 1
 ```
 
 Une exception au réseau vient du gestionnaire de paquets, pas de l'app : si vous
@@ -57,11 +136,13 @@ com.apple.quarantine` sur `/Applications/Bouncer.app`
 
 ## 2. Ce que Bouncer écrit sur votre disque
 
-**Sept clés dans un fichier de préférences. Rien d'autre.**
+**Huit clés dans un fichier de préférences. Rien d'autre, tant que les rapports
+de plantage sont coupés.**
 
-Bouncer n'ouvre jamais de fichier en écriture : pas de `FileManager.createFile`,
-pas de `Data.write`, pas de journal, pas de dossier dans `Application Support`,
-pas de cache. Tout passe par `UserDefaults`, donc par le seul fichier
+Le code de Bouncer n'ouvre jamais de fichier en écriture : pas de
+`FileManager.createFile`, pas de `Data.write`, pas de journal, pas de dossier
+dans `Application Support`. Le cache du SDK Sentry, quand vous l'activez, est
+décrit en section 1. Tout passe par `UserDefaults`, donc par le seul fichier
 `~/Library/Preferences/io.github.donpaco13.bouncer.plist`.
 
 | Clé | Contenu | Écrite dans |
@@ -71,10 +152,11 @@ pas de cache. Tout passe par `UserDefaults`, donc par le seul fichier
 | `bouncer.porteeApproche` | nombre : distance d'apparition des flèches, en points | `Reglages.swift:161` |
 | `bouncer.margeLaterale` | nombre : largeur de bande de chaque côté du boîtier caméra | `Reglages.swift:161` |
 | `bouncer.intervalleRafraichissement` | nombre : période de resondage (1, 2, 5, 10 ou 30 s) | `Reglages.swift:161` |
+| `bouncer.rapportsPlantage` | booléen : l'envoi des rapports de plantage, faux par défaut | `Reglages.swift:323` |
 | `bouncer.bundleIDsExclus` | liste de bundleIDs que vous avez décochés du cycle | `Reglages.swift:169` |
 | `bouncer.bundleIDsApprises.v2` | liste de bundleIDs vus au moins une fois dans l'encoche | `CatalogueApps.swift:86` |
 
-Une huitième clé, `bouncer.bundleIDsApprises` (sans le `.v2`), est **effacée** au
+Une neuvième clé, `bouncer.bundleIDsApprises` (sans le `.v2`), est **effacée** au
 démarrage (`CatalogueApps.swift:73`) : c'est un ancien catalogue construit sous
 un filtre de détection trop large, jeté volontairement.
 
@@ -257,21 +339,30 @@ la question.
 **Il n'y a pas de bac à sable.** Bouncer n'est pas sandboxée, ne demande pas de
 Hardened Runtime, et n'embarque aucun fichier d'entitlements : l'`Info.plist`
 écrit par `build.sh:25-52` ne contient que du descriptif de bundle. Rien au
-niveau du système n'**empêche** techniquement une future version d'ouvrir une
-connexion réseau. La garantie de la section 1 est une garantie de code lu, pas
-une garantie imposée par macOS. C'est pour ça que le code est public, que les
+niveau du système n'**empêche** techniquement Bouncer d'ouvrir une connexion
+réseau, avec ou sans la case cochée. La garantie de la section 1 est une
+garantie de code lu, pas une garantie imposée par macOS. C'est pour ça que le code est public, que les
 lignes sont citées, et que les commandes de vérification sont écrites plus haut.
 
 ## 7. Ce que l'audit a trouvé de gênant
 
-Quatre points, du plus au moins sérieux.
+Cinq points, du plus au moins sérieux.
 
-**1. L'installation Homebrew désactive Gatekeeper pour vous.** Détaillé en
+**1. Pendant un mois, Sentry démarrait sans vous demander.** Du commit
+`b121105` (16 septembre 2026) au commit `a7f0eec` (13 octobre 2026), le SDK
+était démarré à chaque lancement, suivi de sessions compris, alors que ce
+document affirmait « aucun code réseau, aucune dépendance tierce ». Une app
+compilée sur cette période envoyait un signal à chaque lancement et un rapport
+à chaque plantage. Depuis `a7f0eec`, rien ne part sans la case cochée. Si vous
+avez fait tourner une de ces versions, les dossiers de cache listés en section 1
+sont sur votre disque et peuvent être supprimés.
+
+**2. L'installation Homebrew désactive Gatekeeper pour vous.** Détaillé en
 section 6. C'est le seul endroit où Bouncer décide à votre place de sauter une
 vérification de sécurité de macOS. Le contournement est visible dans le cask et
 documenté, mais il s'exécute sans vous demander votre avis.
 
-**2. Le catalogue d'apprentissage ne s'oublie pas.** `bouncer.bundleIDsApprises.v2`
+**3. Le catalogue d'apprentissage ne s'oublie pas.** `bouncer.bundleIDsApprises.v2`
 grossit sans jamais rétrécir : aucune interface ne permet d'en retirer une entrée,
 et le code n'offre aucune suppression sélective. Une app désinstallée sort de la
 liste affichée mais reste dans le fichier (`CatalogueApps.swift:89-90`). Le seul
@@ -279,22 +370,22 @@ moyen de repartir de zéro est de supprimer le plist à la main. La liste est
 courte et ne contient que des bundleIDs d'apps d'encoche, mais c'est une trace
 persistante que vous ne pouvez pas effacer depuis l'app.
 
-**3. Deux documents du dépôt sont périmés sur ce sujet.** Le commentaire de
-`Casks/bouncer.rb:29-31` annonce « deux clés » de préférences ; il y en a sept.
+**4. Deux documents du dépôt sont périmés sur ce sujet.** Le commentaire de
+`Casks/bouncer.rb:29-31` annonce « deux clés » de préférences ; il y en a huit.
 `docs/DISTRIBUTION.md:150` propose de nettoyer `~/Library/Application
 Support/Bouncer`, un dossier que l'app ne crée jamais. Sans conséquence
 pratique, puisque le `zap` du cask jette le plist entier. Mais un lecteur qui se
 fierait à ces commentaires aurait une image incomplète.
 
-**4. Le README surestime le rôle de l'autorisation.** Détaillé en section 3. Il
+**5. Le README surestime le rôle de l'autorisation.** Détaillé en section 3. Il
 attribue à l'Accessibilité la détection des fenêtres et la capture des gestes,
 qui marchent sans elle. L'app justifie donc sa demande par plus de choses qu'elle
 n'en tire — l'erreur penche du côté de la sur-justification, pas de la
 sur-collecte.
 
-Rien d'autre n'est ressorti : pas de code réseau, pas de télémétrie, pas de
-lecture de contenu d'application, pas d'écriture de fichier, pas d'écoute
-clavier.
+Rien d'autre n'est ressorti : pas de télémétrie, pas de lecture de contenu
+d'application, pas d'écriture de fichier hors des préférences et du cache Sentry
+décrit en section 1, pas d'écoute clavier.
 
 ## 8. Refaire l'audit vous-même
 
@@ -302,7 +393,7 @@ Le dépôt entier fait environ 2 800 lignes de Swift. Les quatre commandes qui
 fondent ce document :
 
 ```
-grep -rniE 'URLSession|CFNetwork|NWConnection|socket|WKWebView|http' Sources/
+grep -rniE 'URLSession|CFNetwork|NWConnection|socket|WKWebView|http|SentrySDK' Sources/
 grep -rn 'AX[A-Za-z]*(' Sources/
 grep -rn 'kCGWindow' Sources/
 grep -rnE 'UserDefaults|FileManager|\.write\(|OSLog|NSLog' Sources/

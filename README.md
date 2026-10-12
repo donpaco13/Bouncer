@@ -158,7 +158,7 @@ measurement that backs it, the way [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) 
 - [`docs/COMPATIBILITE.md`](docs/COMPATIBILITE.md): every notch app surveyed, and Bouncer's verdict on each.
 - [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md): Gatekeeper, Homebrew quarantine and signing.
 - [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md): CPU cost, the price of a `CGWindowList` scan, and what was optimised.
-- [`docs/CONFIDENTIALITE.md`](docs/CONFIDENTIALITE.md): what Bouncer reads, what it stores, what it never sends.
+- [`docs/CONFIDENTIALITE.md`](docs/CONFIDENTIALITE.md): what Bouncer reads, what it stores, and the crash reports it sends only if you turn them on.
 - [`docs/archive/`](docs/archive/): the original validation spikes and architecture documents.
 
 ## License

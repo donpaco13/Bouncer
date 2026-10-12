@@ -161,7 +161,7 @@ bascule s'accompagne de la mesure qui la justifie, comme le font
 - [`docs/COMPATIBILITE.md`](docs/COMPATIBILITE.md) : chaque app d'encoche recensée, et le verdict de Bouncer pour chacune.
 - [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md) : Gatekeeper, quarantaine Homebrew et signatures.
 - [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) : coût CPU, prix d'un scan `CGWindowList`, et ce qui a été optimisé.
-- [`docs/CONFIDENTIALITE.md`](docs/CONFIDENTIALITE.md) : ce que Bouncer lit, ce qu'il stocke, ce qu'il n'envoie jamais.
+- [`docs/CONFIDENTIALITE.md`](docs/CONFIDENTIALITE.md) : ce que Bouncer lit, ce qu'il stocke, et les rapports de plantage qu'il n'envoie que si vous les activez.
 - [`docs/archive/`](docs/archive/) : les spikes de validation d'origine et les documents d'architecture.
 
 ## Licence
