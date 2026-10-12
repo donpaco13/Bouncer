@@ -35,3 +35,6 @@ export type LigneCompatibilite = {
 };
 
 export const COMPATIBILITE = matrice.apps as readonly LigneCompatibilite[];
+
+/** Le jour de la campagne de mesure, au format ISO. */
+export const CAMPAGNE = matrice.campagne;

@@ -1,36 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useMouvementReduit } from "./mouvement";
 
-/** Le bouton plein du héros : il descend jusqu'à la section d'installation. */
-export function BoutonAncre({
-  vers,
-  children,
-}: {
-  vers: string;
-  children: string;
-}) {
-  const reduit = useMouvementReduit();
-  return (
-    <button
-      type="button"
-      className="bouton cursor-pointer rounded-full border-0 px-6 py-3 text-[.9375rem] font-medium text-white transition-[background] duration-200 ease-courbe"
-      onClick={() =>
-        document.querySelector(vers)?.scrollIntoView({
-          behavior: reduit ? "auto" : "smooth",
-          block: "start",
-        })
-      }
-    >
-      {children}
-    </button>
-  );
-}
-
-/** Une ligne de commande et son bouton de copie. La commande arrive en prop :
-    la page en affiche deux — l'installation et la vérification — et elles
-    n'ont aucune raison d'être deux composants. */
+/** Une ligne de commande et son bouton de copie. */
 export function LigneCommande({
   commande,
   copier,
@@ -54,15 +26,9 @@ export function LigneCommande({
     );
 
   return (
-    <div className="surface mx-auto mt-7 flex max-w-[38rem] items-center justify-between gap-[14px] py-[14px] pr-[14px] pl-[18px]">
-      <code className="overflow-x-auto font-mono text-[.875rem] whitespace-nowrap text-encre">
-        {commande}
-      </code>
-      <button
-        type="button"
-        onClick={surClic}
-        className="flex-none cursor-pointer rounded-full border border-white/10 bg-white/[.04] px-[14px] py-[6px] text-[.8125rem] text-gris hover:border-white/25 hover:text-encre"
-      >
+    <div className="cmd">
+      <code>{commande}</code>
+      <button type="button" onClick={surClic}>
         {libelle}
       </button>
     </div>
