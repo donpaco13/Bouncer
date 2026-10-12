@@ -256,6 +256,10 @@ td b{font-weight:600}
 .cmd{display:flex;align-items:center;gap:8px;background:var(--alu);border-radius:12px;padding:6px 6px 6px 14px}
 .cmd code{flex:1;min-width:0;font:13px var(--mono);overflow-x:auto;white-space:nowrap}
 .cmd button{min-height:44px;padding:0 16px;border-radius:9px;border:0;background:var(--ink);color:#fff;font-weight:600;cursor:pointer}
+.trust{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;max-width:760px;margin-top:32px}
+.trust h3{font:600 17px/1.25 var(--disp)}
+.trust p{color:var(--muted);font-size:15px;margin-top:6px}
+.trust code{font:13px var(--mono);overflow-wrap:anywhere}
 .need{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:32px;color:var(--muted);font-size:15px;list-style:none;padding:0}
 .need li::before{content:"✓ ";color:#1d7a3a;font-weight:700}
 details{max-width:760px;margin-top:20px;background:var(--paper);border-radius:18px;padding:0 24px}
@@ -292,6 +296,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   td:nth-child(3){grid-row:1;grid-column:2}
   td:nth-child(4){grid-column:1/-1;font-size:14px}
   .ways2{grid-template-columns:minmax(0,1fr)}
+  .trust{grid-template-columns:minmax(0,1fr);gap:18px}
   .cut span{left:auto;right:8px}
   .closer{height:96px}
   footer .wrap{flex-direction:column;align-items:flex-start}

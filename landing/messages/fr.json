@@ -181,6 +181,12 @@
     "gatekeeper1": "Vous verrez ce message au premier lancement de l’app téléchargée. Apple facture 99 € par an aux développeurs pour une identité qu’il reconnaît d’emblée, et Bouncer ne la paie pas. Le blocage porte sur cette identité manquante. L’app n’est ni endommagée ni infectée.",
     "gatekeeper2": "Pour l’ouvrir quand même, une seule fois : double-cliquez Bouncer et laissez macOS refuser, puis ouvrez Réglages Système, Confidentialité et sécurité, et cliquez sur « Ouvrir quand même ».",
     "gatekeeper3": "Par Homebrew, vous ne voyez pas ce message parce que le cask retire lui-même l’attribut de quarantaine. C’est un contournement de Gatekeeper que nous écrivons nous-mêmes, et il disparaîtra le jour où Bouncer sera notarisée par Apple.",
-    "telecharger": "Télécharger pour macOS"
+    "telecharger": "Télécharger pour macOS",
+    "accesTitre": "Pourquoi l’Accessibilité ?",
+    "accesCorps": "Pour lire la liste des fenêtres et cacher celles de vos apps d’encoche. Sans elle, Bouncer ne touche à rien. Le code est public sur <lien>GitHub</lien>.",
+    "sortieTitre": "Ce qui sort de votre Mac",
+    "sortieCorps": "Bouncer sait envoyer ses rapports de plantage à Sentry. C’est coupé par défaut, et rien ne part tant que vous ne l’activez pas dans le menu de Bouncer.",
+    "desinstallerTitre": "Pour désinstaller",
+    "desinstallerCorps": "Glissez Bouncer à la corbeille, ou tapez <code>brew uninstall --zap bouncer</code> si vous l’avez installé avec Homebrew."
   }
 }

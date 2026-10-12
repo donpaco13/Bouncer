@@ -181,6 +181,12 @@
     "gatekeeper1": "You will see this on first launch of the downloaded app. Apple charges developers €99 a year for an identity it recognises on sight, and Bouncer doesn’t pay it. The block is about that missing identity. The app is neither damaged nor infected.",
     "gatekeeper2": "To open it anyway, once: double-click Bouncer and let macOS refuse, then open System Settings, Privacy & Security, and click “Open Anyway”.",
     "gatekeeper3": "Through Homebrew you never see this message, because the cask strips the quarantine attribute itself. That’s a Gatekeeper workaround we write ourselves, and it goes away the day Bouncer is notarised by Apple.",
-    "telecharger": "Download for macOS"
+    "telecharger": "Download for macOS",
+    "accesTitre": "Why Accessibility?",
+    "accesCorps": "To read the window list and hide your notch apps’ windows. Without it, Bouncer touches nothing. The code is public on <lien>GitHub</lien>.",
+    "sortieTitre": "What leaves your Mac",
+    "sortieCorps": "Bouncer can send its crash reports to Sentry. That’s off by default, and nothing is sent until you turn it on in the Bouncer menu.",
+    "desinstallerTitre": "To uninstall",
+    "desinstallerCorps": "Drag Bouncer to the Bin, or run <code>brew uninstall --zap bouncer</code> if you installed it with Homebrew."
   }
 }

@@ -14,6 +14,7 @@ import { Pastille, Pomme } from "./signes";
    il est fait. Le lien prend son URL ici : content/liens.ts est la seule
    source, dans toutes les langues. */
 const fort = (c: ReactNode) => <strong>{c}</strong>;
+const code = (c: ReactNode) => <code>{c}</code>;
 const lienVers = (href: string) => (c: ReactNode) => <a href={href}>{c}</a>;
 
 /**
@@ -367,6 +368,16 @@ export function Landing() {
                   echec={t("installation.echecCopie")}
                 />
               </div>
+            </div>
+            {/* La permission la plus intrusive de macOS, demandée par une app
+                non notarisée : la réponse se lit à côté du bouton, pas en bas. */}
+            <div className="trust">
+              {(["acces", "sortie", "desinstaller"] as const).map((c) => (
+                <div key={c}>
+                  <h3>{t(`installation.${c}Titre`)}</h3>
+                  <p>{t.rich(`installation.${c}Corps`, { lien: lienVers(LIENS.depot), code })}</p>
+                </div>
+              ))}
             </div>
             <ul className="need">
               <li>{t("installation.requis1")}</li>
