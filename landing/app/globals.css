@@ -47,7 +47,9 @@ button{font:inherit;color:inherit}
 .menubar{position:relative;z-index:5;height:var(--nh);display:grid;grid-template-columns:1fr calc(var(--nw)*2.3) 1fr;align-items:center;
   background:rgba(10,10,30,.32);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);
   font:500 14px/1 var(--sys);letter-spacing:-.005em}
-.menubar ul{list-style:none;padding:0;display:flex;align-items:center;min-width:0;overflow:hidden;white-space:nowrap}
+/* Quand la place manque, un menu passe à la ligne, donc hors de la barre,
+   au lieu d'être coupé au milieu d'un mot. */
+.menubar ul{list-style:none;padding:0;display:flex;flex-wrap:wrap;align-items:center;min-width:0;height:var(--nh);overflow:hidden;white-space:nowrap}
 .menubar .l{padding-left:12px;gap:2px}
 .menubar .r{justify-content:flex-end;padding-right:12px;gap:2px}
 .mb{display:inline-flex;align-items:center;gap:7px;height:var(--nh);padding:0 9px;border-radius:5px;color:#fff;text-decoration:none;border:0;background:none;cursor:default}
@@ -284,7 +286,8 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
      d'où le débordement visible. La zone de l'encoche se resserre à la plus
      large des pastilles (2,05) pour laisser 88 px à chaque côté. */
   .menubar{font-size:13px;grid-template-columns:1fr calc(var(--nw)*2.05) 1fr}
-  .menubar ul{overflow:visible}
+  .menubar ul{overflow:visible;flex-wrap:nowrap}
+  .menubar .l,.menubar .r{gap:0}
   a.mb,button.mb{position:relative;min-width:44px;justify-content:center}
   a.mb::after,button.mb::after{content:"";position:absolute;inset:0 0 -12px}
   .menu .row,.menu label{min-height:44px}
@@ -293,7 +296,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .menubar .l .nav,.menubar .r .gh,.menubar .r .date,.menubar .lang-d,.brand .bt{display:none}
   .menubar .lang-m{display:block}
   .menubar .l{padding-left:0}.menubar .r{padding-right:0}.mb{padding:0 7px}
-  .stage{width:calc(var(--nw)*2.1)}
+  .stage{width:calc(var(--nw)*2.05)}
   .pill{font-size:11px;padding:0 7px 0 10px}.pill svg{height:10px}.pill .t{gap:4px}
   .arw{display:none}
   .hint{font-size:13px;top:calc(var(--nh) + 18px)}
