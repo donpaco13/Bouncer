@@ -241,6 +241,7 @@ export function Landing() {
           <div className="wrap">
             <h2>{t("compatibilite.titre")}</h2>
             <p className="lede">{t("compatibilite.chapo")}</p>
+            <p className="nope">{t("compatibilite.pasPourVous")}</p>
             <div className="tbl">
               <table>
                 <caption className="sr">{t("compatibilite.legendeTableau")}</caption>

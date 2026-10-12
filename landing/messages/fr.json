@@ -162,7 +162,8 @@
     },
     "colonneCachee": "Quand elle est cachée",
     "cacheeOuverte": "Reste ouverte",
-    "cacheeFermee": "Fermée, puis relancée"
+    "cacheeFermee": "Fermée, puis relancée",
+    "pasPourVous": "Pas pour vous si vous n’avez qu’une app d’encoche. Avec une seule, Bouncer n’a rien à départager."
   },
   "installation": {
     "titre": "Installer Bouncer",

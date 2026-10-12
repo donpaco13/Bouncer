@@ -162,7 +162,8 @@
     },
     "colonneCachee": "While hidden",
     "cacheeOuverte": "Stays open",
-    "cacheeFermee": "Quit, then relaunched"
+    "cacheeFermee": "Quit, then relaunched",
+    "pasPourVous": "Not for you if you only run one notch app. With just one, there’s nothing for Bouncer to choose between."
   },
   "installation": {
     "titre": "Get Bouncer",
