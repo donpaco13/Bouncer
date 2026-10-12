@@ -15,6 +15,8 @@
 "menu.welcomeGuide" = "欢迎指南…";
 "menu.refresh" = "刷新";
 "menu.quit" = "退出 Bouncer";
+"menu.crashReports" = "发送崩溃报告";
+"menu.crashReports.detail" = "在你开启之前不会发送任何内容。发生崩溃后，Bouncer 会向 Sentry（欧盟服务器）发送堆栈跟踪、Bouncer 和 macOS 版本、Mac 型号以及一个随机的安装 ID。不发送窗口标题、文件名、屏幕内容或个人信息。";
 
 /* State of one app in the menu, read out by VoiceOver. */
 "menu.state.onStage" = "正占据刘海";

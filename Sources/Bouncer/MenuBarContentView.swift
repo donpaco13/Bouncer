@@ -4,6 +4,7 @@ import BouncerCore
 
 struct MenuBarContentView: View {
     @ObservedObject var windowManager: WindowManager
+    @ObservedObject var reglages: Reglages
 
     /// Rouvre la fenêtre de bienvenue. Le geste du produit — survoler l'encoche, swiper — ne
     /// s'écrit que là ; sans cette entrée, il devient introuvable dès l'accueil refermé.
@@ -51,6 +52,11 @@ struct MenuBarContentView: View {
         Button(texte("menu.settings")) { Self.ouvrirReglages() }
             .keyboardShortcut(",", modifiers: .command)
         Button(texte("menu.welcomeGuide")) { ouvrirAccueil() }
+        // Opt-in : décoché tant que l'utilisateur n'a rien fait. L'infobulle dit ce qui part et
+        // ce qui ne part pas ; un menu n'a pas la place pour un paragraphe.
+        Toggle(texte("menu.crashReports"), isOn: $reglages.rapportsPlantage)
+            .help(texte("menu.crashReports.detail"))
+            .accessibilityHint(texte("menu.crashReports.detail"))
         Button(texte("menu.refresh")) { windowManager.refresh() }
         Button(texte("menu.quit")) { NSApplication.shared.terminate(nil) }
     }

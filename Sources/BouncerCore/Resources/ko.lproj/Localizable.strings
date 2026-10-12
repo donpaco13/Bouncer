@@ -18,6 +18,8 @@
 "menu.welcomeGuide" = "시작 가이드…";
 "menu.refresh" = "새로 고침";
 "menu.quit" = "Bouncer 종료";
+"menu.crashReports" = "충돌 보고서 보내기";
+"menu.crashReports.detail" = "직접 켜기 전까지는 아무것도 보내지 않습니다. 충돌이 나면 Bouncer는 Sentry(EU 서버)에 스택 추적, Bouncer와 macOS 버전, Mac 모델, 임의의 설치 ID를 보냅니다. 윈도우 제목, 파일 이름, 화면 내용, 개인 정보는 보내지 않습니다.";
 
 /* State of one app in the menu, read out by VoiceOver. */
 "menu.state.onStage" = "노치에 표시 중";

@@ -18,6 +18,8 @@
 "menu.welcomeGuide" = "Welcome Guide…";
 "menu.refresh" = "Refresh";
 "menu.quit" = "Quit Bouncer";
+"menu.crashReports" = "Send Crash Reports";
+"menu.crashReports.detail" = "Off until you turn it on. After a crash, Bouncer sends Sentry (EU servers) the stack trace, the Bouncer and macOS versions, the Mac model and a random install ID. No window titles, file names, screen content or personal details.";
 
 /* State of one app in the menu, read out by VoiceOver. Same words as the landing page. */
 "menu.state.onStage" = "on stage";

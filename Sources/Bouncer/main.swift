@@ -10,7 +10,6 @@
 
 import SwiftUI
 import BouncerCore
-import Sentry
 
 if CommandLine.arguments.contains("--self-test") {
     // Le code de haut niveau de `main.swift` n'est pas isolé, alors que `WindowManager` l'est
@@ -45,17 +44,6 @@ if CommandLine.arguments.contains("--self-test") {
     }
 }
 
-// Error monitoring seul (pas de tracing/profiling) — jamais sur le chemin --self-test au-dessus :
-// ce mode est un outil de développeur lancé en boucle depuis un terminal, pas une session
-// utilisateur, et il n'a pas vocation à remonter des events.
-SentrySDK.start { options in
-    options.dsn = "https://df3cae4a19aed384f3763d1e27ab0e12@o4511827012419584.ingest.de.sentry.io/4512097601847376"
-    options.debug = false
-    // Bouncer est distribué en Cask public sans écran de consentement : pas d'IP, pas de device
-    // context nominatif dans les events.
-    options.sendDefaultPii = false
-    options.environment = "production"
-    options.releaseName = "bouncer@\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")"
-}
-
+// Sentry ne démarre PAS ici : il attend que l'utilisateur l'active dans le menu (opt-in, cf.
+// `PiloteRapportsPlantage` et App.swift). Le chemin --self-test au-dessus n'y passe jamais.
 BouncerApp.main()

@@ -163,6 +163,7 @@ public final class Reglages: ObservableObject {
         static let inactivite = "bouncer.inactiviteFleches"
         static let alignement = "bouncer.alignementFleches"
         static let courbe = "bouncer.courbeRevelation"
+        static let rapportsPlantage = "bouncer.rapportsPlantage"
     }
 
     private let defaults: UserDefaults
@@ -315,6 +316,13 @@ public final class Reglages: ObservableObject {
         didSet { defaults.set(bundleIDsExclus.sorted(), forKey: Cle.exclus) }
     }
 
+    /// L'envoi des rapports de plantage à Sentry. COUPÉ PAR DÉFAUT : Bouncer est distribué sans
+    /// écran de consentement, et rien ne doit partir sur le réseau tant que l'utilisateur ne l'a
+    /// pas coché lui-même (cf. `PiloteRapportsPlantage`, docs/CONFIDENTIALITE.md).
+    @Published public var rapportsPlantage: Bool {
+        didSet { defaults.set(rapportsPlantage, forKey: Cle.rapportsPlantage) }
+    }
+
     public init(defaults: UserDefaults = .standard,
                 appliquerLangue: @escaping (LangueInterface) -> Void = activerLangue) {
         self.defaults = defaults
@@ -358,6 +366,8 @@ public final class Reglages: ObservableObject {
         intervalleStocke = lu.flatMap { Domaine.intervalles.contains($0) ? $0 : nil }
             ?? Domaine.intervalleDefaut
         bundleIDsExclus = Set(defaults.stringArray(forKey: Cle.exclus) ?? [])
+        // `bool(forKey:)` rend false pour une clé absente : c'est exactement le défaut voulu.
+        rapportsPlantage = defaults.bool(forKey: Cle.rapportsPlantage)
         // Un rawValue inconnu (préférence écrite à la main, ou combinaison retirée d'une version
         // à l'autre) retombe sur le défaut plutôt que de laisser l'app sans raccourci du tout.
         raccourciGlobal = (defaults.string(forKey: Cle.raccourci).flatMap(RaccourciGlobal.init(rawValue:)))

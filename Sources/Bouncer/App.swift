@@ -8,6 +8,7 @@
 
 import SwiftUI
 import BouncerCore
+import Sentry
 
 struct BouncerApp: App {
     @StateObject private var windowManager: WindowManager
@@ -24,10 +25,16 @@ struct BouncerApp: App {
     /// ⌃⌥⌘B ne faisait rien avant. Le contrôleur reste observable : c'est `VueReglages` qui le
     /// prend en `@ObservedObject`, et sa durée de vie est celle de l'app.
     private let raccourci: RaccourciGlobalController
+    /// Démarre Sentry quand l'utilisateur coche « Envoyer les rapports de plantage », l'arrête
+    /// quand il décoche. Par défaut rien ne démarre. Un `let` pour la même raison que `raccourci` :
+    /// il doit vivre dès le lancement, pas à la première évaluation d'une scène.
+    private let rapportsPlantage: PiloteRapportsPlantage
 
     init() {
         let reglages = Reglages()
         _reglages = StateObject(wrappedValue: reglages)
+        rapportsPlantage = PiloteRapportsPlantage(reglages: reglages, demarrer: Self.demarrerSentry,
+                                                  arreter: { SentrySDK.close() })
         let windowManager = WindowManager(reglages: reglages)
         _windowManager = StateObject(wrappedValue: windowManager)
         overlayController = NotchOverlayController(windowManager: windowManager, reglages: reglages)
@@ -50,6 +57,21 @@ struct BouncerApp: App {
         }
     }
 
+    /// Error monitoring seul : pas de tracing, pas de profiling, pas de suivi de sessions.
+    private static func demarrerSentry() {
+        SentrySDK.start { options in
+            options.dsn = "https://df3cae4a19aed384f3763d1e27ab0e12@o4511827012419584.ingest.de.sentry.io/4512097601847376"
+            options.debug = false
+            // Pas d'IP, pas de device context nominatif dans les events.
+            options.sendDefaultPii = false
+            // Le suivi de sessions enverrait un ping à chaque lancement, plantage ou non : ce
+            // n'est pas ce que l'utilisateur a accepté en cochant « rapports de plantage ».
+            options.enableAutoSessionTracking = false
+            options.environment = "production"
+            options.releaseName = "bouncer@\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")"
+        }
+    }
+
     var body: some Scene {
         // L'icône change quand la dernière bascule a échoué : un swipe raté ne bouge rien à
         // l'écran, et le message qui l'explique dort dans un menu que personne n'ouvrira sans
@@ -69,6 +91,7 @@ struct BouncerApp: App {
         ) {
             MenuBarContentView(
                 windowManager: windowManager,
+                reglages: reglages,
                 ouvrirAccueil: { [accueilController] in accueilController.afficher() }
             )
         }

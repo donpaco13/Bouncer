@@ -13,6 +13,8 @@
 "menu.welcomeGuide" = "Guide de démarrage…";
 "menu.refresh" = "Rafraîchir";
 "menu.quit" = "Quitter Bouncer";
+"menu.crashReports" = "Envoyer les rapports de plantage";
+"menu.crashReports.detail" = "Coupé tant que vous ne l’activez pas. Après un plantage, Bouncer envoie à Sentry (serveurs dans l’UE) la pile d’appels, les versions de Bouncer et de macOS, le modèle du Mac et un identifiant d’installation aléatoire. Ni titres de fenêtres, ni noms de fichiers, ni contenu de l’écran, ni donnée personnelle.";
 
 "menu.state.onStage" = "occupe l'encoche";
 "menu.state.waiting" = "n'occupe pas l'encoche, un clic la ramène";

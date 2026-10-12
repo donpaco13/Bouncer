@@ -16,6 +16,8 @@
 "menu.welcomeGuide" = "Guía de bienvenida…";
 "menu.refresh" = "Actualizar";
 "menu.quit" = "Salir de Bouncer";
+"menu.crashReports" = "Enviar informes de fallos";
+"menu.crashReports.detail" = "Desactivado hasta que lo actives. Tras un fallo, Bouncer envía a Sentry (servidores en la UE) la traza de la pila, las versiones de Bouncer y macOS, el modelo del Mac y un identificador de instalación aleatorio. Ni títulos de ventanas, ni nombres de archivos, ni contenido de la pantalla, ni datos personales.";
 
 /* State of one app in the menu, read out by VoiceOver. Same words as the landing page. */
 "menu.state.onStage" = "en el notch";
