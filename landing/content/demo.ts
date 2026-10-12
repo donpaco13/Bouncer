@@ -1,47 +1,54 @@
 /**
- * LE COUPLE D'APPS QUE L'APERÇU MET EN SCÈNE.
+ * LES APPS QUE L'ENCOCHE DU HÉROS MET EN SCÈNE.
  *
- * Une seule constante à changer — `APPS_APERCU` — et l'aperçu, le pupitre, les
- * libellés des flèches et le lecteur d'écran suivent. C'est volontaire : la
- * question « quelle app mettre en avant » se rejoue à chaque nouvelle mesure,
- * et elle ne doit jamais demander de retoucher du JSX.
+ * Une seule constante à changer, `APPS_APERCU`, et l'encoche, le menu de
+ * Bouncer et le lecteur d'écran suivent. La question « quelle app mettre en
+ * avant » se rejoue à chaque nouvelle mesure, et elle ne doit jamais demander
+ * de retoucher du JSX.
  *
- * LA RÈGLE QUI NE SE NÉGOCIE PAS : n'inscrire ici qu'une app que Bouncer régit
- * pour de vrai, c'est-à-dire une ligne de `docs/COMPATIBILITE.md` § 3.1. Les
- * apps les plus connues — NotchNook, Notchy, Mew Notch — dessinent sur 1352 pt,
- * soit 100 % de l'écran ; le filtre de détection s'arrête à 80 % et Bouncer ne
- * les voit pas. Les mettre en vitrine serait promettre ce que le produit ne
- * fait pas.
+ * LA RÈGLE QUI NE SE NÉGOCIE PAS : n'inscrire ici qu'une app MESURÉE dans
+ * `compatibilite.json`. Le nom et la voie de bascule viennent de là, pas d'ici,
+ * et `appDemo` fait échouer le build si la ligne est seulement prédite. Mettre
+ * en vitrine une app que Bouncer n'a jamais basculée, ce serait promettre ce
+ * que le produit n'a pas prouvé.
  *
- * Le couple par défaut n'est pas un pis-aller, c'est le meilleur argument
- * disponible : boringNotch est l'app d'encoche libre la plus installée du lot
- * régi, et le duo couvre à lui seul les DEUX voies de bascule — Vibe Island
- * part en 46 ms par masquage, boringNotch en ~1 s par relance parce qu'elle
- * épingle sa fenêtre dans un Space privé. Une seule scène démontre tout le
- * moteur.
+ * Le trio couvre les deux voies du moteur : Vibe Island et NotchNook partent
+ * par masquage, boringNotch par relance parce qu'elle épingle sa fenêtre dans
+ * un Space privé. Une seule encoche montre tout le moteur, « on avant off »
+ * compris.
  */
 import type messages from "@/messages/fr.json";
+import { COMPATIBILITE, type CleApp } from "./compatibilite";
 
-/** La clé du contenu affiché dans la pilule. Tirée du dictionnaire français,
+/** La clé du contenu affiché dans la pastille. Tirée du dictionnaire français,
     la langue de référence : une clé inventée ici ne compile pas. */
 export type CleContenu = keyof (typeof messages)["demo"]["contenus"];
 
-/** Le signe dessiné à gauche dans la pilule. Trois formes, dessinées en SVG
-    dans l'aperçu : aucune requête réseau, aucun logo tiers à s'approprier. */
-export type Signe = "onde" | "pastilles" | "date";
+/** Le signe dessiné à gauche dans la pastille, en SVG dans `signes.tsx` :
+    aucune requête réseau, aucun logo tiers à s'approprier. */
+export type Signe = "pastilles" | "onde" | "tiroir";
 
 export type AppApercu = {
-  /** Nom propre : il ne se traduit pas, il ne vit donc pas dans les messages. */
-  nom: string;
+  cle: CleApp;
   contenu: CleContenu;
   signe: Signe;
+  /** Largeur de la pastille dépliée, en multiples de la largeur de l'encoche.
+      Chaque app a la sienne : c'est ce qui rend la bascule visible. */
+  largeur: number;
 };
 
-/** Au moins deux apps : l'aperçu met en scène un relais, pas une vitrine. Le
-    type le dit, donc vider le tableau ne compile pas. */
-export type CoupleApercu = readonly [AppApercu, AppApercu, ...AppApercu[]];
-
 export const APPS_APERCU = [
-  { nom: "boringNotch", contenu: "musique", signe: "onde" },
-  { nom: "Vibe Island", contenu: "agents", signe: "pastilles" },
-] as const satisfies CoupleApercu;
+  { cle: "vibeIsland", contenu: "agents", signe: "pastilles", largeur: 2.05 },
+  { cle: "boringNotch", contenu: "musique", signe: "onde", largeur: 1.78 },
+  { cle: "notchNook", contenu: "fichiers", signe: "tiroir", largeur: 1.92 },
+] as const satisfies readonly [AppApercu, AppApercu, ...AppApercu[]];
+
+/** La ligne de la matrice qui porte une app de la démo. Lève au build si
+    l'app n'est pas mesurée. */
+export function appDemo(cle: CleApp) {
+  const ligne = COMPATIBILITE.find((l) => l.cle === cle);
+  if (!ligne || ligne.preuve !== "mesure") {
+    throw new Error(`demo.ts : ${cle} n'est pas une app mesurée`);
+  }
+  return ligne;
+}

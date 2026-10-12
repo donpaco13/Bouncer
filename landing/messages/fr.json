@@ -8,37 +8,52 @@
     "codeSource": "Code source",
     "piedLigne": "Bouncer, utilitaire pour macOS 14 et plus.",
     "piedGithub": "GitHub",
-    "piedVersions": "Versions"
+    "piedVersions": "Versions",
+    "navigation": "Site",
+    "marque": "Bouncer, haut de page",
+    "nav": {
+      "pourquoi": "Pourquoi",
+      "changer": "Changer d’app",
+      "fonctionnement": "Fonctionnement",
+      "apps": "Apps",
+      "installer": "Installer"
+    },
+    "date": "lun. 12 oct."
   },
   "demo": {
     "contenus": {
-      "musique": {
-        "valeur": "2:41"
-      },
       "agents": {
         "valeur": "4 agents"
       },
-      "calendrier": {
-        "valeur": "jeu. 14 · 11:00"
+      "musique": {
+        "valeur": "2:41"
+      },
+      "fichiers": {
+        "valeur": "3 fichiers"
       }
     }
   },
   "apercu": {
-    "invite": "Balayez l’encoche, ou cliquez. Dans l’encoche :",
-    "enScene": "Dans l’encoche :",
-    "debranche": "Sans Bouncer : les deux apps dessinent au même endroit.",
-    "bouncerActif": "Bouncer",
+    "menu": "Menu de Bouncer",
+    "menuTitre": "Apps d’encoche",
+    "appSuivante": "App suivante",
     "precedente": "App d’encoche précédente",
     "suivante": "App d’encoche suivante",
-    "geste": "Balayez",
-    "raccourci": "marche aussi ici"
+    "indice": "Balayez ici à deux doigts, ou appuyez sur <kbd>⌃⌥⌘B</kbd>",
+    "annonceRapide": "Dans l’encoche : {app}. Bascule instantanée.",
+    "annonceRelance": "Relance de {app}. L’app en place reste jusqu’à ce que la nouvelle soit à l’écran.",
+    "annonceArrivee": "Dans l’encoche : {app}.",
+    "annonceAllume": "Bouncer est allumé. Dans l’encoche : {app}.",
+    "annonceEteint": "Bouncer est éteint. Toutes les apps d’encoche dessinent au même endroit."
   },
   "heros": {
+    "surtitre": "Bouncer pour macOS",
     "titreLigne1": "Une encoche.",
-    "titreLigne2": "<accent>Une seule app</accent> à la fois.",
-    "chapo": "Vos apps d’encoche restent toutes ouvertes. Bouncer décide laquelle se voit, et vous changez d’avis d’un swipe à deux doigts.",
-    "installer": "Installer Bouncer",
-    "voirCompatibles": "Voir si vos apps sont prises en charge"
+    "titreLigne2": "Une app à la fois.",
+    "pourQui": "Pour ceux qui ont un MacBook à encoche, plusieurs apps d’encoche, et en ont assez de quitter l’une pour voir l’autre. Vos apps d’encoche restent toutes ouvertes. Bouncer décide laquelle se voit, et un balayage à deux doigts en change.",
+    "telecharger": "Télécharger pour macOS",
+    "voirCompatibles": "Est-ce que ça marche avec mes apps ? ›",
+    "mentions": "Gratuit et open source · macOS 14 Sonoma ou plus récent · Sans compte"
   },
   "probleme": {
     "surtitre": "Le problème",

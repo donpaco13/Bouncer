@@ -8,37 +8,52 @@
     "codeSource": "Source code",
     "piedLigne": "Bouncer, a utility for macOS 14 and later.",
     "piedGithub": "GitHub",
-    "piedVersions": "Releases"
+    "piedVersions": "Releases",
+    "navigation": "Site",
+    "marque": "Bouncer, top of page",
+    "nav": {
+      "pourquoi": "Why",
+      "changer": "Switching",
+      "fonctionnement": "How it works",
+      "apps": "Apps",
+      "installer": "Install"
+    },
+    "date": "Mon 12 Oct"
   },
   "demo": {
     "contenus": {
-      "musique": {
-        "valeur": "2:41"
-      },
       "agents": {
         "valeur": "4 agents"
       },
-      "calendrier": {
-        "valeur": "Thu 14 · 11:00"
+      "musique": {
+        "valeur": "2:41"
+      },
+      "fichiers": {
+        "valeur": "3 files"
       }
     }
   },
   "apercu": {
-    "invite": "Swipe across the notch, or click. In the notch:",
-    "enScene": "In the notch:",
-    "debranche": "Without Bouncer: both apps drawing in the same place.",
-    "bouncerActif": "Bouncer",
+    "menu": "Bouncer menu",
+    "menuTitre": "Notch apps",
+    "appSuivante": "Next app",
     "precedente": "Previous notch app",
     "suivante": "Next notch app",
-    "geste": "Swipe",
-    "raccourci": "works here too"
+    "indice": "Swipe here with two fingers, or press <kbd>⌃⌥⌘B</kbd>",
+    "annonceRapide": "In the notch: {app}. Instant switch.",
+    "annonceRelance": "Relaunching {app}. The current app stays until the new one is on screen.",
+    "annonceArrivee": "In the notch: {app}.",
+    "annonceAllume": "Bouncer is on. In the notch: {app}.",
+    "annonceEteint": "Bouncer is off. Every notch app draws in the same place."
   },
   "heros": {
+    "surtitre": "Bouncer for macOS",
     "titreLigne1": "One notch.",
-    "titreLigne2": "<accent>One app</accent> at a time.",
-    "chapo": "Your notch apps all stay open. Bouncer decides which one you see, and you change your mind with a two-finger swipe.",
-    "installer": "Install Bouncer",
-    "voirCompatibles": "See how your apps are handled"
+    "titreLigne2": "One app at a time.",
+    "pourQui": "For MacBook owners who run more than one notch app and are tired of quitting one to see the other. Your notch apps all stay open. Bouncer decides which one you see, and a two-finger swipe changes it.",
+    "telecharger": "Download for macOS",
+    "voirCompatibles": "Does it work with my apps? ›",
+    "mentions": "Free and open source · macOS 14 Sonoma or later · No account"
   },
   "probleme": {
     "surtitre": "The problem",

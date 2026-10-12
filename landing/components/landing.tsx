@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { COMPATIBILITE } from "@/content/compatibilite";
-import { APPS_APERCU } from "@/content/demo";
+import { APPS_APERCU, appDemo } from "@/content/demo";
 import { COMMANDE_BREW, COMMANDE_VERIF, LIENS } from "@/content/liens";
-import { ApercuVivant } from "./apercu";
+import { NOMS_LANGUES, routing } from "@/i18n/routing";
+import { Bureau, type AppBureau } from "./bureau";
+import { Pomme } from "./signes";
 import { BoutonAncre, LigneCommande } from "./actions";
 import * as m from "./mise-en-page";
-import { SelecteurLangue } from "./selecteur-langue";
 
 /* Les balises que le texte traduit a le droit de porter. Elles restent dans le
    code : une traduction choisit où le renfort tombe dans sa phrase, pas de quoi
@@ -30,77 +31,90 @@ const lienVers = (href: string) => (c: ReactNode) => <a href={href}>{c}</a>;
  */
 export function Landing() {
   const t = useTranslations();
+  const locale = useLocale();
+  const autre = routing.locales.find((x) => x !== locale) ?? routing.defaultLocale;
 
-  /* L'aperçu est un composant client : il reçoit des chaînes déjà résolues,
+  /* Le bureau est un composant client : il reçoit des chaînes déjà résolues,
      donc aucun dictionnaire ne part au navigateur. */
-  const apps = APPS_APERCU.map((a) => ({
-    nom: a.nom,
-    valeur: t(`demo.contenus.${a.contenu}.valeur`),
-    signe: a.signe,
-  }));
-  const libelles = {
-    invite: t("apercu.invite"),
-    enScene: t("apercu.enScene"),
-    debranche: t("apercu.debranche"),
-    bouncerActif: t("apercu.bouncerActif"),
-    precedente: t("apercu.precedente"),
-    suivante: t("apercu.suivante"),
-    geste: t("apercu.geste"),
-    raccourci: t("apercu.raccourci"),
-  };
+  const apps: AppBureau[] = APPS_APERCU.map((a) => {
+    const { app, bascule } = appDemo(a.cle);
+    return {
+      nom: app,
+      valeur: t(`demo.contenus.${a.contenu}.valeur`),
+      signe: a.signe,
+      largeur: a.largeur,
+      voie: bascule,
+      libelleVoie: t(`compatibilite.${LIBELLE_BASCULE[bascule]}`),
+      annonces: {
+        rapide: t("apercu.annonceRapide", { app }),
+        relance: t("apercu.annonceRelance", { app }),
+        arrivee: t("apercu.annonceArrivee", { app }),
+        allume: t("apercu.annonceAllume", { app }),
+      },
+    };
+  });
 
   return (
     <>
-      <a
-        href="#contenu"
-        className="absolute top-0 left-[-9999px] z-20 rounded-br-lg border-0 bg-accent px-[18px] py-[10px] text-white focus:left-0"
-      >
+      <a className="skip" href="#main">
         {t("chrome.evitement")}
       </a>
 
-      <header className="border-b border-filet">
-        <div className={`${m.enveloppe} flex h-[58px] items-center justify-between`}>
-          <span className="text-[1.0625rem] font-semibold tracking-[-.015em]">
-            Bouncer
-          </span>
-          <span className="flex items-center gap-[22px]">
-            <SelecteurLangue />
-            <a
-              href={LIENS.depot}
-              className="border-0 text-[.9375rem] text-gris hover:text-encre"
-            >
-              {t("chrome.codeSource")}
+      <header className="hero">
+        <Bureau
+          apps={apps}
+          l={{
+            navigation: t("chrome.navigation"),
+            marque: t("chrome.marque"),
+            menu: t("apercu.menu"),
+            menuTitre: t("apercu.menuTitre"),
+            appSuivante: t("apercu.appSuivante"),
+            precedente: t("apercu.precedente"),
+            suivante: t("apercu.suivante"),
+            eteint: t("apercu.annonceEteint"),
+            date: t("chrome.date"),
+            depot: LIENS.depot,
+          }}
+          nav={NAV.map(([href, cle]) => ({ href, libelle: t(`chrome.nav.${cle}`) }))}
+          langue={
+            /* Deux langues, donc un seul lien : celui vers l'autre, écrit dans
+               l'autre. Relatif, parce que `trailingSlash` garantit que l'URL
+               courante finit par « / » : le site marche servi d'un sous-dossier. */
+            <a className="mb" href={`../${autre}/`} lang={autre} hrefLang={autre} aria-label={NOMS_LANGUES[autre]}>
+              {autre.toUpperCase()}
             </a>
-          </span>
-        </div>
-      </header>
-
-      <main id="contenu" tabIndex={-1}>
-        {/* ---------------------------- HÉROS ----------------------------
-            Le titre, puis tout de suite le produit qui marche. On ne demande
-            pas de lire une promesse : on donne l'app à toucher. */}
-        <section className="scroll-mt-6 pt-haut-heros pb-pas">
-          <div className={m.enveloppe}>
-            <h1 className="titre-degrade mb-[.32em] text-balance text-center text-heros font-semibold leading-[1.03] tracking-heros">
+          }
+          indice={t.rich("apercu.indice", { kbd: (c) => <kbd>{c}</kbd> })}
+        >
+          <div className="intro" id="top">
+            <p className="eyebrow">{t("heros.surtitre")}</p>
+            <h1>
               {t("heros.titreLigne1")}
               <br />
-              {t.rich("heros.titreLigne2", { accent })}
+              {t("heros.titreLigne2")}
             </h1>
-            <p className={`${m.chapo} max-w-[33rem]`}>{t("heros.chapo")}</p>
-            <div className="mt-[34px] flex flex-wrap items-center justify-center gap-[14px]">
-              <BoutonAncre vers="#installer">{t("heros.installer")}</BoutonAncre>
-              <a
-                href="#compatibilite"
-                className="border-b-filet text-[.9375rem] text-gris hover:text-encre"
-              >
+            <p className="who">{t("heros.pourQui")}</p>
+            <div className="cta">
+              <a className="btn" href="#install">
+                <Pomme />
+                {t("heros.telecharger")}
+              </a>
+              <a className="link" href="#apps">
                 {t("heros.voirCompatibles")}
               </a>
             </div>
-
-            <ApercuVivant apps={apps} l={libelles} />
+            <p className="fine">{t("heros.mentions")}</p>
           </div>
-        </section>
 
+          <svg className="hills" viewBox="0 0 1440 190" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 120C180 70 330 60 520 96s330 40 520-6 300-50 400-20V190H0z" fill="#2b2466" opacity=".55" />
+            <path d="M0 150c210-46 420-40 640-8s420 20 560-14 180-20 240-8V190H0z" fill="#8e86b8" opacity=".55" />
+            <path d="M0 176c260-28 520-30 760-12s470 10 680-8V190H0z" fill="#e8e8ed" />
+          </svg>
+        </Bureau>
+      </header>
+
+      <main id="main" tabIndex={-1}>
         {/* --------------------------- LE PROBLÈME ------------------------ */}
         <section className="scroll-mt-6 py-pas">
           <div className={m.enveloppe}>
@@ -426,6 +440,15 @@ const cellule =
    colonne existait — « Pas encore vue », en gris — pour les apps que le filtre
    de détection ne voyait pas ; elle est vide depuis que NotchNook, Notchy et
    Mew Notch sont régies par leur bundleID (docs/COMPATIBILITE.md §3.2). */
+/** Les entrées de la barre des menus : l'ancre de la section, et sa clé. */
+const NAV = [
+  ["#problem", "pourquoi"],
+  ["#gesture", "changer"],
+  ["#engine", "fonctionnement"],
+  ["#apps", "apps"],
+  ["#install", "installer"],
+] as const;
+
 const LIBELLE_BASCULE = {
   rapide: "basculeRapide",
   relance: "basculeRelance",
