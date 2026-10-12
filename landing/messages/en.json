@@ -123,7 +123,6 @@
     "chapo": "Seven apps measured one by one on a real machine. Three more read from their source code.",
     "legendeTableau": "Compatibility of notch apps with Bouncer",
     "colonneApp": "Application",
-    "colonneBascule": "Switch",
     "colonnePreuve": "Evidence",
     "colonneNote": "Note",
     "basculeRapide": "Instant",
@@ -133,36 +132,39 @@
     "banc": "Campaign of {date}, on an M4 MacBook Pro running macOS Sequoia. Every measured row comes from recounting the windows on screen, before and after hiding. <lien>Full method ›</lien>",
     "lignes": {
       "vibeIsland": {
-        "note": "46 ms end to end"
+        "note": "Hidden in 46 ms"
       },
       "cyclop": {
-        "note": "49 ms end to end"
+        "note": "Hidden in 49 ms"
       },
       "ghNotch": {
-        "note": "47 ms end to end"
+        "note": "Hidden in 47 ms"
       },
       "notchNook": {
-        "note": "57 ms, governed by bundle ID"
+        "note": "Hidden in 57 ms"
       },
       "boringNotch": {
-        "note": "About a second"
+        "note": "Back in about a second"
       },
       "notchy": {
-        "note": "Governed by bundle ID"
+        "note": "Won’t be hidden, so Bouncer relaunches it"
       },
       "mewNotch": {
-        "note": "Governed by bundle ID"
+        "note": "Won’t be hidden, so Bouncer relaunches it"
       },
       "superIsland": {
-        "note": "Read from the source"
+        "note": "Not measured yet. Its code says it should stay open"
       },
       "atoll": {
-        "note": "Read from the source"
+        "note": "Not measured yet. Its code says it should stay open"
       },
       "dynamicNotch": {
-        "note": "Private Space, relaunch only"
+        "note": "Not measured yet. Its code says it will need a relaunch"
       }
-    }
+    },
+    "colonneCachee": "While hidden",
+    "cacheeOuverte": "Stays open",
+    "cacheeFermee": "Quit, then relaunched"
   },
   "installation": {
     "titre": "Get Bouncer",

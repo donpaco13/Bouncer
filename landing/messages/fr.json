@@ -123,7 +123,6 @@
     "chapo": "Sept apps mesurées une par une sur une vraie machine. Trois autres lues dans leur code source.",
     "legendeTableau": "Compatibilité des apps d’encoche avec Bouncer",
     "colonneApp": "Application",
-    "colonneBascule": "Bascule",
     "colonnePreuve": "Preuve",
     "colonneNote": "Note",
     "basculeRapide": "Instantanée",
@@ -133,36 +132,39 @@
     "banc": "Campagne du {date}, sur un MacBook Pro M4 sous macOS Sequoia. Chaque ligne mesurée vient d’un recomptage des fenêtres à l’écran, avant et après le masquage. <lien>Toute la méthode ›</lien>",
     "lignes": {
       "vibeIsland": {
-        "note": "46 ms de bout en bout"
+        "note": "Cachée en 46 ms"
       },
       "cyclop": {
-        "note": "49 ms de bout en bout"
+        "note": "Cachée en 49 ms"
       },
       "ghNotch": {
-        "note": "47 ms de bout en bout"
+        "note": "Cachée en 47 ms"
       },
       "notchNook": {
-        "note": "57 ms, régie par son bundle ID"
+        "note": "Cachée en 57 ms"
       },
       "boringNotch": {
-        "note": "Environ une seconde"
+        "note": "Revient en une seconde environ"
       },
       "notchy": {
-        "note": "Régie par son bundle ID"
+        "note": "Refuse d’être cachée, donc Bouncer la relance"
       },
       "mewNotch": {
-        "note": "Régie par son bundle ID"
+        "note": "Refuse d’être cachée, donc Bouncer la relance"
       },
       "superIsland": {
-        "note": "Lu dans la source"
+        "note": "Pas encore mesurée. D’après son code, devrait rester ouverte"
       },
       "atoll": {
-        "note": "Lu dans la source"
+        "note": "Pas encore mesurée. D’après son code, devrait rester ouverte"
       },
       "dynamicNotch": {
-        "note": "Space privé, relance seulement"
+        "note": "Pas encore mesurée. D’après son code, devra être relancée"
       }
-    }
+    },
+    "colonneCachee": "Quand elle est cachée",
+    "cacheeOuverte": "Reste ouverte",
+    "cacheeFermee": "Fermée, puis relancée"
   },
   "installation": {
     "titre": "Installer Bouncer",

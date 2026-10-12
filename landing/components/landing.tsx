@@ -301,7 +301,7 @@ export function Landing() {
                 <thead>
                   <tr>
                     <th scope="col">{t("compatibilite.colonneApp")}</th>
-                    <th scope="col">{t("compatibilite.colonneBascule")}</th>
+                    <th scope="col">{t("compatibilite.colonneCachee")}</th>
                     <th scope="col">{t("compatibilite.colonnePreuve")}</th>
                     <th scope="col">{t("compatibilite.colonneNote")}</th>
                   </tr>
@@ -314,7 +314,7 @@ export function Landing() {
                       </td>
                       <td>
                         <span className={l.bascule === "rapide" ? "route i" : "route r"}>
-                          {t(`compatibilite.${LIBELLE_BASCULE[l.bascule]}`)}
+                          {t(l.bascule === "rapide" ? "compatibilite.cacheeOuverte" : "compatibilite.cacheeFermee")}
                         </span>
                       </td>
                       <td>
