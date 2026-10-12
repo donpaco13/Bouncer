@@ -57,33 +57,33 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <main>
 
 <h1>Review du fond de la landing Bouncer</h1>
-<p class="meta">13 octobre 2026 · commit <code>92e3f8f</code> sur <code>main</code> · textes de <code>landing/messages/fr.json</code> et <code>en.json</code>, données de <code>landing/content/</code> · page lue dans le build statique (FR et EN, 1440 px et 390 px). Le visuel n'est pas jugé ici, seulement ce que la page dit et dans quel ordre.</p>
+<p class="meta">13 octobre 2026 · commit <code>92e3f8f</code> sur <code>main</code> · textes de <code>landing/messages/fr.json</code> et <code>en.json</code>, données de <code>landing/content/</code> · page lue dans le build statique (FR et EN, 1440 px et 390 px). Seul compte ici ce que la page dit et dans quel ordre&#8239;; le visuel est hors sujet.</p>
 
 <div class="card verdict">
-<p><b>1.</b> La page est exacte et précise, ce qui est rare, mais elle parle au développeur qui l'a construite : la moitié du texte explique le moteur (ms, WindowServer, CGWindowList, bundle ID) et presque rien ne dit ce que l'utilisateur gagne dans sa journée.</p>
+<p><b>1.</b> La page est exacte et précise, ce qui est rare, mais elle parle au développeur qui l'a construite&#8239;: la moitié du texte explique le moteur (ms, WindowServer, CGWindowList, bundle ID) et presque rien ne dit ce que l'utilisateur gagne dans sa journée.</p>
 <p><b>2.</b> Le titre énonce une règle («&#8239;Une encoche. Une app à la fois.&#8239;») au lieu d'une promesse. Il ne dit ni à qui la page s'adresse ni ce qu'on y gagne, et deux phrases clés sont fausses pour boringNotch, l'app la plus citée («&#8239;restent toutes ouvertes&#8239;», «&#8239;sans les quitter&#8239;»).</p>
 <p><b>3.</b> L'objection qui décide du téléchargement (donner l'autorisation Accessibilité et passer l'avertissement Gatekeeper pour l'app d'un inconnu) est traitée en bas de page ou pas du tout, et rien sur la page ne montre que quelqu'un d'autre que l'auteur s'en sert.</p>
 </div>
 
 <div class="card block">
-<p><b>Bloquant avant toute diffusion, hors copie.</b> Vérifié le 13/10 avec <code>gh</code> : le dépôt <code>donpaco13/Bouncer</code> est privé, sans aucune release, et le tap <code>donpaco13/homebrew-tap</code> n'existe pas. Aujourd'hui, les deux boutons «&#8239;Télécharger&#8239;» et la commande <code>brew</code> mènent à une erreur 404. Aucun texte ne rattrape ça.</p>
-<p>Deuxième point à régler avant d'écrire une seule ligne sur la vie privée : l'app embarque Sentry (<code>Sources/Bouncer/main.swift:51</code>, <code>sendDefaultPii = false</code>), alors que <code>docs/CONFIDENTIALITE.md</code> affirme «&#8239;aucun code réseau, aucune dépendance tierce, ni bibliothèque de rapport de crash&#8239;». La doc est fausse depuis l'ajout de Sentry. <span class="warn">À vérifier aussi</span> : le suivi de sessions de Sentry n'est pas désactivé dans le code, et il est actif par défaut, donc l'app envoie probablement un signal à chaque lancement, pas seulement quand elle plante.</p>
+<p><b>Bloquant avant toute diffusion, hors copie.</b> Vérifié le 13/10 avec <code>gh</code>&#8239;: le dépôt <code>donpaco13/Bouncer</code> est privé, sans aucune release, et le tap <code>donpaco13/homebrew-tap</code> n'existe pas. Aujourd'hui, les deux boutons «&#8239;Télécharger&#8239;» et la commande <code>brew</code> mènent à une erreur 404. Aucun texte ne rattrape ça.</p>
+<p>Deuxième point à régler avant d'écrire une seule ligne sur la vie privée&#8239;: l'app embarque Sentry (<code>Sources/Bouncer/main.swift:51</code>, <code>sendDefaultPii = false</code>), alors que <code>docs/CONFIDENTIALITE.md</code> affirme «&#8239;aucun code réseau, aucune dépendance tierce, ni bibliothèque de rapport de crash&#8239;». La doc est fausse depuis l'ajout de Sentry. <span class="warn">À vérifier aussi</span>&#8239;: le suivi de sessions de Sentry n'est pas désactivé dans le code, et il est actif par défaut, donc l'app envoie probablement un signal à chaque lancement, pas seulement quand elle plante.</p>
 </div>
 
 <h2 id="top5">Les 5 changements les plus rentables</h2>
 <div class="card">
 <ol class="top">
 <li><b>Réécrire le héros autour d'une promesse vraie, avec l'audience nommée.</b> «&#8239;Toutes vos apps d'encoche. Une seule à l'écran.&#8239;», puis une phrase qui nomme les apps et ce qu'elles affichent (agents, musique, fichiers), et une ligne «&#8239;à partir de deux apps d'encoche&#8239;». Retirer «&#8239;restent toutes ouvertes&#8239;» et «&#8239;sans les quitter&#8239;», faux pour les apps qui passent par une relance. <span class="tag">Héros, meta</span></li>
-<li><b>Répondre à l'objection de confiance à côté du bouton.</b> Une ligne sur l'autorisation Accessibilité (à quoi elle sert, et que sans elle Bouncer ne touche à rien), un lien vers le code, une phrase honnête sur Sentry, et «&#8239;pour désinstaller, glissez Bouncer à la corbeille&#8239;». C'est la permission la plus intrusive de macOS, demandée par une app non notarisée : c'est elle qui fait partir, pas le prix. <span class="tag">Héros, installation</span></li>
-<li><b>Dire ce que devient l'app cachée.</b> Aujourd'hui, la page ne le dit nulle part. Masquée (Vibe Island, NotchNook…) : elle reste ouverte et revient là où vous l'aviez laissée. Relancée (boringNotch, Notchy, Mew Notch) : elle est fermée tant qu'une autre a l'encoche, donc elle n'affiche plus rien. Le mettre dans le tableau de compatibilité, à la place des notes «&#8239;Régie par son bundle ID&#8239;». <span class="tag">Compatibilité, moteur</span></li>
+<li><b>Répondre à l'objection de confiance à côté du bouton.</b> Une ligne sur l'autorisation Accessibilité (à quoi elle sert, et que sans elle Bouncer ne touche à rien), un lien vers le code, une phrase honnête sur Sentry, et «&#8239;pour désinstaller, glissez Bouncer à la corbeille&#8239;». C'est la permission la plus intrusive de macOS, demandée par une app non notarisée&#8239;: c'est elle qui fait partir les visiteurs. Le prix est déjà à zéro. <span class="tag">Héros, installation</span></li>
+<li><b>Dire ce que devient l'app cachée.</b> Aujourd'hui, la page ne le dit nulle part. Masquée (Vibe Island, NotchNook…)&#8239;: elle reste ouverte et revient là où vous l'aviez laissée. Relancée (boringNotch, Notchy, Mew Notch)&#8239;: elle est fermée tant qu'une autre a l'encoche, donc elle n'affiche plus rien. Le mettre dans le tableau de compatibilité, à la place des notes «&#8239;Régie par son bundle ID&#8239;». <span class="tag">Compatibilité, moteur</span></li>
 <li><b>Réduire le moteur à une garantie et deux chiffres, et remonter la compatibilité.</b> Garder «&#8239;Allumer avant d'éteindre&#8239;» et «&#8239;jamais tuée de force&#8239;», les deux meilleures idées de la page. Remplacer 46 ms / 5,1 ms / ≈&#8239;1 s par «&#8239;environ 50 ms&#8239;» et «&#8239;environ 1 s&#8239;» (le 46 et le 5,1 ne mesurent pas la même chose). Envoyer CGWindowList, WindowServer, Space privé, bundle ID et le seuil de 80 % dans la doc. <span class="tag">Moteur, ordre</span></li>
-<li><b>Montrer une vraie bascule en vidéo, et comparer à la sortie manuelle.</b> Huit secondes filmées sur un vrai MacBook (le README a déjà le TODO), sous le héros. Puis trois lignes «&#8239;à la main / avec Bouncer&#8239;» : quitter, rouvrir, attendre, contre un balayage. La démo du héros est une simulation ; la vidéo est la seule preuve qui existe avant d'avoir des utilisateurs. <span class="tag">Preuve</span></li>
+<li><b>Montrer une vraie bascule en vidéo, et comparer à la sortie manuelle.</b> Huit secondes filmées sur un vrai MacBook (le README a déjà le TODO), sous le héros. Puis trois lignes «&#8239;à la main / avec Bouncer&#8239;»&#8239;: quitter, rouvrir, attendre, contre un balayage. La démo du héros est une simulation&#8239;; la vidéo est la seule preuve qui existe avant d'avoir des utilisateurs. <span class="tag">Preuve</span></li>
 </ol>
 </div>
-<p class="note">Petits gains à prendre en passant : le bouton «&#8239;Télécharger&#8239;» du héros fait défiler jusqu'à <code>#install</code> au lieu de télécharger (libellé à changer, voir le héros) ; sur téléphone, le même bouton ne sert à rien (proposer «&#8239;Ouvrez cette page sur votre Mac&#8239;» et un bouton pour copier le lien) ; la meta EN répète «&#8239;notch app&#8239;» deux fois.</p>
+<p class="note">Petits gains à prendre en passant&#8239;: le bouton «&#8239;Télécharger&#8239;» du héros fait défiler jusqu'à <code>#install</code> au lieu de télécharger (libellé à changer, voir le héros)&#8239;; sur téléphone, le même bouton ne sert à rien (proposer «&#8239;Ouvrez cette page sur votre Mac&#8239;» et un bouton pour copier le lien)&#8239;; la meta EN répète «&#8239;notch app&#8239;» deux fois.</p>
 
 <div class="shots">
-<figure><img src="captures/copy-review/fr-1440-hero.png" alt="Héros FR à 1440 px"><figcaption>Héros FR, 1440 px. Page entière : <a href="captures/copy-review/fr-1440-full.png">FR</a> · <a href="captures/copy-review/en-1440-full.png">EN</a></figcaption></figure>
+<figure><img src="captures/copy-review/fr-1440-hero.png" alt="Héros FR à 1440 px"><figcaption>Héros FR, 1440 px. Page entière&#8239;: <a href="captures/copy-review/fr-1440-full.png">FR</a> · <a href="captures/copy-review/en-1440-full.png">EN</a></figcaption></figure>
 <figure><img src="captures/copy-review/fr-390-hero.png" alt="Héros FR à 390 px"><figcaption>Héros FR, 390 px. <a href="captures/copy-review/fr-390-full.png">Page entière</a></figcaption></figure>
 </div>
 
@@ -104,14 +104,14 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <h2 id="heros">Héros</h2>
 <p class="lab">Ce qui marche</p>
 <ul class="good">
-<li>Le lien secondaire «&#8239;Est-ce que ça marche avec mes apps ?&#8239;» est exactement la deuxième question du visiteur, posée avec ses mots. À garder tel quel.</li>
+<li>Le lien secondaire «&#8239;Est-ce que ça marche avec mes apps&#8239;?&#8239;» est exactement la deuxième question du visiteur, posée avec ses mots. À garder tel quel.</li>
 <li>La ligne de mentions est courte et utile (gratuit, open source, macOS 14, sans compte).</li>
 <li>Le rythme du titre se retient. La réécriture garde ce rythme en deux temps.</li>
 </ul>
 <p class="lab">Ce qui ne marche pas</p>
 <ul class="bad">
-<li><b>Le titre ne promet rien.</b> «&#8239;Une encoche. Une app à la fois.&#8239;» décrit la règle que Bouncer applique. Le visiteur qui n'a jamais vu deux apps se superposer ne reconnaît pas son problème, et celui qui l'a vécu ne lit pas ce qu'il gagne. Ogilvy : le titre porte la promesse et désigne son lecteur, sinon 80 % des visiteurs repartent sans avoir rien appris.</li>
-<li><b>Deux affirmations fausses pour une partie des apps.</b> «&#8239;Vos apps d'encoche restent toutes ouvertes&#8239;» : boringNotch, Notchy et Mew Notch sont fermées puis relancées à chaque bascule (README, <code>docs/COMPATIBILITE.md</code> §3). La meta dit «&#8239;sans les quitter&#8239;». Un utilisateur de boringNotch qui voit son app redémarrer lira ça comme un mensonge, et l'écrira sur Reddit.</li>
+<li><b>Le titre ne promet rien.</b> «&#8239;Une encoche. Une app à la fois.&#8239;» décrit la règle que Bouncer applique. Le visiteur qui n'a jamais vu deux apps se superposer ne reconnaît pas son problème, et celui qui l'a vécu ne lit pas ce qu'il gagne. Ogilvy&#8239;: le titre porte la promesse et désigne son lecteur, sinon 80 % des visiteurs repartent sans avoir rien appris.</li>
+<li><b>Deux affirmations fausses pour une partie des apps.</b> «&#8239;Vos apps d'encoche restent toutes ouvertes&#8239;»&#8239;: boringNotch, Notchy et Mew Notch sont fermées puis relancées à chaque bascule (README, <code>docs/COMPATIBILITE.md</code> §3). La meta dit «&#8239;sans les quitter&#8239;». Un utilisateur de boringNotch qui voit son app redémarrer lira ça comme un mensonge, et l'écrira sur Reddit.</li>
 <li><b>«&#8239;App d'encoche&#8239;» n'est jamais défini.</b> Le visiteur qui n'en a qu'une ne lit nulle part que Bouncer ne lui sert à rien. Celui qui n'en a aucune n'a pas de porte de sortie.</li>
 <li><b>Le bouton ment un peu.</b> «&#8239;Télécharger pour macOS&#8239;» mène à l'ancre <code>#install</code>, où il faut recliquer. Sur téléphone, un bouton de téléchargement d'app Mac ne mène nulle part.</li>
 <li><b>Le surtitre «&#8239;Bouncer pour macOS&#8239;» gaspille la ligne la plus lue après le titre.</b> Il peut porter l'audience.</li>
@@ -121,10 +121,10 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <thead><tr><th></th><th>Actuel</th><th>Proposé</th></tr></thead>
 <tbody>
 <tr><td class="k">Surtitre FR</td><td class="o">Bouncer pour macOS</td><td class="n">Pour MacBook à encoche, dès deux apps d'encoche</td></tr>
-<tr><td class="k">Titre FR</td><td class="o">Une encoche. Une app à la fois.</td><td class="n">Toutes vos apps d'encoche. Une seule à l'écran.<span class="why">Promesse et audience dans le même titre, rythme gardé. Variantes à tester : «&#8239;Gardez Vibe Island et boringNotch. Bouncer les fait tenir dans la même encoche.&#8239;» (plus concret, mais vieillit avec les noms) ; «&#8239;Plusieurs apps d'encoche, une seule encoche, chacune son tour.&#8239;»</span></td></tr>
+<tr><td class="k">Titre FR</td><td class="o">Une encoche. Une app à la fois.</td><td class="n">Toutes vos apps d'encoche. Une seule à l'écran.<span class="why">Promesse et audience dans le même titre, rythme gardé. Variantes à tester&#8239;: «&#8239;Gardez Vibe Island et boringNotch. Bouncer les fait tenir dans la même encoche.&#8239;» (plus concret, mais vieillit avec les noms)&#8239;; «&#8239;Plusieurs apps d'encoche, une seule encoche, chacune son tour.&#8239;»</span></td></tr>
 <tr><td class="k">Sous-titre FR</td><td class="o">Pour ceux qui ont un MacBook à encoche, plusieurs apps d'encoche, et en ont assez de quitter l'une pour voir l'autre. Vos apps d'encoche restent toutes ouvertes. Bouncer décide laquelle se voit, et un balayage à deux doigts en change.</td><td class="n">Vibe Island suit vos agents, boringNotch votre musique, NotchNook vos fichiers, et toutes dessinent au même endroit sous l'encoche. Bouncer en affiche une et met les autres de côté. Un balayage à deux doigts sur l'encoche passe à la suivante.<span class="why">Définit «&#8239;app d'encoche&#8239;» par l'exemple, montre le conflit, dit le geste. «&#8239;Met de côté&#8239;» couvre le masquage et la relance sans mentir.</span></td></tr>
-<tr><td class="k">Bouton FR</td><td class="o">Télécharger pour macOS</td><td class="n">Installer Bouncer, c'est gratuit<span class="why">Le bouton fait défiler vers l'installation : le libellé le dit. Le jour où la release a un fichier au nom fixe (<code>releases/latest/download/Bouncer.zip</code>), passer à un vrai lien de téléchargement et garder «&#8239;Télécharger&#8239;».</span></td></tr>
-<tr><td class="k">Mentions FR</td><td class="o">Gratuit et open source · macOS 14 Sonoma ou plus récent · Sans compte</td><td class="n">Gratuit · code source sur GitHub · macOS 14 ou plus récent · sans compte<span class="why">«&#8239;Code source sur GitHub&#8239;» devient un lien : c'est la réponse la plus forte à la peur de l'autorisation Accessibilité, et aujourd'hui le premier lien vers le dépôt est dans le pied de page.</span></td></tr>
+<tr><td class="k">Bouton FR</td><td class="o">Télécharger pour macOS</td><td class="n">Installer Bouncer, c'est gratuit<span class="why">Le bouton fait défiler vers l'installation&#8239;: le libellé le dit. Le jour où la release a un fichier au nom fixe (<code>releases/latest/download/Bouncer.zip</code>), passer à un vrai lien de téléchargement et garder «&#8239;Télécharger&#8239;».</span></td></tr>
+<tr><td class="k">Mentions FR</td><td class="o">Gratuit et open source · macOS 14 Sonoma ou plus récent · Sans compte</td><td class="n">Gratuit · code source sur GitHub · macOS 14 ou plus récent · sans compte<span class="why">«&#8239;Code source sur GitHub&#8239;» devient un lien&#8239;: c'est la réponse la plus forte à la peur de l'autorisation Accessibilité, et aujourd'hui le premier lien vers le dépôt est dans le pied de page.</span></td></tr>
 <tr><td class="k">Mobile FR</td><td class="o">Télécharger pour macOS</td><td class="n">Bouncer s'installe sur Mac. Ouvrez cette page sur votre MacBook. [Copier le lien]</td></tr>
 <tr><td class="k">Surtitre EN</td><td class="o">Bouncer for macOS</td><td class="n">For notched MacBooks running two notch apps or more</td></tr>
 <tr><td class="k">Titre EN</td><td class="o">One notch. One app at a time.</td><td class="n">All your notch apps. One on screen.</td></tr>
@@ -144,7 +144,7 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <table class="cmp">
 <thead><tr><th></th><th>Actuel</th><th>Proposé</th></tr></thead>
 <tbody>
-<tr><td class="k">title FR</td><td class="o">Bouncer, le gestionnaire d'apps d'encoche (notch) pour MacBook</td><td class="n">Bouncer : plusieurs apps d'encoche sur un seul MacBook</td></tr>
+<tr><td class="k">title FR</td><td class="o">Bouncer, le gestionnaire d'apps d'encoche (notch) pour MacBook</td><td class="n">Bouncer&#8239;: plusieurs apps d'encoche sur un seul MacBook</td></tr>
 <tr><td class="k">description FR</td><td class="o">Passez d'une app d'encoche à l'autre sans les quitter. Bouncer garde Vibe Island, boringNotch et NotchNook ouvertes, n'en montre qu'une, et change d'app d'un balayage à deux doigts. Gratuit, macOS 14+.</td><td class="n">Vibe Island, boringNotch et NotchNook dans la même encoche, sans qu'elles se superposent. Bouncer en affiche une, un balayage à deux doigts passe à la suivante. Gratuit, open source, macOS 14+.</td></tr>
 <tr><td class="k">title EN</td><td class="o">Bouncer, a notch app manager to switch notch apps on MacBook</td><td class="n">Bouncer: run several notch apps on one MacBook notch</td></tr>
 <tr><td class="k">description EN</td><td class="o">Switch notch apps on your MacBook without quitting them. Bouncer keeps Vibe Island, boringNotch and NotchNook open, shows one at a time, and changes app with a two-finger swipe. Free, macOS 14+.</td><td class="n">Vibe Island, boringNotch and NotchNook in the same notch, without drawing over each other. Bouncer shows one, and a two-finger swipe moves to the next. Free, open source, macOS 14+.</td></tr>
@@ -154,8 +154,8 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <h2 id="probleme">Problème</h2>
 <p class="lab">Ce qui marche</p>
 <ul class="good">
-<li>Le chapo est concret : «&#8239;elles tombent sur le même rectangle, l'une sur l'autre&#8239;». On voit la scène.</li>
-<li>La phrase en gras est la meilleure de la page : «&#8239;La seule sortie que macOS vous laisse, c'est de quitter une app pour utiliser l'autre&#8239;». C'est le coût que le visiteur paie aujourd'hui, dit dans sa langue.</li>
+<li>Le chapo est concret&#8239;: «&#8239;elles tombent sur le même rectangle, l'une sur l'autre&#8239;». On voit la scène.</li>
+<li>La phrase en gras est la meilleure de la page&#8239;: «&#8239;La seule sortie que macOS vous laisse, c'est de quitter une app pour utiliser l'autre&#8239;». C'est le coût que le visiteur paie aujourd'hui, dit dans sa langue.</li>
 <li>Le dessin «&#8239;sans / avec&#8239;» est la bonne idée au bon endroit.</li>
 </ul>
 <p class="lab">Ce qui ne marche pas</p>
@@ -163,16 +163,16 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <li><b>Le titre est négatif et parle de macOS.</b> «&#8239;macOS ne coordonne pas les apps d'encoche&#8239;» met le système en sujet et une négation au centre. Le lecteur se reconnaît mieux dans la scène que dans le constat.</li>
 <li><b>«&#8239;Bouncer le fait pour vous, en quelques millisecondes&#8239;» est inexact deux fois.</b> Pour la plupart des apps, Bouncer masque, il ne quitte pas. Pour celles qu'il relance, c'est une seconde environ. Et le masquage mesuré prend 46 à 65 ms, ce qui dépasse «&#8239;quelques millisecondes&#8239;».</li>
 <li><b>La légende «&#8239;les autres ouvertes et en attente&#8239;» est fausse pour boringNotch</b>, qui est justement l'app dessinée dans la démo.</li>
-<li><b>«&#8239;Aucune API de coordination&#8239;»</b> : le mot API parle au développeur, pas à l'utilisateur.</li>
+<li><b>«&#8239;Aucune API de coordination&#8239;»</b>&#8239;: le mot API parle au développeur, pas à l'utilisateur.</li>
 <li><b>Le coût de la sortie manuelle n'est pas chiffré.</b> C'est l'endroit pour la comparaison demandée «&#8239;à la main / avec Bouncer&#8239;».</li>
 </ul>
 <table class="cmp">
 <thead><tr><th></th><th>Actuel</th><th>Proposé</th></tr></thead>
 <tbody>
 <tr><td class="k">Titre FR</td><td class="o">macOS ne coordonne pas les apps d'encoche</td><td class="n">Deux apps d'encoche, un seul rectangle</td></tr>
-<tr><td class="k">Chapo FR</td><td class="o">Vibe Island, boringNotch, NotchNook, Notchy : chacune dessine sa propre pastille sous votre encoche. Ouvrez-en deux, elles tombent sur le même rectangle, l'une sur l'autre.</td><td class="n">Inchangé. Il marche.</td></tr>
-<tr><td class="k">Corps FR</td><td class="o">Il n'existe aucune API de coordination et aucune notion d'« app d'encoche active ». La seule sortie que macOS vous laisse, c'est de quitter une app pour utiliser l'autre, puis de la relancer quand vous en avez de nouveau besoin. Bouncer le fait pour vous, en quelques millisecondes quand l'app le permet.</td><td class="n">macOS ne sait pas laquelle doit passer devant. La seule sortie qu'il vous laisse, c'est de quitter une app pour voir l'autre, puis de la rouvrir quand vous en avez de nouveau besoin. Bouncer fait cette rotation à votre place, d'un geste, et ne retire l'app en place qu'une fois la suivante affichée.</td></tr>
-<tr><td class="k">Nouveau bloc FR</td><td class="o">(absent)</td><td class="n"><b>À la main</b> : quitter l'app, la rouvrir depuis Spotlight, attendre qu'elle se recharge, et recommencer dans l'autre sens.<br><b>Avec Bouncer</b> : un balayage. L'app masquée revient en moins d'un dixième de seconde, là où vous l'aviez laissée. Celles qui doivent redémarrer reviennent en une seconde environ.</td></tr>
+<tr><td class="k">Chapo FR</td><td class="o">Vibe Island, boringNotch, NotchNook, Notchy&#8239;: chacune dessine sa propre pastille sous votre encoche. Ouvrez-en deux, elles tombent sur le même rectangle, l'une sur l'autre.</td><td class="n">Inchangé. Il marche.</td></tr>
+<tr><td class="k">Corps FR</td><td class="o">Il n'existe aucune API de coordination et aucune notion d'«&#8239;app d'encoche active&#8239;». La seule sortie que macOS vous laisse, c'est de quitter une app pour utiliser l'autre, puis de la relancer quand vous en avez de nouveau besoin. Bouncer le fait pour vous, en quelques millisecondes quand l'app le permet.</td><td class="n">macOS ne sait pas laquelle doit passer devant. La seule sortie qu'il vous laisse, c'est de quitter une app pour voir l'autre, puis de la rouvrir quand vous en avez de nouveau besoin. Bouncer fait cette rotation à votre place, d'un geste, et ne retire l'app en place qu'une fois la suivante affichée.</td></tr>
+<tr><td class="k">Nouveau bloc FR</td><td class="o">(absent)</td><td class="n"><b>À la main</b>&#8239;: quitter l'app, la rouvrir depuis Spotlight, attendre qu'elle se recharge, et recommencer dans l'autre sens.<br><b>Avec Bouncer</b>&#8239;: un balayage. L'app masquée revient en moins d'un dixième de seconde, là où vous l'aviez laissée. Celles qui doivent redémarrer reviennent en une seconde environ.</td></tr>
 <tr><td class="k">Légende FR</td><td class="o">Avec Bouncer, une app à l'écran, les autres ouvertes et en attente</td><td class="n">Avec Bouncer, une app à l'écran, les autres attendent leur tour</td></tr>
 <tr><td class="k">Titre EN</td><td class="o">macOS doesn't coordinate notch apps</td><td class="n">Two notch apps, one rectangle</td></tr>
 <tr><td class="k">Corps EN</td><td class="o">There is no coordination API, and no such thing as an "active notch app". The only way out macOS gives you is to quit one app to use the other, then launch it again when you need it back. Bouncer does that for you, in a few milliseconds when the app allows it.</td><td class="n">macOS has no idea which one should be in front. The only way out it gives you is to quit one app to see the other, then reopen it when you need it back. Bouncer does that rotation for you with one gesture, and only removes the current app once the next one is on screen.</td></tr>
@@ -190,10 +190,10 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 </ul>
 <p class="lab">Ce qui ne marche pas</p>
 <ul class="bad">
-<li><b>Le titre compte des fonctions</b> au lieu de dire le résultat. Quatre façons de faire quoi, et pourquoi m'en soucier ?</li>
+<li><b>Le titre compte des fonctions</b> au lieu de dire le résultat. Quatre façons de faire quoi, et pourquoi m'en soucier&#8239;?</li>
 <li><b>Le raccourci n'est pas écrit dans le texte de sa carte</b>, et sa phrase est construite sur deux négations («&#8239;la seule commande qui n'oblige ni à viser l'encoche ni à ouvrir un menu&#8239;»).</li>
-<li><b>La carte du menu enseigne trois symboles</b> (● ○ ◐) que personne n'a besoin d'apprendre avant d'installer, et tait l'information utile du README : le menu dit, app par app, si la bascule sera instantanée ou passera par une relance.</li>
-<li><b>EN</b> : «&#8239;change app&#8239;» n'est pas idiomatique (on dit «&#8239;switch apps&#8239;»), et la phrase du raccourci est difficile à lire même pour un natif.</li>
+<li><b>La carte du menu enseigne trois symboles</b> (● ○ ◐) que personne n'a besoin d'apprendre avant d'installer, et tait l'information utile du README&#8239;: le menu dit, app par app, si la bascule sera instantanée ou passera par une relance.</li>
+<li><b>EN</b>&#8239;: «&#8239;change app&#8239;» n'est pas idiomatique (on dit «&#8239;switch apps&#8239;»), et la phrase du raccourci est difficile à lire même pour un natif.</li>
 </ul>
 <table class="cmp">
 <thead><tr><th></th><th>Actuel</th><th>Proposé</th></tr></thead>
@@ -212,16 +212,16 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <h2 id="moteur">Moteur</h2>
 <p class="lab">Ce qui marche</p>
 <ul class="good">
-<li><b>«&#8239;Allumer avant d'éteindre&#8239;» est la meilleure idée de la page.</b> C'est une garantie, elle a un nom, et elle répond à la vraie peur (et si ça rate ?). Hormozi appellerait ça une garantie nommée. Elle mérite d'être dite plus haut et plus simplement.</li>
+<li><b>«&#8239;Allumer avant d'éteindre&#8239;» est la meilleure idée de la page.</b> C'est une garantie, elle a un nom, et elle répond à la vraie peur (et si ça rate&#8239;?). Hormozi appellerait ça une garantie nommée. Elle mérite d'être dite plus haut et plus simplement.</li>
 <li>«&#8239;Une app qui refuse de quitter n'est jamais tuée de force. Elle a peut-être quelque chose à enregistrer.&#8239;» Concret, humain, rassurant. À garder mot pour mot.</li>
-<li>Donner des chiffres mesurés est juste. Ogilvy : le fait précis bat l'adjectif.</li>
+<li>Donner des chiffres mesurés est juste. Ogilvy&#8239;: le fait précis bat l'adjectif.</li>
 </ul>
 <p class="lab">Ce qui ne marche pas</p>
 <ul class="bad">
-<li><b>C'est la section la plus longue, et elle est écrite pour un développeur.</b> Binaire, WindowServer, CGWindowList, Space privé, bundle ID, seuil de 80 % : aucun visiteur ne décide d'installer sur la détection géométrique. Ça rassure Hacker News, ça ralentit tout le monde. Même l'entrée de navigation s'appelle «&#8239;Moteur&#8239;».</li>
-<li><b>Les trois chiffres ne se comparent pas.</b> 46 ms est le temps de bout en bout pour Vibe Island seule ; 5,1 ms est un temps de propagation du retour ; le README annonce 31 ms pour la même opération. Posés côte à côte, ils suggèrent une symétrie fausse, et le visiteur ne sait de toute façon pas lire «&#8239;46 ms&#8239;».</li>
-<li><b>«&#8239;L'encoche n'est jamais vide&#8239;» est trop absolu.</b> La garantie réelle porte sur la bascule : Bouncer ne retire l'app en place qu'une fois la suivante comptée à l'écran. Elle ne couvre pas une app qui plante ensuite.</li>
-<li><b>Le chiffre «&#8239;≈ 1 s&#8239;» ne dit pas la conséquence</b> : pendant qu'elle est cachée, l'app relancée est fermée et n'affiche plus rien (musique, notifications).</li>
+<li><b>C'est la section la plus longue, et elle est écrite pour un développeur.</b> Binaire, WindowServer, CGWindowList, Space privé, bundle ID, seuil de 80 %&#8239;: aucun visiteur ne décide d'installer sur la détection géométrique. Ça rassure Hacker News, ça ralentit tout le monde. Même l'entrée de navigation s'appelle «&#8239;Moteur&#8239;».</li>
+<li><b>Les trois chiffres ne se comparent pas.</b> 46 ms est le temps de bout en bout pour Vibe Island seule&#8239;; 5,1 ms est un temps de propagation du retour&#8239;; le README annonce 31 ms pour la même opération. Posés côte à côte, ils suggèrent une symétrie fausse, et le visiteur ne sait de toute façon pas lire «&#8239;46 ms&#8239;».</li>
+<li><b>«&#8239;L'encoche n'est jamais vide&#8239;» est trop absolu.</b> La garantie réelle porte sur la bascule&#8239;: Bouncer ne retire l'app en place qu'une fois la suivante comptée à l'écran. Elle ne couvre pas une app qui plante ensuite.</li>
+<li><b>Le chiffre «&#8239;≈ 1 s&#8239;» ne dit pas la conséquence</b>&#8239;: pendant qu'elle est cachée, l'app relancée est fermée et n'affiche plus rien (musique, notifications).</li>
 </ul>
 <table class="cmp">
 <thead><tr><th></th><th>Actuel</th><th>Proposé</th></tr></thead>
@@ -229,12 +229,12 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <tr><td class="k">Nav FR / EN</td><td class="o">Moteur / How it works</td><td class="n">Fiabilité / Reliability</td></tr>
 <tr><td class="k">Titre FR</td><td class="o">Ce qui se passe quand vous basculez</td><td class="n">Ce qui se passe quand vous changez d'app</td></tr>
 <tr><td class="k">Chapo FR</td><td class="o">Deux voies, choisies selon ce que le binaire de chaque app accepte. Vous n'avez rien à régler.</td><td class="n">Selon l'app, Bouncer la cache ou la redémarre. Il choisit tout seul, vous n'avez rien à régler.</td></tr>
-<tr><td class="k">Chiffre 1 FR</td><td class="o"><b>46 ms</b> pour sortir une app de l'encoche. Voie rapide, mesurée de bout en bout. Environ 31 ms de propagation dans le WindowServer.</td><td class="n"><b>≈ 50 ms</b> pour cacher une app. Vibe Island, Cyclop, gh-notch, NotchNook : de 46 à 57 ms mesurés, plus vite qu'un clignement d'œil. L'app reste ouverte et revient là où vous l'aviez laissée.</td></tr>
+<tr><td class="k">Chiffre 1 FR</td><td class="o"><b>46 ms</b> pour sortir une app de l'encoche. Voie rapide, mesurée de bout en bout. Environ 31 ms de propagation dans le WindowServer.</td><td class="n"><b>≈ 50 ms</b> pour cacher une app. Vibe Island, Cyclop, gh-notch, NotchNook&#8239;: de 46 à 57 ms mesurés, plus vite qu'un clignement d'œil. L'app reste ouverte et revient là où vous l'aviez laissée.</td></tr>
 <tr><td class="k">Chiffre 2 FR</td><td class="o"><b>5,1 ms</b> pour la ramener. Rien à relancer, rien à recharger.</td><td class="n">Retiré. Son seul message (l'app revient sans recharger) passe dans le chiffre 1.</td></tr>
-<tr><td class="k">Chiffre 3 FR</td><td class="o"><b>≈ 1 s</b> quand il faut relancer. Certaines apps épinglent leurs fenêtres dans un Space privé et ignorent l'ordre de masquage. Bouncer les redémarre à la place.</td><td class="n"><b>≈ 1 s</b> pour les apps qui refusent d'être cachées. boringNotch, Notchy et Mew Notch ignorent le masquage : Bouncer les ferme quand une autre prend l'encoche et les rouvre quand vous revenez. Entre les deux, elles n'affichent rien.</td></tr>
+<tr><td class="k">Chiffre 3 FR</td><td class="o"><b>≈ 1 s</b> quand il faut relancer. Certaines apps épinglent leurs fenêtres dans un Space privé et ignorent l'ordre de masquage. Bouncer les redémarre à la place.</td><td class="n"><b>≈ 1 s</b> pour les apps qui refusent d'être cachées. boringNotch, Notchy et Mew Notch ignorent le masquage. Bouncer les ferme quand une autre prend l'encoche et les rouvre quand vous revenez. Entre les deux, elles n'affichent rien.</td></tr>
 <tr><td class="k">Garantie FR</td><td class="o">Sur les deux voies, Bouncer ne masque ou ne ferme l'app en place qu'après avoir compté la nouvelle fenêtre à l'écran. Si la nouvelle app ne démarre pas, ou met plus de cinq secondes, l'app en place ne bouge pas. L'encoche n'est jamais vide.</td><td class="n">Bouncer ne retire l'app en place qu'une fois la suivante affichée. Si la suivante ne démarre pas, ou met plus de cinq secondes, rien ne bouge. Vous ne restez jamais devant une encoche vide au milieu d'une bascule.</td></tr>
-<tr><td class="k">Refus FR</td><td class="o">Pas d'API privée ni d'injection dans le WindowServer, les astuces qui cassent à chaque mise à jour mineure de macOS. Une app qui refuse de quitter n'est jamais tuée de force. Elle a peut-être quelque chose à enregistrer, alors Bouncer le note et la laisse tranquille.</td><td class="n">Pas d'astuce système non documentée, celles qui cassent à chaque mise à jour de macOS. Une app qui refuse de quitter n'est jamais tuée de force. Elle a peut-être quelque chose à enregistrer, alors Bouncer la laisse tranquille.<span class="why">Le lecteur ne sait pas ce qu'est le WindowServer ; il comprend «&#8239;une mise à jour de macOS&#8239;». Version plus forte possible, «&#8239;n'utilise que des fonctions documentées par Apple&#8239;», seulement si l'auteur le confirme : le README dit «&#8239;No unstable private APIs&#8239;», pas «&#8239;aucune API privée&#8239;».</span></td></tr>
-<tr><td class="k">Détection FR</td><td class="o">Une app d'encoche est une fenêtre flottante collée au bord haut, assez large pour couvrir le boîtier caméra et plus étroite que 80 % de l'écran. […] reconnues par leur bundle ID.</td><td class="n">Une ligne seulement, en question-réponse : «&#8239;Bouncer peut-il cacher ma fenêtre de navigateur ? Non. Il ne touche qu'aux petites fenêtres collées à l'encoche.&#8239;» Le reste part dans <code>docs/COMPATIBILITE.md</code>, avec un lien «&#8239;Pour les curieux, la méthode complète&#8239;».</td></tr>
+<tr><td class="k">Refus FR</td><td class="o">Pas d'API privée ni d'injection dans le WindowServer, les astuces qui cassent à chaque mise à jour mineure de macOS. Une app qui refuse de quitter n'est jamais tuée de force. Elle a peut-être quelque chose à enregistrer, alors Bouncer le note et la laisse tranquille.</td><td class="n">Pas d'astuce système non documentée, celles qui cassent à chaque mise à jour de macOS. Une app qui refuse de quitter n'est jamais tuée de force. Elle a peut-être quelque chose à enregistrer, alors Bouncer la laisse tranquille.<span class="why">Le lecteur ne sait pas ce qu'est le WindowServer&#8239;; il comprend «&#8239;une mise à jour de macOS&#8239;». Version plus forte possible, «&#8239;n'utilise que des fonctions documentées par Apple&#8239;», seulement si l'auteur le confirme&#8239;: le README dit «&#8239;No unstable private APIs&#8239;», pas «&#8239;aucune API privée&#8239;».</span></td></tr>
+<tr><td class="k">Détection FR</td><td class="o">Une app d'encoche est une fenêtre flottante collée au bord haut, assez large pour couvrir le boîtier caméra et plus étroite que 80 % de l'écran. […] reconnues par leur bundle ID.</td><td class="n">Une ligne seulement, en question-réponse&#8239;: «&#8239;Bouncer peut-il cacher ma fenêtre de navigateur&#8239;? Non. Il ne touche qu'aux petites fenêtres collées à l'encoche.&#8239;» Le reste part dans <code>docs/COMPATIBILITE.md</code>, avec un lien «&#8239;Pour les curieux, la méthode complète&#8239;».</td></tr>
 <tr><td class="k">Frise</td><td class="o">Chronologie détaillée avec «&#8239;Fenêtre comptée par CGWindowList&#8239;»</td><td class="n">Garder la frise, renommer le repère «&#8239;boringNotch est à l'écran&#8239;». Le nom de la fonction système n'apprend rien au lecteur.</td></tr>
 <tr><td class="k">Titre EN</td><td class="o">What happens when you switch</td><td class="n">Inchangé, il marche en anglais.</td></tr>
 <tr><td class="k">Chapo EN</td><td class="o">Two routes, picked from what each app's binary accepts. There is nothing for you to set.</td><td class="n">Depending on the app, Bouncer hides it or restarts it. It picks on its own, there's nothing to set.</td></tr>
@@ -248,15 +248,15 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <h2 id="compat">Compatibilité</h2>
 <p class="lab">Ce qui marche</p>
 <ul class="good">
-<li><b>C'est l'atout de crédibilité de la page.</b> Séparer «&#8239;Mesuré&#8239;» de «&#8239;Prédit&#8239;», dater la campagne, nommer la machine : peu de landings osent. C'est le «&#8239;Sears fait 5 % de marge&#8239;» d'Ogilvy, un fait vérifiable qui vaut mieux qu'une promesse.</li>
+<li><b>C'est l'atout de crédibilité de la page.</b> Séparer «&#8239;Mesuré&#8239;» de «&#8239;Prédit&#8239;», dater la campagne, nommer la machine&#8239;: peu de landings osent. C'est le «&#8239;Sears fait 5 % de marge&#8239;» d'Ogilvy, un fait vérifiable qui vaut mieux qu'une promesse.</li>
 <li>Le titre reprend la question du visiteur, et le lien du héros y mène.</li>
 <li>Les données viennent d'un seul fichier (<code>compatibilite.json</code>) dérivé de la doc. La règle «&#8239;la démo ne montre qu'une app mesurée&#8239;» est le bon garde-fou.</li>
 </ul>
 <p class="lab">Ce qui ne marche pas</p>
 <ul class="bad">
-<li><b>Les notes parlent au développeur.</b> «&#8239;Régie par son bundle ID&#8239;», «&#8239;Space privé, relance seulement&#8239;», «&#8239;Lu dans la source&#8239;» ne répondent pas à la question «&#8239;qu'est-ce que ça change pour moi ?&#8239;».</li>
+<li><b>Les notes parlent au développeur.</b> «&#8239;Régie par son bundle ID&#8239;», «&#8239;Space privé, relance seulement&#8239;», «&#8239;Lu dans la source&#8239;» ne répondent pas à la question «&#8239;qu'est-ce que ça change pour moi&#8239;?&#8239;».</li>
 <li><b>La colonne «&#8239;Bascule&#8239;» ne dit pas la conséquence.</b> «&#8239;Par relance&#8239;» veut dire que l'app est fermée quand elle est cachée. Le visiteur doit le deviner.</li>
-<li><b>«&#8239;Sept apps mesurées&#8239;» est généreux.</b> Pour Notchy et Mew Notch, ce qui a été mesuré, c'est l'échec du masquage (2 → 2 → 2 fenêtres) ; la relance en est déduite. Le badge «&#8239;Mesuré&#8239;» se défend, le chiffre en chapo un peu moins.</li>
+<li><b>«&#8239;Sept apps mesurées&#8239;» est généreux.</b> Pour Notchy et Mew Notch, ce qui a été mesuré, c'est l'échec du masquage (2 → 2 → 2 fenêtres)&#8239;; la relance en est déduite. Le badge «&#8239;Mesuré&#8239;» se défend, le chiffre en chapo un peu moins.</li>
 <li><b>Une seule machine de test</b> (la doc le dit, §6), et la page ne le dit pas.</li>
 <li><b>Les apps absentes ne sont pas traitées.</b> Alcove, Droppy et MediaMate ont été essayées sans résultat concluant. Le propriétaire d'Alcove ne trouve pas son app et conclut «&#8239;ça marche peut-être&#8239;». Il manque «&#8239;pas dans la liste = pas encore testée&#8239;» et un appel à ouvrir une issue.</li>
 </ul>
@@ -264,9 +264,9 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <thead><tr><th></th><th>Actuel</th><th>Proposé</th></tr></thead>
 <tbody>
 <tr><td class="k">Chapo FR</td><td class="o">Sept apps mesurées une par une sur une vraie machine. Trois autres lues dans leur code source.</td><td class="n">Dix apps passées en revue. Sept installées et testées une par une sur un MacBook Pro M4, trois lues dans leur code source en attendant leur tour. Une seule machine de test pour l'instant.</td></tr>
-<tr><td class="k">Colonne FR</td><td class="o">Bascule : Instantanée / Par relance</td><td class="n">Quand elle est cachée : Reste ouverte / Fermée, redémarre en ≈&#8239;1 s</td></tr>
+<tr><td class="k">Colonne FR</td><td class="o">Bascule&#8239;: Instantanée / Par relance</td><td class="n">Quand elle est cachée&#8239;: Reste ouverte / Fermée, redémarre en ≈&#8239;1 s</td></tr>
 <tr><td class="k">Notes FR</td><td class="o">46 ms de bout en bout · Régie par son bundle ID · Environ une seconde · Lu dans la source · Space privé, relance seulement</td><td class="n">Vibe Island «&#8239;Cachée en 46 ms&#8239;» · NotchNook «&#8239;Cachée en 57 ms&#8239;» · boringNotch «&#8239;Redémarre en une seconde environ&#8239;» · Notchy, Mew Notch «&#8239;Refuse d'être cachée, donc redémarre&#8239;» · SuperIsland, Atoll «&#8239;Pas encore testée. D'après son code, devrait se cacher.&#8239;» · DynamicNotch «&#8239;Pas encore testée. D'après son code, devra redémarrer.&#8239;»</td></tr>
-<tr><td class="k">Sous le tableau FR</td><td class="o">(absent)</td><td class="n">Votre app n'est pas dans la liste ? Elle n'a pas encore été testée. Alcove, Droppy et MediaMate ont été essayées sans résultat net. Ouvrez une issue avec son nom pour qu'on la teste.</td></tr>
+<tr><td class="k">Sous le tableau FR</td><td class="o">(absent)</td><td class="n">Votre app n'est pas dans la liste&#8239;? Elle n'a pas encore été testée. Alcove, Droppy et MediaMate ont été essayées sans résultat net. Ouvrez une issue avec son nom pour qu'on la teste.</td></tr>
 <tr><td class="k">Chapo EN</td><td class="o">Seven apps measured one by one on a real machine. Three more read from their source code.</td><td class="n">Ten apps reviewed. Seven installed and tested one by one on an M4 MacBook Pro, three read from their source code until they get their turn. One test machine so far.</td></tr>
 <tr><td class="k">Colonne EN</td><td class="o">Switch: Instant / Relaunch</td><td class="n">While hidden: Stays open / Quit, restarts in ≈&#8239;1 s</td></tr>
 <tr><td class="k">Notes EN</td><td class="o">Governed by bundle ID · Read from the source · Private Space, relaunch only</td><td class="n">"Hidden in 46 ms" · "Restarts in about a second" · "Won't be hidden, so it restarts" · "Not tested yet. Its code says it should hide." · "Not tested yet. Its code says it will need a restart."</td></tr>
@@ -278,26 +278,26 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <p class="lab">Ce qui marche</p>
 <ul class="good">
 <li><b>Le bloc Gatekeeper est la meilleure gestion d'objection de la page.</b> Il cite le message exact que le visiteur verra, donne le prix (99 € par an), dit que l'app n'est «&#8239;ni endommagée ni infectée&#8239;», et avoue que le cask Homebrew contourne Gatekeeper. Cette franchise vend.</li>
-<li>Le .zip et Homebrew à poids égal, les prérequis en trois lignes, «&#8239;une minute d'installation&#8239;» : le coût d'effort est annoncé.</li>
+<li>Le .zip et Homebrew à poids égal, les prérequis en trois lignes, «&#8239;une minute d'installation&#8239;»&#8239;: le coût d'effort est annoncé.</li>
 </ul>
 <p class="lab">Ce qui ne marche pas</p>
 <ul class="bad">
-<li><b>L'autorisation Accessibilité est listée sans raison.</b> C'est la plus intrusive de macOS et le premier frein. Le README a la réponse en une phrase ; la page ne l'a pas.</li>
-<li><b>Il manque le prérequis qui compte</b> : au moins deux apps d'encoche. Le visiteur à une app lit trois prérequis qu'il remplit et installe pour rien.</li>
-<li><b>Rien sur le premier lancement.</b> Le guide de bienvenue en cinq écrans vérifie l'autorisation et fait essayer le geste. C'est le premier succès de l'utilisateur, et il arrive en une minute : à dire.</li>
-<li><b>Rien sur la sortie</b> : comment désinstaller. Un utilitaire qui demande l'Accessibilité doit montrer qu'on s'en débarrasse facilement.</li>
+<li><b>L'autorisation Accessibilité est listée sans raison.</b> C'est la plus intrusive de macOS et le premier frein. Le README a la réponse en une phrase&#8239;; la page ne l'a pas.</li>
+<li><b>Il manque le prérequis qui compte</b>&#8239;: au moins deux apps d'encoche. Le visiteur à une app lit trois prérequis qu'il remplit et installe pour rien.</li>
+<li><b>Rien sur le premier lancement.</b> Le guide de bienvenue en cinq écrans vérifie l'autorisation et fait essayer le geste. C'est le premier succès de l'utilisateur, et il arrive en une minute&#8239;: à dire.</li>
+<li><b>Rien sur la sortie</b>&#8239;: comment désinstaller. Un utilitaire qui demande l'Accessibilité doit montrer qu'on s'en débarrasse facilement.</li>
 <li><b>Rien sur ce qui sort du Mac.</b> Sentry envoie des rapports d'erreur. Ne pas le dire, c'est laisser le premier lecteur de Hacker News le découvrir avec Little Snitch.</li>
-<li><b>«&#8239;Une minute&#8239;» est vrai avec Homebrew, juste avec le .zip</b> : décompresser, glisser, essuyer le refus, ouvrir les Réglages, «&#8239;Ouvrir quand même&#8239;», mot de passe. Dire «&#8239;une minute avec Homebrew, deux avec le .zip&#8239;».</li>
+<li><b>«&#8239;Une minute&#8239;» est vrai avec Homebrew, juste avec le .zip</b>&#8239;: décompresser, glisser, essuyer le refus, ouvrir les Réglages, «&#8239;Ouvrir quand même&#8239;», mot de passe. Dire «&#8239;une minute avec Homebrew, deux avec le .zip&#8239;».</li>
 </ul>
 <table class="cmp">
 <thead><tr><th></th><th>Actuel</th><th>Proposé</th></tr></thead>
 <tbody>
 <tr><td class="k">Chapo FR</td><td class="o">Gratuit, open source, et une minute d'installation.</td><td class="n">Gratuit et open source. Une minute avec Homebrew, deux avec le .zip.</td></tr>
 <tr><td class="k">Prérequis FR</td><td class="o">macOS 14 Sonoma ou plus récent · Un MacBook à encoche · L'autorisation Accessibilité</td><td class="n">macOS 14 Sonoma ou plus récent · Un MacBook à encoche · <b>Au moins deux apps d'encoche</b> (avec une seule, Bouncer n'a rien à faire) · L'autorisation Accessibilité</td></tr>
-<tr><td class="k">Accessibilité FR</td><td class="o">(rien)</td><td class="n">Pourquoi l'Accessibilité ? Pour lire la liste des fenêtres et cacher celles de vos apps d'encoche. Sans elle, Bouncer ne touche à rien. Le code est public, et la note de confidentialité dit, fichier et ligne à l'appui, ce qu'il lit et ce qu'il garde.</td></tr>
-<tr><td class="k">Confidentialité FR</td><td class="o">(rien)</td><td class="n">Bouncer envoie des rapports d'erreur anonymes à Sentry, sans adresse IP, pour corriger les plantages. Il n'y a ni compte, ni publicité, ni statistiques d'usage.<span class="why"><span class="warn">Condition</span> : corriger d'abord <code>docs/CONFIDENTIALITE.md</code>, et trancher le suivi de sessions (le couper, ou l'écrire ici). Ne pas publier cette ligne avant.</span></td></tr>
+<tr><td class="k">Accessibilité FR</td><td class="o">(rien)</td><td class="n">Pourquoi l'Accessibilité&#8239;? Pour lire la liste des fenêtres et cacher celles de vos apps d'encoche. Sans elle, Bouncer ne touche à rien. Le code est public, et la note de confidentialité dit, fichier et ligne à l'appui, ce qu'il lit et ce qu'il garde.</td></tr>
+<tr><td class="k">Confidentialité FR</td><td class="o">(rien)</td><td class="n">Bouncer envoie des rapports d'erreur anonymes à Sentry, sans adresse IP, pour corriger les plantages. Il n'y a ni compte, ni publicité, ni statistiques d'usage.<span class="why"><span class="warn">Condition</span>&#8239;: corriger d'abord <code>docs/CONFIDENTIALITE.md</code>, et trancher le suivi de sessions (le couper, ou l'écrire ici). Ne pas publier cette ligne avant.</span></td></tr>
 <tr><td class="k">Premier lancement FR</td><td class="o">(rien)</td><td class="n">Au premier lancement, un guide en cinq écrans vérifie l'autorisation et vous fait essayer le geste. Pour désinstaller, glissez Bouncer à la corbeille, ou <code>brew uninstall --zap bouncer</code>.</td></tr>
-<tr><td class="k">Gatekeeper FR</td><td class="o">gatekeeper1 à 3</td><td class="n">Inchangé. Une seule retouche : déplier ce bloc par défaut pour le .zip. Le visiteur qui ne l'a pas lu panique au premier lancement.</td></tr>
+<tr><td class="k">Gatekeeper FR</td><td class="o">gatekeeper1 à 3</td><td class="n">Inchangé. Une seule retouche&#8239;: déplier ce bloc par défaut pour le .zip. Le visiteur qui ne l'a pas lu panique au premier lancement.</td></tr>
 <tr><td class="k">Chapo EN</td><td class="o">Free, open source, and about a minute to install.</td><td class="n">Free and open source. One minute with Homebrew, two with the .zip.</td></tr>
 <tr><td class="k">Prérequis EN</td><td class="o">macOS 14 Sonoma or later · A MacBook with a notch · The Accessibility permission</td><td class="n">macOS 14 Sonoma or later · A MacBook with a notch · <b>At least two notch apps</b> (with one, Bouncer has nothing to do) · The Accessibility permission</td></tr>
 <tr><td class="k">Accessibilité EN</td><td class="o">(nothing)</td><td class="n">Why Accessibility? To read the window list and hide your notch apps' windows. Without it, Bouncer touches nothing. The code is public, and the privacy note lists, file and line, what it reads and what it keeps.</td></tr>
@@ -313,27 +313,88 @@ code,kbd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--
 <ul class="bad">
 <li><b>Personne n'a fait cette app.</b> Une app gratuite d'un inconnu qui demande l'Accessibilité gagne beaucoup à montrer qu'il y a une personne derrière, joignable.</li>
 <li><b>Pas de lien vers la confidentialité</b>, alors que c'est la page que le visiteur méfiant cherche.</li>
-<li><b>Pas de mention de non-affiliation.</b> La page cite dix apps tierces par leur nom ; une ligne évite le malentendu et protège l'auteur.</li>
-<li><b>Pas de dernier appel.</b> Ogilvy : après le titre, le post-scriptum est l'endroit le plus lu. Le pied de page peut porter le bouton une dernière fois.</li>
+<li><b>Pas de mention de non-affiliation.</b> La page cite dix apps tierces par leur nom&#8239;; une ligne évite le malentendu et protège l'auteur.</li>
+<li><b>Pas de dernier appel.</b> Ogilvy&#8239;: après le titre, le post-scriptum est l'endroit le plus lu. Le pied de page peut porter le bouton une dernière fois.</li>
 </ul>
 <table class="cmp">
 <thead><tr><th></th><th>Actuel</th><th>Proposé</th></tr></thead>
 <tbody>
-<tr><td class="k">Ligne FR</td><td class="o">Bouncer, un utilitaire pour macOS 14 et plus récent. Licence MIT.</td><td class="n">Bouncer est fait par François Hatem, sous licence MIT. Un bug, une app à tester : ouvrez une issue sur GitHub. Bouncer n'est affilié ni à Apple ni aux apps citées.</td></tr>
+<tr><td class="k">Ligne FR</td><td class="o">Bouncer, un utilitaire pour macOS 14 et plus récent. Licence MIT.</td><td class="n">Bouncer est fait par François Hatem, sous licence MIT. Un bug, une app à tester&#8239;: ouvrez une issue sur GitHub. Bouncer n'est affilié ni à Apple ni aux apps citées.</td></tr>
 <tr><td class="k">Liens FR</td><td class="o">GitHub · Versions · Compatibilité · English</td><td class="n">GitHub · Versions · Compatibilité · Confidentialité · English</td></tr>
 <tr><td class="k">Ligne EN</td><td class="o">Bouncer, a utility for macOS 14 and later. MIT licence.</td><td class="n">Bouncer is made by François Hatem, under the MIT licence. Found a bug, want an app tested? Open an issue on GitHub. Bouncer is not affiliated with Apple or with the apps named here.</td></tr>
 </tbody>
 </table>
-<p class="note">Le nom de l'auteur est une proposition : à valider par François avant publication (le dépôt a encore des commits signés d'une adresse pro à nettoyer, selon la mémoire de l'équipe).</p>
+<p class="note">Le nom de l'auteur est une proposition&#8239;: à valider par François avant publication (le dépôt a encore des commits signés d'une adresse pro à nettoyer, selon la mémoire de l'équipe).</p>
 
 <h2 id="ordre">Ordre des sections</h2>
 <div class="card">
-<p><b>Actuel</b> : héros, problème, gestes, moteur, compatibilité, installation.</p>
-<p><b>Proposé</b> : héros (avec définition et «&#8239;dès deux apps&#8239;») → vidéo de 8 s → problème, avec le bloc «&#8239;à la main / avec Bouncer&#8239;» → gestes → compatibilité, remontée parce que c'est la deuxième question de tout le monde et que le héros y renvoie → fiabilité, courte (garantie, deux chiffres, ce que devient l'app cachée) → installation, avec l'Accessibilité, la confidentialité et le premier lancement → questions fréquentes (navigateur caché ?, app cachée ?, désinstaller ?, consommation ?) → pied de page.</p>
-<p class="note">Pour la question «&#8239;consommation&#8239;», un fait à la Rolls-Royce existe dans <code>docs/PERFORMANCE.md</code> : sur une journée normale, la surveillance des fenêtres de Bouncer coûte environ 16 secondes de processeur en tout (6,6 s sur une machine qu'on ne touche pas). Le chiffre ne couvre que ce balayage de fond, à formuler comme tel. C'est exactement le genre de détail qu'Ogilvy mettait en titre.</p>
+<p><b>Actuel</b>&#8239;: héros, problème, gestes, moteur, compatibilité, installation.</p>
+<p><b>Proposé</b>&#8239;: héros (avec définition et «&#8239;dès deux apps&#8239;») → vidéo de 8 s → problème, avec le bloc «&#8239;à la main / avec Bouncer&#8239;» → gestes → compatibilité, remontée parce que c'est la deuxième question de tout le monde et que le héros y renvoie → fiabilité, courte (garantie, deux chiffres, ce que devient l'app cachée) → installation, avec l'Accessibilité, la confidentialité et le premier lancement → questions fréquentes (navigateur caché&#8239;?, app cachée&#8239;?, désinstaller&#8239;?, consommation&#8239;?) → pied de page.</p>
+<p class="note">Pour la question «&#8239;consommation&#8239;», un fait à la Rolls-Royce existe dans <code>docs/PERFORMANCE.md</code>&#8239;: sur une journée normale, la surveillance des fenêtres de Bouncer coûte environ 16 secondes de processeur en tout (6,6 s sur une machine qu'on ne touche pas). Le chiffre ne couvre que ce balayage de fond, à formuler comme tel. C'est exactement le genre de détail qu'Ogilvy mettait en titre.</p>
 </div>
 
-<!--SECTIONS3-->
+<h2 id="positionnement">Positionnement</h2>
+
+<h3>À qui on parle</h3>
+<ul>
+<li><b>Le cœur</b>&#8239;: quelqu'un avec un MacBook à encoche qui cumule une app qui le tient au courant (Vibe Island pour ses agents de code) et une app de confort (boringNotch pour la musique, NotchNook pour les fichiers). Il a déjà vécu la superposition et a déjà quitté une app à la main pour en voir une autre. C'est souvent un développeur, et il traîne sur r/macapps, GitHub et Hacker News.</li>
+<li><b>Le second cercle</b>&#8239;: les collectionneurs d'apps d'encoche, qui en essaient trois par mois et finissent par en désinstaller deux faute de pouvoir les garder ensemble.</li>
+<li><b>Pas pour</b>&#8239;: celui qui n'a qu'une app d'encoche. Le dire franchement sur la page coûte peu et donne du crédit au reste.</li>
+</ul>
+<p class="note">Le marché est petit&#8239;: quelques milliers de personnes, selon le sous-agent growth (estimation, aucune donnée). Ça change le ton. On écrit pour un lecteur qualifié et méfiant. Ça justifie aussi de garder les chiffres, à condition qu'ils soient justes.</p>
+
+<h3>Énoncé de positionnement proposé</h3>
+<div class="card">
+<p>Pour les possesseurs de MacBook à encoche qui utilisent au moins deux apps d'encoche, Bouncer fait tenir toutes ces apps dans la même encoche, une à l'écran, les autres de côté, et passe de l'une à l'autre d'un geste. Contrairement à la sortie que macOS laisse (quitter puis rouvrir à la main), Bouncer ne retire jamais l'app en place avant que la suivante soit affichée, et garde ouvertes celles qui acceptent d'être cachées.</p>
+<p class="note">Alternatives réelles, et quand elles gagnent&#8239;: quitter à la main (gagne si on change d'app une fois par jour)&#8239;; ne garder qu'une app (gagne si une seule couvre le besoin)&#8239;; une app tout-en-un comme NotchNook (gagne si ses fonctions suffisent). La page n'a pas à attaquer ces options, elle doit seulement rendre visible ce que coûte la première.</p>
+</div>
+
+<h3>L'objection n°1 et la réponse</h3>
+<div class="card">
+<p><b>«&#8239;Est-ce que ça vaut une autorisation Accessibilité et un avertissement de sécurité, pour l'app d'un inconnu, alors que je règle le problème en quittant une app&#8239;?&#8239;»</b></p>
+<p>C'est l'équation de valeur de Hormozi&#8239;: le prix est nul, mais le haut de l'équation (gain perçu, probabilité que ça marche pour moi) est flou, et le bas (effort, risque) est lourd. On gagne plus à alléger le bas qu'à gonfler le haut. La réponse tient en trois gestes, tous dans les réécritures ci-dessus&#8239;:</p>
+<ol>
+<li><b>Rendre visible le coût actuel</b>&#8239;: le bloc «&#8239;à la main / avec Bouncer&#8239;» dans la section problème.</li>
+<li><b>Réduire le risque perçu à côté du bouton</b>&#8239;: pourquoi l'Accessibilité, code public en un clic, phrase honnête sur Sentry, désinstallation en un glissement, «&#8239;jamais tuée de force&#8239;», «&#8239;allumer avant d'éteindre&#8239;».</li>
+<li><b>Prouver que ça marche pour mon app</b>&#8239;: le tableau, avec la conséquence écrite en clair, et la vidéo.</li>
+</ol>
+</div>
+
+<h3>Ce qui manque</h3>
+<ul>
+<li><b>Une démo filmée, réelle, de 8 secondes.</b> Deux apps superposées, un balayage, l'une cède la place. La démo interactive du héros est réussie mais c'est une simulation&#8239;; un sceptique veut voir le vrai écran. Format GIF ou vidéo muette en boucle, lisible sans clic sur téléphone (le trafic Reddit et X arrive surtout sur mobile).</li>
+<li><b>La comparaison avec «&#8239;quitter une app à la main&#8239;»</b>, proposée dans la section problème.</li>
+<li><b>De la preuve sociale.</b> Il n'y en a pas, et il ne faut rien inventer. En attendant&#8239;: les mesures et le tableau tiennent ce rôle, la licence MIT et le lien vers le code aussi. Dès le lancement&#8239;: le nombre d'étoiles GitHub, une ou deux citations de premiers utilisateurs avec leur nom et leurs apps, et si possible un mot d'un développeur d'app d'encoche (celui de Vibe Island, gh-notch ou Cyclop, dont les apps passent en 46 à 49 ms).</li>
+<li><b>Une FAQ courte</b>&#8239;: mon navigateur peut-il être caché&#8239;? que devient l'app cachée&#8239;? comment désinstaller&#8239;? ça consomme quoi&#8239;? et l'app que j'utilise n'est pas listée&#8239;?</li>
+<li><b>L'idée du nom n'est pas exploitée.</b> Bouncer, c'est le videur&#8239;: une app entre à la fois, les autres attendent à la porte. À garder hors du titre (Ogilvy se méfie des jeux de mots en titre), et à essayer dans une ligne de texte ou la légende de la démo&#8239;: «&#8239;Bouncer fait entrer une app à la fois. Les autres attendent leur tour.&#8239;» À tester, pas à imposer.</li>
+</ul>
+
+<h3>Lancement (quand le bloquant est levé)</h3>
+<ol>
+<li>Dépôt public, release publiée, tap Homebrew testé sur un Mac propre. Avant ça, ne rien poster.</li>
+<li>Répondre dans les issues GitHub de boringNotch, NotchNook et des autres où des gens se plaignent de la superposition. Contribution d'abord, lien ensuite. Prévenir les développeurs des apps relancées avant qu'ils le découvrent.</li>
+<li>r/macapps avec la vidéo et l'histoire («&#8239;j'avais Vibe Island et boringNotch, elles se marchaient dessus&#8239;»), après lecture des règles d'autopromotion.</li>
+<li>Show HN une fois les premiers retours intégrés. Le fond technique (mesures, pas d'astuce système, rien de tué de force) plaît là-bas&#8239;: c'est l'endroit où renvoyer vers la doc du moteur.</li>
+<li>Product Hunt en dernier, voire jamais&#8239;: son public n'a pas ce problème.</li>
+</ol>
+<p class="note">Mesurer les clics vers la release par canal (paramètres UTM sur les liens postés), les étoiles et les issues ouvertes. Les impressions ne disent rien ici. Objectif réaliste selon le sous-agent growth&#8239;: une à trois centaines d'installations qualifiées.</p>
+
+<h2 id="apports">Ce que chaque skill ou persona a apporté</h2>
+<ul>
+<li><b>david-ogilvy-copy-chief</b>&#8239;: le titre doit porter promesse et audience&#8239;; les titres négatifs («&#8239;macOS ne coordonne pas&#8239;») se retournent&#8239;; un fait précis et vérifiable (le tableau, les 16 s de processeur par jour) vaut mieux qu'un adjectif.</li>
+<li><b>copywriting</b> (survolé)&#8239;: bénéfice avant mécanisme, et la langue du client («&#8239;changer d'app&#8239;», «&#8239;cachée&#8239;») plutôt que celle du code («&#8239;bascule&#8239;», «&#8239;voie&#8239;», «&#8239;binaire&#8239;»).</li>
+<li><b>cro</b>&#8239;: le bouton du héros dont le libellé promet un téléchargement et livre un défilement, le bouton inutile sur téléphone, l'objection Accessibilité à remonter près du bouton, la compatibilité à remonter dans l'ordre.</li>
+<li><b>positioning-basics</b> (survolé)&#8239;: qui, et surtout pas qui (une seule app)&#8239;; l'alternative réelle est «&#8239;quitter à la main&#8239;»&#8239;; l'énoncé de positionnement.</li>
+<li><b>marketing-psychology</b> (survolé)&#8239;: le risque perçu pèse plus que le prix nul&#8239;; une garantie nommée («&#8239;allumer avant d'éteindre&#8239;») rassure plus qu'une explication.</li>
+<li><b>alex-hormozi-offer-architect</b>&#8239;: l'équation de valeur d'une app gratuite se joue sur l'effort et le risque&#8239;; le premier succès en une minute (le guide de bienvenue) doit être annoncé.</li>
+<li><b>launch-strategy</b> (survolé)&#8239;: les communautés des apps d'encoche d'abord, Hacker News ensuite, Product Hunt en dernier, et rien avant un dépôt public.</li>
+<li><b>don-norman-design-advisor</b> (survolé)&#8239;: «&#8239;app d'encoche&#8239;» n'a pas de modèle mental chez le visiteur&#8239;; l'écart d'évaluation, c'est «&#8239;que devient l'app que je ne vois plus&#8239;?&#8239;».</li>
+<li><b>seo-page</b> (survolé)&#8239;: titre EN redondant, H1 sans mot-clé, un <code>h3</code> avant le <code>h1</code>, descriptions qui promettent «&#8239;sans les quitter&#8239;».</li>
+<li><b>no-ai-slop</b>&#8239;: toutes les réécritures passées en détection, sans tiret cadratin, sans contraste «&#8239;pas X, mais Y&#8239;», sans deux-points de révélation.</li>
+<li><b>Sous-agent Growth Marketer</b>&#8239;: le bouton mène aujourd'hui à une 404, Sentry non déclaré, l'ordre de lancement et le bouton mobile.</li>
+<li><b>Sous-agent Product Manager</b>&#8239;: la question de l'app cachée, «&#8239;sept apps mesurées&#8239;» généreux pour Notchy et Mew Notch, le banc unique, les apps absentes (Alcove, Droppy, MediaMate), la définition d'«&#8239;app d'encoche&#8239;».</li>
+</ul>
+<p class="note">«&#8239;Survolé&#8239;» veut dire que j'ai lu la structure du skill et appliqué ses cadres, sans le charger en entier. Vérifications faites contre le README, <code>docs/COMPATIBILITE.md</code>, <code>docs/PERFORMANCE.md</code>, <code>docs/CONFIDENTIALITE.md</code>, <code>content/compatibilite.json</code>, <code>Sources/Bouncer/main.swift</code> et <code>Casks/bouncer.rb</code>. Aucune réécriture ne promet une chose que l'app ne fait pas&#8239;; les deux points incertains (suivi de sessions Sentry, «&#8239;aucune API privée&#8239;») sont marqués comme tels.</p>
 
 </main>
 </body>
