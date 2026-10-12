@@ -147,8 +147,19 @@ p+p{margin-top:14px}
 .lede+.suite{margin-top:22px}
 strong{font-weight:600}
 
-/* Problème : le conflit dessiné en éclaté */
+/* Composition. Tous les titres partent du bord gauche de .wrap ; ce qui varie,
+   c'est ce qu'il y a dessous. .cols : texte à gauche, visuel en face.
+   .inv : le visuel passe à gauche, le titre reste au-dessus, sur le même bord.
+   .head : titre et chapo en vis-à-vis, le contenu pleine largeur dessous. */
 .cols{display:grid;grid-template-columns:5fr 6fr;gap:64px;align-items:center}
+.inv{align-items:start;margin-top:56px}
+.inv>:first-child{grid-column:2}
+.inv>:last-child{grid-column:1;grid-row:1}
+.inv .lede{margin-top:0}
+.head{display:grid;grid-template-columns:7fr 5fr;gap:64px;align-items:end}
+.head .lede{margin-top:0}
+
+/* Problème : le conflit dessiné en éclaté */
 .scenes{display:grid;gap:16px}
 .scene{--nw:132px;--nh:30px;position:relative;background:#101018;border-radius:22px;height:178px;overflow:hidden;color:#fff}
 .scene .strip{height:var(--nh);background:#1f1f2b;display:flex;justify-content:space-between;align-items:center;padding:0 16px;font:500 12px var(--sys);color:#d1d1d6}
@@ -190,7 +201,8 @@ strong{font-weight:600}
 /* Moteur : tuile sombre, chiffres, et la règle « on avant off » en frise */
 .dark{background:var(--night);color:#f5f5f7}
 .dark .lede{color:#a1a1a6}
-.specs{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin:64px 0 0;border-top:1px solid #424245;padding-top:40px}
+.specs{display:grid;border-top:1px solid #424245}
+.spec{padding:28px 0;border-bottom:1px solid #424245}
 .spec b{display:block;font:700 clamp(44px,5.4vw,68px)/1 var(--disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .spec b small{font-size:.5em;letter-spacing:-.01em;margin-left:4px}
 .spec span{display:block;margin-top:12px;font-weight:600}
@@ -208,7 +220,7 @@ strong{font-weight:600}
 .seg.old{left:0;width:74%;background:#64d2ff;color:#04293a}
 .cut{position:absolute;top:-10px;bottom:-30px;left:calc(150px + 16px + (100% - 166px)*.66);border-left:1.5px dashed #ffd60a}
 .cut span{position:absolute;left:8px;bottom:0;font-size:12px;color:#ffd60a;white-space:nowrap}
-.pair{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:64px}
+.pair{display:grid;gap:32px;margin-top:40px}
 .pair p{color:#c7c7cc;margin-top:10px}
 
 /* Compatibilité */
@@ -227,14 +239,14 @@ td b{font-weight:600}
 .bench{font-size:14px;color:var(--muted);margin-top:18px;max-width:48em}
 .bench a{display:inline-flex;min-height:44px;align-items:center}
 
-/* Fin de page : l'encoche revient, deux façons d'installer de même poids */
-.install{text-align:center;padding-bottom:120px}
-.install h2,.install .lede{margin-inline:auto}
-.closer{--nw:150px;--nh:32px;position:relative;max-width:620px;height:120px;margin:0 auto 56px;border-radius:26px 26px 0 0;overflow:hidden;
+/* Fin de page, en colonne étroite : le titre, puis l'encoche revient au-dessus
+   des deux façons d'installer, de même poids */
+.install{padding-bottom:120px}
+.closer{--nw:150px;--nh:32px;position:relative;max-width:760px;height:120px;margin:40px 0 0;border-radius:26px 26px 0 0;overflow:hidden;
   background:radial-gradient(70% 120% at 50% 130%,#5a4ad1 0,rgba(90,74,209,0) 70%),linear-gradient(#070a22,#1b1d5e);
   -webkit-mask:linear-gradient(#000 55%,transparent);mask:linear-gradient(#000 55%,transparent)}
 .closer .pill{opacity:1;width:calc(var(--nw)*var(--w));pointer-events:none}.closer .pill>*{opacity:1}
-.ways2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:760px;margin:44px auto 0;text-align:left}
+.ways2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:760px;margin-top:8px}
 .opt{background:var(--paper);border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:12px}
 .opt h3{font:600 19px/1.25 var(--disp)}
 .opt p{color:var(--muted);font-size:15px;flex:1}
@@ -242,9 +254,9 @@ td b{font-weight:600}
 .cmd{display:flex;align-items:center;gap:8px;background:var(--alu);border-radius:12px;padding:6px 6px 6px 14px}
 .cmd code{flex:1;min-width:0;font:13px var(--mono);overflow-x:auto;white-space:nowrap}
 .cmd button{min-height:44px;padding:0 16px;border-radius:9px;border:0;background:var(--ink);color:#fff;font-weight:600;cursor:pointer}
-.need{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 28px;margin-top:32px;color:var(--muted);font-size:15px;list-style:none;padding:0}
+.need{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:32px;color:var(--muted);font-size:15px;list-style:none;padding:0}
 .need li::before{content:"✓ ";color:#1d7a3a;font-weight:700}
-details{max-width:760px;margin:20px auto 0;text-align:left;background:var(--paper);border-radius:18px;padding:0 24px}
+details{max-width:760px;margin-top:20px;background:var(--paper);border-radius:18px;padding:0 24px}
 summary{cursor:pointer;min-height:56px;display:flex;align-items:center;font-weight:600}
 details[open]{padding-bottom:22px}
 blockquote{margin:6px 0 14px;padding-left:14px;border-left:3px solid var(--hair);font-style:italic}
@@ -256,14 +268,16 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 
 @media (max-width:760px){
   section{padding:72px 0}
-  .cols{grid-template-columns:1fr;gap:40px}
+  .cols,.head{grid-template-columns:1fr;gap:40px}
+  .inv>:first-child,.inv>:last-child{grid-column:auto;grid-row:auto}
+  .inv{margin-top:18px}
+  .head{gap:0}.head .lede{margin-top:18px}
   .scene .tag:not(.r){display:none}
   .ways{grid-template-columns:1fr;gap:14px;margin-top:36px}.way{border-radius:22px}
   .way .menu{right:50%;transform:translateX(50%)}
   .way .arw{display:grid}
   /* La valeur doit tenir dans l'aile droite de la pastille, sinon l'encoche la mange. */
   .scene{--nw:100px}.scene .pill{font-size:11px}
-  .specs,.pair{grid-template-columns:1fr}
   .tl{padding:22px 18px;border-radius:18px}
   .lane{grid-template-columns:1fr;gap:6px}
   .cut{left:calc(100%*.66);bottom:-26px}

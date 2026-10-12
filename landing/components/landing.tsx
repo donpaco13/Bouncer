@@ -165,8 +165,10 @@ export function Landing() {
             La même encoche à la même échelle, et le geste dessiné dessus. */}
         <section id="gesture">
           <div className="wrap">
-            <h2>{t("commandes.titre")}</h2>
-            <p className="lede">{t("commandes.chapo")}</p>
+            <div className="head">
+              <h2>{t("commandes.titre")}</h2>
+              <p className="lede">{t("commandes.chapo")}</p>
+            </div>
             <div className="ways">
               <Facon titre={t("commandes.swipeTitre")} corps={t("commandes.swipeCorps")} pastille={vitrine}>
                 <span className="touch">
@@ -209,24 +211,38 @@ export function Landing() {
         </section>
 
         {/* ---------------------------- LE MOTEUR -------------------------
-            Les trois chiffres mesurés, puis la règle « on avant off » en
-            frise : la nouvelle app est comptée à l'écran avant que l'ancienne
-            parte. */}
+            Les trois chiffres mesurés à gauche, le texte en face, puis la
+            règle « on avant off » en frise pleine largeur : la nouvelle app
+            est comptée à l'écran avant que l'ancienne parte. */}
         <section className="dark" id="engine">
           <div className="wrap">
             <h2>{t("moteur.titre")}</h2>
-            <p className="lede">{t("moteur.chapo")}</p>
-            <div className="specs">
-              {(["chiffre1", "chiffre2", "chiffre3"] as const).map((c) => (
-                <div key={c} className="spec">
-                  <b>
-                    {t(`moteur.${c}.valeur`)}
-                    <small>{t(`moteur.${c}.unite`)}</small>
-                  </b>
-                  <span>{t(`moteur.${c}.libelle`)}</span>
-                  <p>{t(`moteur.${c}.note`)}</p>
+            <div className="cols inv">
+              <div>
+                <p className="lede">{t("moteur.chapo")}</p>
+                <div className="pair">
+                  <div>
+                    <h3>{t("moteur.refusTitre")}</h3>
+                    <p>{t("moteur.refusCorps")}</p>
+                  </div>
+                  <div>
+                    <h3>{t("moteur.detectionTitre")}</h3>
+                    <p>{t("moteur.detectionCorps")}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
+              <div className="specs">
+                {(["chiffre1", "chiffre2", "chiffre3"] as const).map((c) => (
+                  <div key={c} className="spec">
+                    <b>
+                      {t(`moteur.${c}.valeur`)}
+                      <small>{t(`moteur.${c}.unite`)}</small>
+                    </b>
+                    <span>{t(`moteur.${c}.libelle`)}</span>
+                    <p>{t(`moteur.${c}.note`)}</p>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="tl">
               <h3>{t("moteur.friseTitre")}</h3>
@@ -252,16 +268,6 @@ export function Landing() {
                 <span className="cut">
                   <span>{t("moteur.compte")}</span>
                 </span>
-              </div>
-            </div>
-            <div className="pair">
-              <div>
-                <h3>{t("moteur.refusTitre")}</h3>
-                <p>{t("moteur.refusCorps")}</p>
-              </div>
-              <div>
-                <h3>{t("moteur.detectionTitre")}</h3>
-                <p>{t("moteur.detectionCorps")}</p>
               </div>
             </div>
           </div>
@@ -323,12 +329,12 @@ export function Landing() {
             « n'a pas pu vérifier » / « cannot verify », jamais « endommagée ». */}
         <section className="install" id="install">
           <div className="wrap">
+            <h2>{t("installation.titre")}</h2>
+            <p className="lede">{t("installation.chapo")}</p>
             <div className="closer" aria-hidden="true">
               <span className="notch" />
               <Pastille signe={va.signe} valeur={va.valeur} w={2.15} />
             </div>
-            <h2>{t("installation.titre")}</h2>
-            <p className="lede">{t("installation.chapo")}</p>
             <div className="ways2">
               <div className="opt">
                 <h3>{t("installation.zipTitre")}</h3>
