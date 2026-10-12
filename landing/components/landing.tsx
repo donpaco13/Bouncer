@@ -4,6 +4,7 @@ import { CAMPAGNE, COMPATIBILITE, type LigneCompatibilite } from "@/content/comp
 import { APPS_APERCU, appDemo } from "@/content/demo";
 import { COMMANDE_BREW, LIENS } from "@/content/liens";
 import { absolue } from "@/content/seo";
+import { VIDEO, videoPrete } from "@/content/video";
 import { NOMS_LANGUES, routing } from "@/i18n/routing";
 import { BoutonCopie, LigneCommande } from "./actions";
 import { Bureau, type AppBureau } from "./bureau";
@@ -143,6 +144,31 @@ export function Landing() {
             profondeur, chacune nommée, au-dessus de la même encoche. En face,
             la même encoche avec Bouncer. */}
         <section className="paper" id="problem">
+          {/* La démo du héros est une simulation : la vidéo est la preuve.
+              Muette, en boucle, sans son à couper. Tant qu'elle n'est pas
+              tournée, l'encoche dessinée tient sa place, à la même taille. */}
+          <figure className="wrap film">
+            {videoPrete() ? (
+              <video
+                className="ecran"
+                src={`../${VIDEO.mp4}`}
+                poster={`../${VIDEO.poster}`}
+                aria-label={t("video.description")}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+                preload="metadata"
+              />
+            ) : (
+              <div className="ecran" aria-hidden="true">
+                <span className="notch" />
+                <Pastille signe={va.signe} valeur={va.valeur} w={2.15} />
+              </div>
+            )}
+            <figcaption>{t(videoPrete() ? "video.legende" : "video.attente")}</figcaption>
+          </figure>
           <div className="wrap cols">
             <div>
               <h2>{t("probleme.titre")}</h2>

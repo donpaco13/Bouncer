@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scénario vidéo Bouncer</title>
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--ink:#1d1d1f;--muted:#5f5f64;--hair:#d2d2d7;--accent:#0066cc;--warn:#b25000;--code:#ececf0}
+@media (prefers-color-scheme:dark){:root{--bg:#111114;--card:#1c1c20;--ink:#f5f5f7;--muted:#a1a1a6;--hair:#38383d;--accent:#2997ff;--warn:#ff9f0a;--code:#2a2a2f}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;padding:40px 16px 80px}
+main{max-width:860px;margin:auto}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1;letter-spacing:-.02em}
+h2{font-size:22px;margin:44px 0 12px;letter-spacing:-.01em}
+p+p,p+ul,ul+p{margin-top:10px}
+.sub{color:var(--muted);margin-top:10px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:16px;padding:20px 22px;margin-top:14px}
+ul,ol{padding-left:22px}li+li{margin-top:6px}
+code{font:14px ui-monospace,"SF Mono",Menlo,monospace;background:var(--code);padding:1px 6px;border-radius:5px;overflow-wrap:anywhere}
+pre{font:13px/1.5 ui-monospace,"SF Mono",Menlo,monospace;background:var(--code);padding:14px 16px;border-radius:12px;overflow-x:auto;margin-top:10px}
+.plans{display:grid;gap:12px;margin-top:14px}
+.plan{display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;background:var(--card);border:1px solid var(--hair);border-radius:16px;padding:18px 20px}
+.plan .t{font:600 15px ui-monospace,"SF Mono",Menlo,monospace;color:var(--accent)}
+.plan h3{font-size:17px}
+.plan p{color:var(--muted);margin-top:6px}
+.warn{border-left:3px solid var(--warn);padding-left:14px;margin-top:14px}
+.frame{position:relative;aspect-ratio:16/9;max-width:520px;margin-top:14px;border-radius:12px;background:linear-gradient(#070a22,#1b1d5e);overflow:hidden}
+.frame .bar{position:absolute;inset:0 0 auto;height:6%;background:rgba(255,255,255,.12)}
+.frame .notch{position:absolute;left:50%;top:0;transform:translateX(-50%);width:11%;height:6%;background:#000;border-radius:0 0 6px 6px}
+.frame .lbl{position:absolute;left:12px;bottom:10px;color:#fff;font-size:13px;opacity:.8}
+@media (max-width:600px){.plan{grid-template-columns:minmax(0,1fr);gap:4px}}
+</style>
+</head>
+<body>
+<main>
+<h1>Scénario de la vidéo Bouncer</h1>
+<p class="sub">Huit secondes, une seule prise, à vitesse réelle, sur ton MacBook. Elle remplace l'encoche dessinée en haut de la section « problème » de la landing. Préparé le 13 octobre 2026.</p>
+
+<h2>Ce que la vidéo doit prouver</h2>
+<p>Deux apps d'encoche qui dessinent l'une sur l'autre, Bouncer qui n'en garde qu'une, puis un balayage qui passe à la suivante. La démo du héros est une simulation ; cette vidéo est la seule preuve filmée sur la page, donc pas de montage, pas d'accéléré, pas de texte incrusté. La légende de la page dit « à vitesse réelle » : elle doit rester vraie.</p>
+
+<h2>Avant de filmer</h2>
+<div class="card">
+<ol>
+<li><b>Machine</b> : le MacBook Pro M4 de la campagne de mesure, écran interne seul (débranche l'écran externe : l'encoche doit être sur l'écran principal et l'enregistrement plus simple).</li>
+<li><b>Apps</b> : Vibe Island 1.0.48 et boringNotch 2.7.3, les deux versions mesurées dans <code>docs/COMPATIBILITE.md</code>. Ferme NotchNook et toute autre app d'encoche.</li>
+<li><b>Contenu des pastilles</b> : une ou deux sessions Claude Code qui tournent, pour que Vibe Island affiche ses agents ; un morceau en lecture dans Musique, pour que boringNotch affiche la musique.</li>
+<li><b>Bouncer quitté.</b> Lance-le d'abord une fois à blanc, pour que le guide de bienvenue soit passé et ne s'ouvre pas pendant la prise. Puis quitte-le (menu de Bouncer, « Quitter Bouncer »), et vérifie que les deux pastilles sont revenues et se superposent sous l'encoche. S'il en manque une, rouvre l'app.</li>
+<li><b>Écran propre</b> : fond d'écran uni et sombre, icônes du bureau masquées, Ne pas déranger activé, Finder au premier plan (ses menus sont courts), icônes superflues retirées de la barre des menus.</li>
+<li><b>Terminal prêt hors cadre</b> : une fenêtre Terminal en bas de l'écran, avec <code>open -a Bouncer</code> tapé et pas encore validé. Tu lanceras Bouncer d'une touche Entrée, sans que rien ne bouge dans le cadre.</li>
+</ol>
+</div>
+
+<h2>Le cadre</h2>
+<p>Un rectangle de <b>960 × 540 points</b>, centré horizontalement, collé au bord haut de l'écran. Sur un écran Retina, ça donne 1920 × 1080 pixels, le format exact de l'emplacement sur la page (16:9). L'encoche doit être au milieu du bord haut.</p>
+<div class="frame" aria-hidden="true"><span class="bar"></span><span class="notch"></span><span class="lbl">960 × 540 pt, encoche au centre du bord haut</span></div>
+<p>Pour l'enregistrer : <code>⇧⌘5</code>, « Enregistrer la partie sélectionnée », trace le rectangle, puis dans Options coche « Afficher le pointeur de la souris » et décoche le micro. Enregistre une quinzaine de secondes, on coupera à huit.</p>
+
+<h2>Plan par plan</h2>
+<div class="plans">
+<div class="plan"><span class="t">0,0 → 2,5 s</span><div><h3>Le problème</h3><p>Bouncer est quitté. Vibe Island et boringNotch dessinent l'une sur l'autre sous l'encoche. Ne touche à rien, pointeur hors du cadre. Cette image sert aussi d'affiche à la vidéo.</p></div></div>
+<div class="plan"><span class="t">2,5 → 3,5 s</span><div><h3>Bouncer arrive</h3><p>Appuie sur Entrée dans le Terminal hors cadre. Bouncer se lance et cache l'une des deux apps : il n'en reste qu'une sous l'encoche. Laquelle reste dépend de son cycle, les deux cas vont.</p></div></div>
+<div class="plan"><span class="t">3,5 → 5,0 s</span><div><h3>Le pointeur vient sur l'encoche</h3><p>Amène le pointeur sur la pastille, sans cliquer. Mouvement calme et direct.</p></div></div>
+<div class="plan"><span class="t">5,0 → 8,0 s</span><div><h3>Un balayage</h3><p>Balaie à deux doigts, à l'horizontale, une seule fois. Si l'app qui arrive est boringNotch, elle met une seconde environ à se relancer et l'app en place reste affichée jusque-là : c'est la garantie « allumer avant d'éteindre », filmée. Si c'est Vibe Island, la bascule est immédiate. Laisse la nouvelle app à l'écran jusqu'à la fin.</p></div></div>
+</div>
+<p class="warn">Une prise ratée (guide de bienvenue, notification, pastille vide) se refait depuis le début : quitte Bouncer, relance les deux apps si besoin, et recommence. Aucun collage de deux prises.</p>
+
+<h2>Export</h2>
+<div class="card">
+<p>QuickTime rend un <code>.mov</code>. Coupe-le à 8 s, sans le son, en H.264 compatible avec tous les navigateurs, avec ffmpeg (<code>brew install ffmpeg</code> s'il manque). Remplace <code>2.0</code> par la seconde où ton plan 1 commence dans la prise.</p>
+<pre>ffmpeg -ss 2.0 -i prise.mov -t 8 -an \
+  -vf "scale=1920:1080,fps=30" \
+  -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p \
+  -movflags +faststart bouncer-bascule.mp4
+
+ffmpeg -ss 0.5 -i bouncer-bascule.mp4 -frames:v 1 -q:v 3 bouncer-bascule.jpg</pre>
+<ul>
+<li><b>Vidéo</b> : MP4 H.264, 1920 × 1080, 30 images par seconde, 8 s, sans piste audio. Vise moins de 3 Mo ; au-delà, monte <code>-crf</code> à 26.</li>
+<li><b>Affiche</b> : JPEG 1920 × 1080, tirée du plan 1 (les deux apps superposées). C'est l'image qu'on voit avant la lecture et sur une connexion lente.</li>
+</ul>
+</div>
+
+<h2>Où poser les fichiers</h2>
+<div class="card">
+<p>Les deux fichiers, avec ces noms exacts :</p>
+<pre>landing/public/video/bouncer-bascule.mp4
+landing/public/video/bouncer-bascule.jpg</pre>
+<p>Puis <code>npm run build</code> dans <code>landing/</code>. La page vérifie au build que les deux fichiers sont là (<code>content/video.ts</code>) et remplace l'encoche dessinée par la vidéo, muette, en boucle, avec ses contrôles. Rien d'autre à modifier.</p>
+<p>La même prise peut remplir le TODO du README (le GIF de démonstration à la ligne 21).</p>
+</div>
+</main>
+</body>
+</html>

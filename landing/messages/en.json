@@ -189,5 +189,10 @@
     "sortieCorps": "Bouncer can send its crash reports to Sentry. That’s off by default, and nothing is sent until you turn it on in the Bouncer menu.",
     "desinstallerTitre": "To uninstall",
     "desinstallerCorps": "Drag Bouncer to the Bin, or run <code>brew uninstall --zap bouncer</code> if you installed it with Homebrew."
+  },
+  "video": {
+    "attente": "A real switch, filmed on a MacBook, will play here soon.",
+    "legende": "A real switch, filmed on a MacBook Pro, at real speed.",
+    "description": "Eight-second video, no sound. Two notch apps draw over each other, Bouncer keeps only one, then a two-finger swipe moves to the next."
   }
 }

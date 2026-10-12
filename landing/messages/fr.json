@@ -189,5 +189,10 @@
     "sortieCorps": "Bouncer sait envoyer ses rapports de plantage à Sentry. C’est coupé par défaut, et rien ne part tant que vous ne l’activez pas dans le menu de Bouncer.",
     "desinstallerTitre": "Pour désinstaller",
     "desinstallerCorps": "Glissez Bouncer à la corbeille, ou tapez <code>brew uninstall --zap bouncer</code> si vous l’avez installé avec Homebrew."
+  },
+  "video": {
+    "attente": "Bientôt ici, une vraie bascule filmée sur un MacBook.",
+    "legende": "Une vraie bascule, filmée sur un MacBook Pro, à vitesse réelle.",
+    "description": "Vidéo de huit secondes, sans son. Deux apps d’encoche dessinent l’une sur l’autre, Bouncer n’en garde qu’une, puis un balayage à deux doigts passe à la suivante."
   }
 }
