@@ -134,6 +134,8 @@ h1{font:700 clamp(46px,7.4vw,96px)/1 var(--disp);letter-spacing:-.04em;margin-to
 .desk .link{color:#fff}
 .fine{margin-top:16px;font-size:14px;color:rgba(255,255,255,.62)}
 .fine a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+/* Un lien dans une ligne de texte : la zone de toucher grandit sans écarter les lignes. */
+.fine a,.trust a,.pair a{padding-block:12px}
 .ailleurs{display:none}
 /* Collines : le fond d'écran se pose sur l'aluminium de la page */
 .hills{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:clamp(90px,14vw,190px);display:block;z-index:0}
@@ -171,7 +173,7 @@ strong{font-weight:600}
 .scenes{display:grid;gap:16px}
 /* L'emplacement de la vidéo, au format qu'elle aura (16:9) */
 .film{margin-bottom:72px}
-.film .ecran{display:block;position:relative;width:100%;max-width:960px;aspect-ratio:16/9;border-radius:22px;overflow:hidden;--nw:150px;--nh:32px;
+.film .ecran{display:block;position:relative;width:100%;max-width:760px;aspect-ratio:16/9;border-radius:22px;overflow:hidden;--nw:150px;--nh:32px;
   background:radial-gradient(70% 120% at 50% 130%,#5a4ad1 0,rgba(90,74,209,0) 70%),linear-gradient(#070a22,#1b1d5e)}
 .film .pill{opacity:1;width:calc(var(--nw)*var(--w));pointer-events:none}.film .pill>*{opacity:1}
 .film figcaption{margin-top:12px;font-size:14px;color:var(--muted)}
@@ -237,7 +239,7 @@ strong{font-weight:600}
 .pair{display:grid;gap:32px;margin-top:40px}
 .pair p{color:#c7c7cc;margin-top:10px}
 .dark a{color:#2997ff}
-.pair a{display:inline-flex;min-height:44px;align-items:center}
+
 
 /* Compatibilité */
 .tbl{margin-top:48px;border-radius:22px;background:var(--alu);padding:8px 24px}
