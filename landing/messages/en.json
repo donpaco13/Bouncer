@@ -1,9 +1,9 @@
 {
   "meta": {
-    "titre": "Bouncer, a notch app manager to switch notch apps on MacBook",
-    "description": "Switch notch apps on your MacBook without quitting them. Bouncer keeps Vibe Island, boringNotch and NotchNook open, shows one at a time, and changes app with a two-finger swipe. Free, macOS 14+.",
+    "titre": "Bouncer: run several notch apps on one MacBook",
+    "description": "Vibe Island, boringNotch and NotchNook in the same notch, without drawing over each other. Bouncer shows one, and a two-finger swipe moves to the next. Free, open source, macOS 14+.",
     "accroche": "Notch app manager · free · macOS 14+",
-    "ogAlt": "A MacBook notch showing a single app, with the title “One notch. One app at a time.”"
+    "ogAlt": "A MacBook notch showing a single app, with the title “All your notch apps. One on screen.”"
   },
   "chrome": {
     "evitement": "Skip to content",
@@ -15,7 +15,7 @@
     "nav": {
       "pourquoi": "Why",
       "changer": "Switching",
-      "fonctionnement": "How it works",
+      "fonctionnement": "Reliability",
       "apps": "Apps",
       "installer": "Install"
     },
@@ -50,22 +50,30 @@
     "annonceEteint": "Bouncer is off. Every notch app draws in the same place."
   },
   "heros": {
-    "surtitre": "Bouncer for macOS",
-    "titreLigne1": "One notch.",
-    "titreLigne2": "One app at a time.",
-    "pourQui": "For MacBook owners who run more than one notch app and are tired of quitting one to see the other. Your notch apps all stay open. Bouncer decides which one you see, and a two-finger swipe changes it.",
-    "telecharger": "Download for macOS",
+    "surtitre": "For notched MacBooks running two notch apps or more",
+    "titreLigne1": "All your notch apps.",
+    "titreLigne2": "One on screen.",
+    "pourQui": "Vibe Island tracks your agents, boringNotch your music, NotchNook your files, and they all draw in the same spot under the notch. Bouncer shows one and puts the others aside. A two-finger swipe on the notch moves to the next.",
     "voirCompatibles": "Does it work with my apps? ›",
-    "mentions": "Free and open source · macOS 14 Sonoma or later · No account"
+    "mentions": "<lien>Source code on GitHub</lien> · macOS 14 or later · no account",
+    "installer": "Install Bouncer, it’s free",
+    "surMac": "Bouncer runs on your Mac. Open this page on your MacBook.",
+    "copierLien": "Copy link",
+    "lienCopie": "Link copied",
+    "echecLien": "Copy the page address"
   },
   "probleme": {
     "titre": "macOS doesn’t coordinate notch apps",
     "chapo": "Vibe Island, boringNotch, NotchNook, Notchy: each one draws its own pill under your notch. Open two and they land on the same rectangle, one over the other.",
-    "corps": "There is no coordination API, and no such thing as an “active notch app”. <fort>The only way out macOS gives you is to quit one app to use the other</fort>, then launch it again when you need it back. Bouncer does that for you, in a few milliseconds when the app allows it.",
+    "corps": "macOS has no idea which one should be in front. <fort>The only way out it gives you is to quit one app to see the other</fort>, then reopen it when you need it back. Bouncer does that rotation for you with one gesture, and only removes the current app once the next one is on screen.",
     "aLecran": "{app}, on screen",
     "memeEndroit": "{app}, drawing in the same place",
     "sans": "Without Bouncer: both apps draw into the same rectangle",
-    "avec": "With Bouncer: one app on screen, the others open and waiting"
+    "avec": "With Bouncer: one app on screen, the others wait their turn",
+    "mainTitre": "By hand",
+    "mainCorps": "Quit the app, reopen the other one from Spotlight, wait for it to load. Then do it all again the other way.",
+    "avecTitre": "With Bouncer",
+    "avecCorps": "One swipe. The switch takes ≈ 50 ms when the app can be hidden, ≈ 1 s when it has to be relaunched."
   },
   "commandes": {
     "titre": "Four ways to change app",
@@ -81,45 +89,38 @@
   },
   "moteur": {
     "titre": "What happens when you switch",
-    "chapo": "Two routes, picked from what each app’s binary accepts. There is nothing for you to set.",
+    "chapo": "Depending on the app, Bouncer hides it or relaunches it. It picks on its own, there’s nothing to set.",
     "chiffre1": {
-      "valeur": "46",
+      "valeur": "≈ 50",
       "unite": "ms",
-      "libelle": "to take an app out of the notch",
-      "note": "Fast route, measured end to end. About 31 ms of it is propagation inside the WindowServer."
-    },
-    "chiffre2": {
-      "valeur": "5.1",
-      "unite": "ms",
-      "libelle": "to bring it back",
-      "note": "Nothing to relaunch, nothing to reload. The app stays in memory and comes back where you left it."
+      "libelle": "to hide an app",
+      "note": "Vibe Island, Cyclop, gh-notch, NotchNook: 46 to 57 ms measured, faster than a blink. The app stays open and comes back where you left it."
     },
     "chiffre3": {
       "valeur": "≈ 1",
       "unite": "s",
-      "libelle": "when a relaunch is needed",
-      "note": "Some apps pin their windows in a private Space and ignore the hide command. Bouncer restarts them instead."
+      "libelle": "for apps that won’t be hidden",
+      "note": "boringNotch, Notchy and Mew Notch ignore the hide command, so Bouncer quits them when another app takes the notch and reopens them when you come back. In between, they show nothing."
     },
     "friseTitre": "On before off",
-    "friseCorps": "On both routes, Bouncer hides or closes the current app only after it has counted the new window on screen. If the new app will not start, or takes more than five seconds, the current one stays where it is. The notch is never empty.",
-    "friseLegende": "Timeline of a relaunch: {arrive} starts, its window is counted on screen at about two thirds of a second, then {part} closes.",
+    "friseCorps": "Bouncer only removes the current app once the next one is on screen. If the next one won’t start, or takes more than five seconds, nothing moves. You never end up staring at an empty notch halfway through a switch.",
+    "friseLegende": "Timeline of a relaunch: {arrive} starts, shows up at about two thirds of a second, then {part} closes.",
     "arrive": "{app}, arriving",
     "part": "{app}, leaving",
     "demarrage": "Starting",
     "aLecran": "On screen",
     "encore": "Still in the notch",
-    "compte": "Window counted by CGWindowList",
+    "compte": "{app} is on screen",
     "refusTitre": "What Bouncer won’t do",
-    "refusCorps": "No private APIs and no WindowServer injection, the tricks that break on every minor macOS update. An app that refuses to quit is never force-killed. It may have something to save, so Bouncer notes it and leaves it alone.",
-    "detectionTitre": "What it looks for",
-    "detectionCorps": "A notch app is a floating window stuck to the top edge, wide enough to cover the camera housing and narrower than 80% of the screen. A tall browser or Discord window never qualifies. Apps that draw across the full width, like NotchNook, are recognised by their bundle ID."
+    "refusCorps": "No undocumented system tricks, the kind that break on a macOS update. An app that refuses to quit is never force-killed. It may have something to save, so Bouncer leaves it alone.",
+    "detectionTitre": "What about my browser window?",
+    "detectionCorps": "Bouncer never touches it. It only deals with the small windows stuck to the notch. <lien>The full method, for the curious ›</lien>"
   },
   "compatibilite": {
     "titre": "Does it work with your apps?",
     "chapo": "Seven apps measured one by one on a real machine. Three more read from their source code.",
     "legendeTableau": "Compatibility of notch apps with Bouncer",
     "colonneApp": "Application",
-    "colonneBascule": "Switch",
     "colonnePreuve": "Evidence",
     "colonneNote": "Note",
     "basculeRapide": "Instant",
@@ -129,36 +130,40 @@
     "banc": "Campaign of {date}, on an M4 MacBook Pro running macOS Sequoia. Every measured row comes from recounting the windows on screen, before and after hiding. <lien>Full method ›</lien>",
     "lignes": {
       "vibeIsland": {
-        "note": "46 ms end to end"
+        "note": "Hidden in 46 ms"
       },
       "cyclop": {
-        "note": "49 ms end to end"
+        "note": "Hidden in 49 ms"
       },
       "ghNotch": {
-        "note": "47 ms end to end"
+        "note": "Hidden in 47 ms"
       },
       "notchNook": {
-        "note": "57 ms, governed by bundle ID"
+        "note": "Hidden in 57 ms"
       },
       "boringNotch": {
-        "note": "About a second"
+        "note": "Back in about a second"
       },
       "notchy": {
-        "note": "Governed by bundle ID"
+        "note": "Won’t be hidden, so Bouncer relaunches it"
       },
       "mewNotch": {
-        "note": "Governed by bundle ID"
+        "note": "Won’t be hidden, so Bouncer relaunches it"
       },
       "superIsland": {
-        "note": "Read from the source"
+        "note": "Not measured yet. Its code says it should stay open"
       },
       "atoll": {
-        "note": "Read from the source"
+        "note": "Not measured yet. Its code says it should stay open"
       },
       "dynamicNotch": {
-        "note": "Private Space, relaunch only"
+        "note": "Not measured yet. Its code says it will need a relaunch"
       }
-    }
+    },
+    "colonneCachee": "While hidden",
+    "cacheeOuverte": "Stays open",
+    "cacheeFermee": "Quit, then relaunched",
+    "pasPourVous": "Not for you if you only run one notch app. With just one, there’s nothing for Bouncer to choose between."
   },
   "installation": {
     "titre": "Get Bouncer",
@@ -176,6 +181,18 @@
     "gatekeeperQuestion": "“macOS cannot verify that Bouncer is free of malware”",
     "gatekeeper1": "You will see this on first launch of the downloaded app. Apple charges developers €99 a year for an identity it recognises on sight, and Bouncer doesn’t pay it. The block is about that missing identity. The app is neither damaged nor infected.",
     "gatekeeper2": "To open it anyway, once: double-click Bouncer and let macOS refuse, then open System Settings, Privacy & Security, and click “Open Anyway”.",
-    "gatekeeper3": "Through Homebrew you never see this message, because the cask strips the quarantine attribute itself. That’s a Gatekeeper workaround we write ourselves, and it goes away the day Bouncer is notarised by Apple."
+    "gatekeeper3": "Through Homebrew you never see this message, because the cask strips the quarantine attribute itself. That’s a Gatekeeper workaround we write ourselves, and it goes away the day Bouncer is notarised by Apple.",
+    "telecharger": "Download for macOS",
+    "accesTitre": "Why Accessibility?",
+    "accesCorps": "To read the window list and hide your notch apps’ windows. Without it, Bouncer touches nothing. The code is public on <lien>GitHub</lien>.",
+    "sortieTitre": "What leaves your Mac",
+    "sortieCorps": "Bouncer can send its crash reports to Sentry. That’s off by default, and nothing is sent until you turn it on in the Bouncer menu.",
+    "desinstallerTitre": "To uninstall",
+    "desinstallerCorps": "Drag Bouncer to the Bin, or run <code>brew uninstall --zap bouncer</code> if you installed it with Homebrew."
+  },
+  "video": {
+    "attente": "A real switch, filmed on a MacBook, will play here soon.",
+    "legende": "A real switch, filmed on a MacBook Pro, at real speed.",
+    "description": "Eight-second video, no sound. Two notch apps draw over each other, Bouncer keeps only one, then a two-finger swipe moves to the next."
   }
 }

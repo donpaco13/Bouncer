@@ -3,8 +3,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { CAMPAGNE, COMPATIBILITE, type LigneCompatibilite } from "@/content/compatibilite";
 import { APPS_APERCU, appDemo } from "@/content/demo";
 import { COMMANDE_BREW, LIENS } from "@/content/liens";
+import { absolue } from "@/content/seo";
+import { VIDEO, videoPrete } from "@/content/video";
 import { NOMS_LANGUES, routing } from "@/i18n/routing";
-import { LigneCommande } from "./actions";
+import { BoutonCopie, LigneCommande } from "./actions";
 import { Bureau, type AppBureau } from "./bureau";
 import { Pastille, Pomme } from "./signes";
 
@@ -13,6 +15,7 @@ import { Pastille, Pomme } from "./signes";
    il est fait. Le lien prend son URL ici : content/liens.ts est la seule
    source, dans toutes les langues. */
 const fort = (c: ReactNode) => <strong>{c}</strong>;
+const code = (c: ReactNode) => <code>{c}</code>;
 const lienVers = (href: string) => (c: ReactNode) => <a href={href}>{c}</a>;
 
 /**
@@ -23,8 +26,9 @@ const lienVers = (href: string) => (c: ReactNode) => <a href={href}>{c}</a>;
  *
  * L'ordre des sections répond aux questions dans l'ordre où on se les pose :
  * qu'est-ce que ça fait (on le voit, on y joue), pourquoi j'en ai besoin,
- * comment je m'en sers, qu'est-ce qui se passe dessous, est-ce que ça marche
- * chez moi, comment je l'installe. La page finit sur l'installation.
+ * comment je m'en sers, est-ce que ça marche chez moi (la deuxième question
+ * de tout le monde, et le héros y renvoie), est-ce que ça peut rater, comment
+ * je l'installe. La page finit sur l'installation.
  */
 export function Landing() {
   const t = useTranslations();
@@ -103,15 +107,27 @@ export function Landing() {
             </h1>
             <p className="who">{t("heros.pourQui")}</p>
             <div className="cta">
-              <a className="btn" href="#install">
+              <a className="btn mac" href="#install">
                 <Pomme />
-                {t("heros.telecharger")}
+                {t("heros.installer")}
               </a>
+              {/* Sur téléphone, un bouton d'installation d'app Mac ne mène
+                  nulle part : on propose d'emporter l'adresse à la place. */}
+              <div className="ailleurs">
+                <p>{t("heros.surMac")}</p>
+                <BoutonCopie
+                  className="btn"
+                  texte={absolue(`/${locale}/`)}
+                  copier={t("heros.copierLien")}
+                  copie={t("heros.lienCopie")}
+                  echec={t("heros.echecLien")}
+                />
+              </div>
               <a className="link" href="#apps">
                 {t("heros.voirCompatibles")}
               </a>
             </div>
-            <p className="fine">{t("heros.mentions")}</p>
+            <p className="fine">{t.rich("heros.mentions", { lien: lienVers(LIENS.depot) })}</p>
           </div>
 
           <svg className="hills" viewBox="0 0 1440 190" preserveAspectRatio="none" aria-hidden="true">
@@ -128,11 +144,44 @@ export function Landing() {
             profondeur, chacune nommée, au-dessus de la même encoche. En face,
             la même encoche avec Bouncer. */}
         <section className="paper" id="problem">
+          {/* La démo du héros est une simulation : la vidéo est la preuve.
+              Muette, en boucle, sans son à couper. Tant qu'elle n'est pas
+              tournée, l'encoche dessinée tient sa place, à la même taille. */}
+          <figure className="wrap film">
+            {videoPrete() ? (
+              <video
+                className="ecran"
+                src={`../${VIDEO.mp4}`}
+                poster={`../${VIDEO.poster}`}
+                aria-label={t("video.description")}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+                preload="metadata"
+              />
+            ) : (
+              <div className="ecran" aria-hidden="true">
+                <span className="notch" />
+                <Pastille signe={va.signe} valeur={va.valeur} w={2.15} />
+              </div>
+            )}
+            <figcaption>{t(videoPrete() ? "video.legende" : "video.attente")}</figcaption>
+          </figure>
           <div className="wrap cols">
             <div>
               <h2>{t("probleme.titre")}</h2>
               <p className="lede">{t("probleme.chapo")}</p>
               <p className="suite">{t.rich("probleme.corps", { fort })}</p>
+              <dl className="versus">
+                {(["main", "avec"] as const).map((c) => (
+                  <div key={c} className={c}>
+                    <dt>{t(`probleme.${c}Titre`)}</dt>
+                    <dd>{t(`probleme.${c}Corps`)}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
             <div className="scenes" aria-hidden="true">
               <figure className="scene">
@@ -210,10 +259,61 @@ export function Landing() {
           </div>
         </section>
 
+        {/* -------------------------- COMPATIBILITÉ -----------------------
+            La colonne « Preuve » ne se gomme pas : mesuré et prédit ne se
+            mélangent jamais, c'est ce qui rend le tableau crédible. Les lignes
+            mesurées d'abord, la voie instantanée avant la relance. */}
+        <section className="paper" id="apps">
+          <div className="wrap">
+            <h2>{t("compatibilite.titre")}</h2>
+            <p className="lede">{t("compatibilite.chapo")}</p>
+            <p className="nope">{t("compatibilite.pasPourVous")}</p>
+            <div className="tbl">
+              <table>
+                <caption className="sr">{t("compatibilite.legendeTableau")}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{t("compatibilite.colonneApp")}</th>
+                    <th scope="col">{t("compatibilite.colonneCachee")}</th>
+                    <th scope="col">{t("compatibilite.colonnePreuve")}</th>
+                    <th scope="col">{t("compatibilite.colonneNote")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {LIGNES.map((l) => (
+                    <tr key={l.bundleID}>
+                      <td>
+                        <b>{l.app}</b> <span className="v">{l.version}</span>
+                      </td>
+                      <td>
+                        <span className={l.bascule === "rapide" ? "route i" : "route r"}>
+                          {t(l.bascule === "rapide" ? "compatibilite.cacheeOuverte" : "compatibilite.cacheeFermee")}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={l.preuve === "mesure" ? "chip m" : "chip p"}>
+                          {t(l.preuve === "mesure" ? "compatibilite.preuveMesure" : "compatibilite.preuvePredit")}
+                        </span>
+                      </td>
+                      <td className="v">{t(`compatibilite.lignes.${l.cle}.note`)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="bench">
+              {t.rich("compatibilite.banc", {
+                date: dateCampagne,
+                lien: lienVers(LIENS.matrice),
+              })}
+            </p>
+          </div>
+        </section>
+
         {/* ---------------------------- LE MOTEUR -------------------------
-            Les trois chiffres mesurés à gauche, le texte en face, puis la
-            règle « on avant off » en frise pleine largeur : la nouvelle app
-            est comptée à l'écran avant que l'ancienne parte. */}
+            Deux chiffres mesurés, une garantie. Le détail technique (scan,
+            bundle ID, Space privé) vit dans docs/COMPATIBILITE.md, pas ici.
+            La frise : la nouvelle app est à l'écran avant que l'ancienne parte. */}
         <section className="dark" id="engine">
           <div className="wrap">
             <h2>{t("moteur.titre")}</h2>
@@ -227,12 +327,12 @@ export function Landing() {
                   </div>
                   <div>
                     <h3>{t("moteur.detectionTitre")}</h3>
-                    <p>{t("moteur.detectionCorps")}</p>
+                    <p>{t.rich("moteur.detectionCorps", { lien: lienVers(LIENS.matrice) })}</p>
                   </div>
                 </div>
               </div>
               <div className="specs">
-                {(["chiffre1", "chiffre2", "chiffre3"] as const).map((c) => (
+                {(["chiffre1", "chiffre3"] as const).map((c) => (
                   <div key={c} className="spec">
                     <b>
                       {t(`moteur.${c}.valeur`)}
@@ -266,60 +366,10 @@ export function Landing() {
                   </div>
                 </div>
                 <span className="cut">
-                  <span>{t("moteur.compte")}</span>
+                  <span>{t("moteur.compte", { app: bn.nom })}</span>
                 </span>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* -------------------------- COMPATIBILITÉ -----------------------
-            La colonne « Preuve » ne se gomme pas : mesuré et prédit ne se
-            mélangent jamais, c'est ce qui rend le tableau crédible. Les lignes
-            mesurées d'abord, la voie instantanée avant la relance. */}
-        <section className="paper" id="apps">
-          <div className="wrap">
-            <h2>{t("compatibilite.titre")}</h2>
-            <p className="lede">{t("compatibilite.chapo")}</p>
-            <div className="tbl">
-              <table>
-                <caption className="sr">{t("compatibilite.legendeTableau")}</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">{t("compatibilite.colonneApp")}</th>
-                    <th scope="col">{t("compatibilite.colonneBascule")}</th>
-                    <th scope="col">{t("compatibilite.colonnePreuve")}</th>
-                    <th scope="col">{t("compatibilite.colonneNote")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {LIGNES.map((l) => (
-                    <tr key={l.bundleID}>
-                      <td>
-                        <b>{l.app}</b> <span className="v">{l.version}</span>
-                      </td>
-                      <td>
-                        <span className={l.bascule === "rapide" ? "route i" : "route r"}>
-                          {t(`compatibilite.${LIBELLE_BASCULE[l.bascule]}`)}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={l.preuve === "mesure" ? "chip m" : "chip p"}>
-                          {t(l.preuve === "mesure" ? "compatibilite.preuveMesure" : "compatibilite.preuvePredit")}
-                        </span>
-                      </td>
-                      <td className="v">{t(`compatibilite.lignes.${l.cle}.note`)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="bench">
-              {t.rich("compatibilite.banc", {
-                date: dateCampagne,
-                lien: lienVers(LIENS.matrice),
-              })}
-            </p>
           </div>
         </section>
 
@@ -341,7 +391,7 @@ export function Landing() {
                 <p>{t("installation.zipCorps")}</p>
                 <a className="btn" href={LIENS.versions}>
                   <Pomme />
-                  {t("heros.telecharger")}
+                  {t("installation.telecharger")}
                 </a>
               </div>
               <div className="opt">
@@ -354,6 +404,16 @@ export function Landing() {
                   echec={t("installation.echecCopie")}
                 />
               </div>
+            </div>
+            {/* La permission la plus intrusive de macOS, demandée par une app
+                non notarisée : la réponse se lit à côté du bouton, pas en bas. */}
+            <div className="trust">
+              {(["acces", "sortie", "desinstaller"] as const).map((c) => (
+                <div key={c}>
+                  <h3>{t(`installation.${c}Titre`)}</h3>
+                  <p>{t.rich(`installation.${c}Corps`, { lien: lienVers(LIENS.depot), code })}</p>
+                </div>
+              ))}
             </div>
             <ul className="need">
               <li>{t("installation.requis1")}</li>
@@ -399,8 +459,8 @@ const LIGNES: readonly LigneCompatibilite[] = [...COMPATIBILITE].sort(
 const NAV = [
   ["#problem", "pourquoi"],
   ["#gesture", "changer"],
-  ["#engine", "fonctionnement"],
   ["#apps", "apps"],
+  ["#engine", "fonctionnement"],
   ["#install", "installer"],
 ] as const;
 

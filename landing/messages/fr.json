@@ -1,9 +1,9 @@
 {
   "meta": {
-    "titre": "Bouncer, le gestionnaire d’apps d’encoche (notch) pour MacBook",
-    "description": "Passez d’une app d’encoche à l’autre sans les quitter. Bouncer garde Vibe Island, boringNotch et NotchNook ouvertes, n’en montre qu’une, et change d’app d’un balayage à deux doigts. Gratuit, macOS 14+.",
+    "titre": "Bouncer : plusieurs apps d’encoche sur un seul MacBook",
+    "description": "Vibe Island, boringNotch et NotchNook dans la même encoche, sans qu’elles se superposent. Bouncer en affiche une, un balayage à deux doigts passe à la suivante. Gratuit, open source, macOS 14+.",
     "accroche": "Gestionnaire d’apps d’encoche · gratuit · macOS 14+",
-    "ogAlt": "L’encoche d’un MacBook avec une seule app affichée, et le titre « Une encoche. Une app à la fois. »"
+    "ogAlt": "L’encoche d’un MacBook avec une seule app affichée, et le titre « Toutes vos apps d’encoche. Une seule à l’écran. »"
   },
   "chrome": {
     "evitement": "Aller au contenu",
@@ -15,7 +15,7 @@
     "nav": {
       "pourquoi": "Pourquoi",
       "changer": "Gestes",
-      "fonctionnement": "Moteur",
+      "fonctionnement": "Fiabilité",
       "apps": "Apps",
       "installer": "Installer"
     },
@@ -50,22 +50,30 @@
     "annonceEteint": "Bouncer est éteint. Toutes les apps d’encoche dessinent au même endroit."
   },
   "heros": {
-    "surtitre": "Bouncer pour macOS",
-    "titreLigne1": "Une encoche.",
-    "titreLigne2": "Une app à la fois.",
-    "pourQui": "Pour ceux qui ont un MacBook à encoche, plusieurs apps d’encoche, et en ont assez de quitter l’une pour voir l’autre. Vos apps d’encoche restent toutes ouvertes. Bouncer décide laquelle se voit, et un balayage à deux doigts en change.",
-    "telecharger": "Télécharger pour macOS",
+    "surtitre": "Pour MacBook à encoche, dès deux apps d’encoche",
+    "titreLigne1": "Toutes vos apps d’encoche.",
+    "titreLigne2": "Une seule à l’écran.",
+    "pourQui": "Vibe Island suit vos agents, boringNotch votre musique, NotchNook vos fichiers, et toutes dessinent au même endroit sous l’encoche. Bouncer en affiche une et met les autres de côté. Un balayage à deux doigts sur l’encoche passe à la suivante.",
     "voirCompatibles": "Est-ce que ça marche avec mes apps ? ›",
-    "mentions": "Gratuit et open source · macOS 14 Sonoma ou plus récent · Sans compte"
+    "mentions": "<lien>Code source sur GitHub</lien> · macOS 14 ou plus récent · sans compte",
+    "installer": "Installer Bouncer, c’est gratuit",
+    "surMac": "Bouncer s’installe sur Mac. Ouvrez cette page sur votre MacBook.",
+    "copierLien": "Copier le lien",
+    "lienCopie": "Lien copié",
+    "echecLien": "Copiez l’adresse de la page"
   },
   "probleme": {
     "titre": "macOS ne coordonne pas les apps d’encoche",
     "chapo": "Vibe Island, boringNotch, NotchNook, Notchy : chacune dessine sa propre pastille sous votre encoche. Ouvrez-en deux, elles tombent sur le même rectangle, l’une sur l’autre.",
-    "corps": "Il n’existe aucune API de coordination et aucune notion d’« app d’encoche active ». <fort>La seule sortie que macOS vous laisse, c’est de quitter une app pour utiliser l’autre</fort>, puis de la relancer quand vous en avez de nouveau besoin. Bouncer le fait pour vous, en quelques millisecondes quand l’app le permet.",
+    "corps": "macOS ne sait pas laquelle doit passer devant. <fort>La seule sortie qu’il vous laisse, c’est de quitter une app pour voir l’autre</fort>, puis de la rouvrir quand vous en avez de nouveau besoin. Bouncer fait cette rotation à votre place, d’un geste, et ne retire l’app en place qu’une fois la suivante affichée.",
     "aLecran": "{app}, à l’écran",
     "memeEndroit": "{app}, dessine au même endroit",
     "sans": "Sans Bouncer, les deux apps dessinent dans le même rectangle",
-    "avec": "Avec Bouncer, une app à l’écran, les autres ouvertes et en attente"
+    "avec": "Avec Bouncer, une app à l’écran, les autres attendent leur tour",
+    "mainTitre": "À la main",
+    "mainCorps": "Quitter l’app, rouvrir l’autre depuis Spotlight, attendre qu’elle se charge. Puis tout refaire dans l’autre sens.",
+    "avecTitre": "Avec Bouncer",
+    "avecCorps": "Un balayage. La bascule prend ≈ 50 ms quand l’app se laisse cacher, ≈ 1 s quand il faut la relancer."
   },
   "commandes": {
     "titre": "Quatre façons de changer d’app",
@@ -80,46 +88,39 @@
     "menuCorps": "Pas d’icône dans le Dock, pas de fenêtre. ● désigne l’app qui tient l’encoche, ○ une app en attente, ◐ une bascule en cours. Cliquez sur une app en attente pour la ramener."
   },
   "moteur": {
-    "titre": "Ce qui se passe quand vous basculez",
-    "chapo": "Deux voies, choisies selon ce que le binaire de chaque app accepte. Vous n’avez rien à régler.",
+    "titre": "Ce qui se passe quand vous changez d’app",
+    "chapo": "Selon l’app, Bouncer la cache ou la relance. Il choisit tout seul, vous n’avez rien à régler.",
     "chiffre1": {
-      "valeur": "46",
+      "valeur": "≈ 50",
       "unite": "ms",
-      "libelle": "pour sortir une app de l’encoche",
-      "note": "Voie rapide, mesurée de bout en bout. Environ 31 ms de propagation dans le WindowServer."
-    },
-    "chiffre2": {
-      "valeur": "5,1",
-      "unite": "ms",
-      "libelle": "pour la ramener",
-      "note": "Rien à relancer, rien à recharger. L’app reste en mémoire et revient là où vous l’aviez laissée."
+      "libelle": "pour cacher une app",
+      "note": "Vibe Island, Cyclop, gh-notch, NotchNook : de 46 à 57 ms mesurés, plus vite qu’un clignement d’œil. L’app reste ouverte et revient là où vous l’aviez laissée."
     },
     "chiffre3": {
       "valeur": "≈ 1",
       "unite": "s",
-      "libelle": "quand il faut relancer",
-      "note": "Certaines apps épinglent leurs fenêtres dans un Space privé et ignorent l’ordre de masquage. Bouncer les redémarre à la place."
+      "libelle": "pour les apps qui refusent d’être cachées",
+      "note": "boringNotch, Notchy et Mew Notch ignorent le masquage. Bouncer les ferme quand une autre prend l’encoche et les rouvre quand vous revenez. Entre les deux, elles n’affichent rien."
     },
     "friseTitre": "Allumer avant d’éteindre",
-    "friseCorps": "Sur les deux voies, Bouncer ne masque ou ne ferme l’app en place qu’après avoir compté la nouvelle fenêtre à l’écran. Si la nouvelle app ne démarre pas, ou met plus de cinq secondes, l’app en place ne bouge pas. L’encoche n’est jamais vide.",
-    "friseLegende": "Chronologie d’une relance : {arrive} démarre, sa fenêtre est comptée à l’écran vers les deux tiers de la seconde, puis {part} se ferme.",
+    "friseCorps": "Bouncer ne retire l’app en place qu’une fois la suivante affichée. Si la suivante ne démarre pas, ou met plus de cinq secondes, rien ne bouge. Vous ne restez jamais devant une encoche vide au milieu d’une bascule.",
+    "friseLegende": "Chronologie d’une relance : {arrive} démarre, s’affiche vers les deux tiers de la seconde, puis {part} se ferme.",
     "arrive": "{app}, arrive",
     "part": "{app}, s’en va",
     "demarrage": "Démarrage",
     "aLecran": "À l’écran",
     "encore": "Encore dans l’encoche",
-    "compte": "Fenêtre comptée par CGWindowList",
+    "compte": "{app} est à l’écran",
     "refusTitre": "Ce que Bouncer ne fait pas",
-    "refusCorps": "Pas d’API privée ni d’injection dans le WindowServer, les astuces qui cassent à chaque mise à jour mineure de macOS. Une app qui refuse de quitter n’est jamais tuée de force. Elle a peut-être quelque chose à enregistrer, alors Bouncer le note et la laisse tranquille.",
-    "detectionTitre": "Ce qu’il cherche",
-    "detectionCorps": "Une app d’encoche est une fenêtre flottante collée au bord haut, assez large pour couvrir le boîtier caméra et plus étroite que 80 % de l’écran. Une grande fenêtre de navigateur ou de Discord n’y passe jamais. Les apps qui dessinent sur toute la largeur, comme NotchNook, sont reconnues par leur bundle ID."
+    "refusCorps": "Pas d’astuce système non documentée, de celles qui cassent à chaque mise à jour de macOS. Une app qui refuse de quitter n’est jamais tuée de force. Elle a peut-être quelque chose à enregistrer, alors Bouncer la laisse tranquille.",
+    "detectionTitre": "Et ma fenêtre de navigateur ?",
+    "detectionCorps": "Bouncer n’y touche pas. Il ne s’occupe que des petites fenêtres collées à l’encoche. <lien>La méthode complète, pour les curieux ›</lien>"
   },
   "compatibilite": {
     "titre": "Est-ce que ça marche avec vos apps ?",
     "chapo": "Sept apps mesurées une par une sur une vraie machine. Trois autres lues dans leur code source.",
     "legendeTableau": "Compatibilité des apps d’encoche avec Bouncer",
     "colonneApp": "Application",
-    "colonneBascule": "Bascule",
     "colonnePreuve": "Preuve",
     "colonneNote": "Note",
     "basculeRapide": "Instantanée",
@@ -129,36 +130,40 @@
     "banc": "Campagne du {date}, sur un MacBook Pro M4 sous macOS Sequoia. Chaque ligne mesurée vient d’un recomptage des fenêtres à l’écran, avant et après le masquage. <lien>Toute la méthode ›</lien>",
     "lignes": {
       "vibeIsland": {
-        "note": "46 ms de bout en bout"
+        "note": "Cachée en 46 ms"
       },
       "cyclop": {
-        "note": "49 ms de bout en bout"
+        "note": "Cachée en 49 ms"
       },
       "ghNotch": {
-        "note": "47 ms de bout en bout"
+        "note": "Cachée en 47 ms"
       },
       "notchNook": {
-        "note": "57 ms, régie par son bundle ID"
+        "note": "Cachée en 57 ms"
       },
       "boringNotch": {
-        "note": "Environ une seconde"
+        "note": "Revient en une seconde environ"
       },
       "notchy": {
-        "note": "Régie par son bundle ID"
+        "note": "Refuse d’être cachée, donc Bouncer la relance"
       },
       "mewNotch": {
-        "note": "Régie par son bundle ID"
+        "note": "Refuse d’être cachée, donc Bouncer la relance"
       },
       "superIsland": {
-        "note": "Lu dans la source"
+        "note": "Pas encore mesurée. D’après son code, devrait rester ouverte"
       },
       "atoll": {
-        "note": "Lu dans la source"
+        "note": "Pas encore mesurée. D’après son code, devrait rester ouverte"
       },
       "dynamicNotch": {
-        "note": "Space privé, relance seulement"
+        "note": "Pas encore mesurée. D’après son code, devra être relancée"
       }
-    }
+    },
+    "colonneCachee": "Quand elle est cachée",
+    "cacheeOuverte": "Reste ouverte",
+    "cacheeFermee": "Fermée, puis relancée",
+    "pasPourVous": "Pas pour vous si vous n’avez qu’une app d’encoche. Avec une seule, Bouncer n’a rien à départager."
   },
   "installation": {
     "titre": "Installer Bouncer",
@@ -176,6 +181,18 @@
     "gatekeeperQuestion": "« macOS n’a pas pu vérifier que Bouncer ne contient pas de logiciel malveillant »",
     "gatekeeper1": "Vous verrez ce message au premier lancement de l’app téléchargée. Apple facture 99 € par an aux développeurs pour une identité qu’il reconnaît d’emblée, et Bouncer ne la paie pas. Le blocage porte sur cette identité manquante. L’app n’est ni endommagée ni infectée.",
     "gatekeeper2": "Pour l’ouvrir quand même, une seule fois : double-cliquez Bouncer et laissez macOS refuser, puis ouvrez Réglages Système, Confidentialité et sécurité, et cliquez sur « Ouvrir quand même ».",
-    "gatekeeper3": "Par Homebrew, vous ne voyez pas ce message parce que le cask retire lui-même l’attribut de quarantaine. C’est un contournement de Gatekeeper que nous écrivons nous-mêmes, et il disparaîtra le jour où Bouncer sera notarisée par Apple."
+    "gatekeeper3": "Par Homebrew, vous ne voyez pas ce message parce que le cask retire lui-même l’attribut de quarantaine. C’est un contournement de Gatekeeper que nous écrivons nous-mêmes, et il disparaîtra le jour où Bouncer sera notarisée par Apple.",
+    "telecharger": "Télécharger pour macOS",
+    "accesTitre": "Pourquoi l’Accessibilité ?",
+    "accesCorps": "Pour lire la liste des fenêtres et cacher celles de vos apps d’encoche. Sans elle, Bouncer ne touche à rien. Le code est public sur <lien>GitHub</lien>.",
+    "sortieTitre": "Ce qui sort de votre Mac",
+    "sortieCorps": "Bouncer sait envoyer ses rapports de plantage à Sentry. C’est coupé par défaut, et rien ne part tant que vous ne l’activez pas dans le menu de Bouncer.",
+    "desinstallerTitre": "Pour désinstaller",
+    "desinstallerCorps": "Glissez Bouncer à la corbeille, ou tapez <code>brew uninstall --zap bouncer</code> si vous l’avez installé avec Homebrew."
+  },
+  "video": {
+    "attente": "Bientôt ici, une vraie bascule filmée sur un MacBook.",
+    "legende": "Une vraie bascule, filmée sur un MacBook Pro, à vitesse réelle.",
+    "description": "Vidéo de huit secondes, sans son. Deux apps d’encoche dessinent l’une sur l’autre, Bouncer n’en garde qu’une, puis un balayage à deux doigts passe à la suivante."
   }
 }
