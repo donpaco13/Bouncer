@@ -155,7 +155,7 @@
 "settings.gesture.margin.max" = "넓게";
 "settings.gesture.margin.label" = "화살표 측면 띠 너비";
 "settings.gesture.margin.value" = "양쪽 각 %d포인트";
-"settings.gesture.margin.note" = "화살표는 노치를 덮고 있는 것의 양옆에 놓이며, 절대 그 위에 놓이지 않습니다. 넓히면 클릭하기 쉬워지고, 좁히면 메뉴 막대를 건드리지 않습니다.";
+"settings.gesture.margin.note" = "화살표는 노치 양옆에 놓이며, 절대 그 위에 놓이지 않습니다. 넓히면 노치에서 멀어지고, 좁히면 가까워집니다.";
 /* %@: one of settings.gesture.slide.summary / .summary.zero. */
 "settings.gesture.slide" = "슬라이드 — %@";
 "settings.gesture.slide.min" = "페이드만";
@@ -189,7 +189,7 @@
 "mode.both" = "스와이프와 화살표";
 "mode.swipeOnly" = "스와이프만";
 "mode.arrowsOnly" = "화살표만";
-"mode.both.note" = "노치 위에서 두 손가락으로 가로 스와이프하거나 화살표를 클릭합니다.";
+"mode.both.note" = "노치 위에서 두 손가락으로 가로 스와이프합니다. 포인터를 가까이 가져가면 화살표가 위치를 알려 줍니다.";
 "mode.swipeOnly.note" = "화살표가 표시되지 않습니다. 메뉴 막대를 가리는 일이 전혀 없습니다.";
 "mode.arrowsOnly.note" = "스와이프를 무시합니다. 마우스를 사용하거나 제스처가 저절로 작동할 때 유용합니다.";
 "anchor.notchWindow" = "노치 앱의 윈도우";

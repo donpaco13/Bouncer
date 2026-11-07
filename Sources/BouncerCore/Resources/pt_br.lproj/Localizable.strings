@@ -153,7 +153,7 @@
 "settings.gesture.margin.max" = "Largas";
 "settings.gesture.margin.label" = "Largura das faixas laterais das setas";
 "settings.gesture.margin.value" = "%d pontos de cada lado";
-"settings.gesture.margin.note" = "As setas ficam dos dois lados do que cobre o notch, nunca em cima dele. Mais largas: alvo de clique mais fácil; mais estreitas: deixam a barra de menus em paz.";
+"settings.gesture.margin.note" = "As setas ficam dos dois lados do notch, nunca em cima dele. Mais largas: mais longe do notch; mais estreitas: mais perto.";
 /* %@: one of settings.gesture.slide.summary / .summary.zero. */
 "settings.gesture.slide" = "Deslocamento — %@";
 "settings.gesture.slide.min" = "Só aparecer";
@@ -187,7 +187,7 @@
 "mode.both" = "Deslizar e setas";
 "mode.swipeOnly" = "Só deslizar";
 "mode.arrowsOnly" = "Só setas";
-"mode.both.note" = "Deslizar na horizontal com dois dedos sobre o notch, ou clicar em uma seta.";
+"mode.both.note" = "Deslizar na horizontal com dois dedos sobre o notch. As setas aparecem ao passar o cursor para indicar onde.";
 "mode.swipeOnly.note" = "Nenhuma seta é mostrada. Nada cobre a barra de menus, nunca.";
 "mode.arrowsOnly.note" = "O deslizar é ignorado. Útil com mouse, ou se o gesto dispara sozinho.";
 "anchor.notchWindow" = "A janela do app de notch";

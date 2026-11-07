@@ -136,7 +136,7 @@
 "settings.gesture.margin.max" = "Larges";
 "settings.gesture.margin.label" = "Largeur des bandes latérales des flèches";
 "settings.gesture.margin.value" = "%d points de chaque côté";
-"settings.gesture.margin.note" = "Les flèches se logent de part et d'autre de ce qui couvre l'encoche, jamais dessus. Élargir donne une cible de clic plus facile ; réduire laisse la barre des menus tranquille.";
+"settings.gesture.margin.note" = "Les flèches se logent de part et d'autre de l'encoche, jamais dessus. Élargir les éloigne du boîtier, réduire les en rapproche.";
 "settings.gesture.slide" = "Déploiement — %@";
 "settings.gesture.slide.min" = "Fondu seul";
 "settings.gesture.slide.max" = "Ample";
@@ -167,7 +167,7 @@
 "mode.both" = "Le swipe et les flèches";
 "mode.swipeOnly" = "Le swipe seul";
 "mode.arrowsOnly" = "Les flèches seules";
-"mode.both.note" = "Swipe horizontal à deux doigts sur l'encoche, ou clic sur une flèche.";
+"mode.both.note" = "Swipe horizontal à deux doigts sur l'encoche. Les flèches apparaissent au survol pour montrer où.";
 "mode.swipeOnly.note" = "Aucune flèche ne s'affiche. Rien ne recouvre jamais la barre des menus.";
 "mode.arrowsOnly.note" = "Le swipe est ignoré. Utile avec une souris, ou si le geste part tout seul.";
 "anchor.notchWindow" = "La fenêtre de l'app d'encoche";

@@ -152,7 +152,7 @@
 "settings.gesture.margin.max" = "宽";
 "settings.gesture.margin.label" = "箭头侧边区宽度";
 "settings.gesture.margin.value" = "每侧 %d 点";
-"settings.gesture.margin.note" = "箭头位于遮盖刘海的内容两侧，从不压在上面。更宽，点按目标更大；更窄，不打扰菜单栏。";
+"settings.gesture.margin.note" = "箭头位于刘海两侧，从不压在上面。更宽，离刘海更远；更窄，离刘海更近。";
 /* %@: one of settings.gesture.slide.summary / .summary.zero. */
 "settings.gesture.slide" = "滑出 — %@";
 "settings.gesture.slide.min" = "仅淡入";
@@ -186,7 +186,7 @@
 "mode.both" = "轻扫和箭头";
 "mode.swipeOnly" = "仅轻扫";
 "mode.arrowsOnly" = "仅箭头";
-"mode.both.note" = "在刘海上双指横向轻扫，或点按箭头。";
+"mode.both.note" = "在刘海上双指横向轻扫。指针靠近时，箭头会标出位置。";
 "mode.swipeOnly.note" = "不显示箭头。菜单栏永远不会被遮盖。";
 "mode.arrowsOnly.note" = "忽略轻扫。适合用鼠标，或手势会自己误触发的情况。";
 "anchor.notchWindow" = "刘海 App 的窗口";
