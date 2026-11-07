@@ -174,7 +174,7 @@
     "groupeRapide": "Instantanée, ≈ 50 ms",
     "groupeRelance": "Par relance, ≈ 1 s",
     "groupeATester": "Pas encore testées",
-    "legendePredit": "Contour plein : prédites. Pointillés : pas encore testées.",
+    "legendePredit": "Fond gris : mesurées. Contour : prédites. Pointillés : pas encore testées.",
     "detail": "Détail par app",
     "pasPourVousCourt": "Pas pour vous si vous n’avez qu’une app d’encoche.",
     "aTester": "Pas encore testées : {apps}.",

@@ -174,7 +174,7 @@
     "groupeRapide": "Instant, ≈ 50 ms",
     "groupeRelance": "Relaunch, ≈ 1 s",
     "groupeATester": "Not tested yet",
-    "legendePredit": "Solid outline: predicted. Dashed: not tested yet.",
+    "legendePredit": "Grey fill: measured. Outline: predicted. Dashed: not tested yet.",
     "detail": "Per-app details",
     "pasPourVousCourt": "Not for you if you only run one notch app.",
     "aTester": "Not tested yet: {apps}.",
