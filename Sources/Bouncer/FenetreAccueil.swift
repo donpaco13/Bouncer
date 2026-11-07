@@ -83,6 +83,7 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
         let hote = NSHostingController(
             rootView: VueAccueil(
                 windowManager: windowManager,
+                reglages: windowManager.reglages,
                 largeur: Self.largeur,
                 hauteur: Self.hauteurContenu(),
                 fermer: { [weak self] in
@@ -269,6 +270,9 @@ private struct SignatureHello: View {
 
 struct VueAccueil: View {
     @ObservedObject var windowManager: WindowManager
+    /// Observé pour le raccourci affiché à l'écran du geste : il suit le réglage, pas une valeur
+    /// écrite en dur qui mentait dès qu'on en choisissait un autre.
+    @ObservedObject var reglages: Reglages
     var largeur: CGFloat = 660
     var hauteur: CGFloat = 580
     let fermer: () -> Void
@@ -428,24 +432,29 @@ struct VueAccueil: View {
 
             SousTitreEtape(texte("welcome.gesture.body"))
 
-            HStack(spacing: 7) {
-                Text("⌃⌥⌘B")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Nuit.encre)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .strokeBorder(Nuit.trait, lineWidth: 1)
-                    )
+            // « Aucun raccourci » n'a rien à montrer : la ligne entière disparaît plutôt que
+            // d'annoncer qu'« Aucun » fait tourner le cycle.
+            if reglages.raccourciGlobal != .aucun {
+                HStack(spacing: 7) {
+                    Text(reglages.raccourciGlobal.libelle)
+                        .accessibilityLabel(reglages.raccourciGlobal.libelleAccessible)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Nuit.encre)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(Nuit.trait, lineWidth: 1)
+                        )
 
-                Text(texte("welcome.gesture.shortcutNote"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(Nuit.doux)
+                    Text(texte("welcome.gesture.shortcutNote"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Nuit.doux)
+                }
+                .padding(.top, 16)
+                .accessibilityElement(children: .combine)
             }
-            .padding(.top, 16)
-            .accessibilityElement(children: .combine)
 
             Spacer(minLength: 0)
         }
@@ -458,12 +467,12 @@ struct VueAccueil: View {
             Spacer(minLength: 0)
 
             Sceau(
-                symbole: etat.pretAServir ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
-                teinte: etat.pretAServir ? Color.green : Color.orange
+                symbole: etat.toutEnPlace ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
+                teinte: etat.toutEnPlace ? Color.green : Color.orange
             )
             .padding(.bottom, 22)
 
-            TitreEtape(texte(etat.pretAServir ? "welcome.ready.title" : "welcome.ready.title.incomplete"))
+            TitreEtape(texte(etat.toutEnPlace ? "welcome.ready.title" : "welcome.ready.title.incomplete"))
 
             VStack(alignment: .leading, spacing: 9) {
                 LigneBilan(
@@ -473,11 +482,14 @@ struct VueAccueil: View {
                         : "welcome.ready.access.missing")
                 )
                 LigneBilan(
-                    valide: etat.appsAInstaller.isEmpty,
-                    texte: etat.appsAInstaller.isEmpty
-                        ? bilanApps
-                        : texte("welcome.ready.noAppInstalled", etat.appsAInstaller.formatted(.list(type: .or)))
+                    valide: etat.appsAInstaller.isEmpty && !etat.uneSeuleApp,
+                    texte: bilanApps
                 )
+                // Seulement quand elle manque : une encoche présente est la norme, une ligne
+                // verte pour la dire n'apprendrait rien.
+                if !etat.encochePresente {
+                    LigneBilan(valide: false, texte: texte("welcome.ready.notch.missing"))
+                }
             }
             .padding(.top, 18)
 
@@ -496,8 +508,11 @@ struct VueAccueil: View {
     }
 
     private var bilanApps: String {
-        let n = windowManager.entreesMenu.count
-        return texteAuPluriel("welcome.ready.appsFound", n)
+        if !etat.appsAInstaller.isEmpty {
+            return texte("welcome.ready.noAppInstalled", etat.appsAInstaller.formatted(.list(type: .or)))
+        }
+        if etat.uneSeuleApp { return texte("welcome.ready.oneApp") }
+        return texteAuPluriel("welcome.ready.appsFound", windowManager.entreesMenu.count)
     }
 
 

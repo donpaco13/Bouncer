@@ -83,6 +83,8 @@
 "welcome.ready.access.ok" = "Accessibilité autorisée";
 "welcome.ready.access.missing" = "Accessibilité pas encore autorisée";
 "welcome.ready.noAppInstalled" = "Aucune app d’encoche installée — essayez %@";
+"welcome.ready.oneApp" = "Une seule app : le swipe la masque et la ramène. Ajoutez-en une deuxième.";
+"welcome.ready.notch.missing" = "Aucune encoche à l’écran : Bouncer n’agit que sur un MacBook à encoche, capot ouvert.";
 "welcome.ready.menuBarNote" = "Bouncer vit dans la barre des menus, pas dans le Dock.";
 "welcome.ready.menuBarPreview" = "L'icône de Bouncer dans la barre des menus a la forme de deux rectangles superposés, en haut à droite de l'écran.";
 "welcome.ready.fakeMenu.file" = "Fichier";

@@ -92,6 +92,8 @@
 "welcome.ready.access.missing" = "アクセシビリティはまだ許可されていません";
 /* %@: a list of app names, already joined by the formatter ("Vibe Island or Boring Notch"). */
 "welcome.ready.noAppInstalled" = "ノッチAppがインストールされていません。%@ を試してみてください";
+"welcome.ready.oneApp" = "Appが1つだけです。スワイプで隠して、また表示するだけです。もう1つ追加してください。";
+"welcome.ready.notch.missing" = "画面にノッチがありません。Bouncerは、蓋を開けたノッチ付きMacBookでのみ動作します。";
 "welcome.ready.menuBarNote" = "BouncerはDockではなく、メニューバーに常駐します。";
 "welcome.ready.menuBarPreview" = "Bouncerのメニューバーアイコンは、画面右上にある2つ重なった長方形です。";
 /* Fake Finder menu drawn in the menu bar preview. */

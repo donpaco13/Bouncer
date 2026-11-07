@@ -94,6 +94,8 @@
 "welcome.ready.access.missing" = "손쉬운 사용 아직 허용되지 않음";
 /* %@: a list of app names, already joined by the formatter ("Vibe Island 또는 Boring Notch"). */
 "welcome.ready.noAppInstalled" = "설치된 노치 앱이 없습니다. %@ 같은 앱을 사용해 보십시오";
+"welcome.ready.oneApp" = "앱이 하나뿐입니다. 스와이프하면 숨겼다가 다시 보여 줄 뿐입니다. 하나 더 추가하십시오.";
+"welcome.ready.notch.missing" = "화면에 노치가 없습니다. Bouncer는 덮개를 연 노치 MacBook에서만 작동합니다.";
 "welcome.ready.menuBarNote" = "Bouncer는 Dock이 아니라 메뉴 막대에 있습니다.";
 "welcome.ready.menuBarPreview" = "Bouncer의 메뉴 막대 아이콘은 화면 오른쪽 상단에 있는, 겹쳐진 직사각형 두 개입니다.";
 /* Fake Finder menu drawn in the menu bar preview. */

@@ -92,6 +92,8 @@
 "welcome.ready.access.missing" = "Accesibilidad aún sin conceder";
 /* %@: a list of app names, already joined by the formatter ("Vibe Island o Boring Notch"). */
 "welcome.ready.noAppInstalled" = "No hay ninguna app de notch instalada. Prueba %@";
+"welcome.ready.oneApp" = "Solo una app: el gesto la oculta y la vuelve a mostrar. Añade una segunda.";
+"welcome.ready.notch.missing" = "No hay notch en pantalla: Bouncer solo funciona en un MacBook con notch y la tapa abierta.";
 "welcome.ready.menuBarNote" = "Bouncer vive en la barra de menús, no en el Dock.";
 "welcome.ready.menuBarPreview" = "El icono de Bouncer en la barra de menús son dos rectángulos apilados, arriba a la derecha de la pantalla.";
 /* Fake Finder menu drawn in the menu bar preview. */

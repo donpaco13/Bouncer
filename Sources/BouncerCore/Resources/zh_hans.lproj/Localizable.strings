@@ -91,6 +91,8 @@
 "welcome.ready.access.missing" = "尚未授予辅助功能权限";
 /* %@: a list of app names, already joined by the formatter. */
 "welcome.ready.noAppInstalled" = "未安装任何刘海 App。试试 %@";
+"welcome.ready.oneApp" = "只有一个 App：轻扫只会把它隐藏、再显示。请再添加一个。";
+"welcome.ready.notch.missing" = "屏幕上没有刘海：Bouncer 只在打开屏幕的刘海 MacBook 上工作。";
 "welcome.ready.menuBarNote" = "Bouncer 住在菜单栏里，不在程序坞中。";
 "welcome.ready.menuBarPreview" = "Bouncer 的菜单栏图标是两个叠放的矩形，位于屏幕右上角。";
 /* Fake Finder menu drawn in the menu bar preview. */
