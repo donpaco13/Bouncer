@@ -61,7 +61,7 @@
 /* MARK: - Guide de démarrage, écran 4 (le geste) */
 
 "welcome.gesture.title" = "Survolez l’encoche, swipez à deux doigts";
-"welcome.gesture.body" = "Un swipe horizontal avance d’une app, vers la gauche comme vers la droite : il n’y a aucun sens à retenir. Les flèches ‹ ›, elles, en ont un.";
+"welcome.gesture.body" = "Un swipe horizontal avance d’une app, vers la gauche comme vers la droite : il n’y a aucun sens à retenir.";
 "welcome.gesture.shortcutNote" = "fait tourner le cycle depuis n’importe quelle app.";
 
 "welcome.sim.app1.name" = "Now Playing";

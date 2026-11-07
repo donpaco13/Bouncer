@@ -67,7 +67,7 @@
 /* MARK: - Welcome guide, step 4 (the gesture) */
 
 "welcome.gesture.title" = "ノッチにポインタを置き、2本指でスワイプ";
-"welcome.gesture.body" = "左右どちらへスワイプしてもAppが1つ進みます。方向を覚える必要はありません。矢印 ‹ › には方向があります。";
+"welcome.gesture.body" = "左右どちらへスワイプしてもAppが1つ進みます。方向を覚える必要はありません。";
 "welcome.gesture.shortcutNote" = "どのAppからでも次のAppに進めます。";
 
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */

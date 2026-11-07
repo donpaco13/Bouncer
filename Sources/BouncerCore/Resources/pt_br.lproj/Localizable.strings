@@ -67,7 +67,7 @@
 /* MARK: - Welcome guide, step 4 (the gesture) */
 
 "welcome.gesture.title" = "Passe o cursor sobre o notch e deslize com dois dedos";
-"welcome.gesture.body" = "Deslizar na horizontal avança um app, para a esquerda ou para a direita: não há direção para decorar. As setas ‹ › têm uma.";
+"welcome.gesture.body" = "Deslizar na horizontal avança um app, para a esquerda ou para a direita: não há direção para decorar.";
 "welcome.gesture.shortcutNote" = "avança o ciclo, a partir de qualquer app.";
 
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */

@@ -67,7 +67,7 @@
 /* MARK: - Welcome guide, step 4 (the gesture) */
 
 "welcome.gesture.title" = "Pasa el puntero por el notch y desliza con dos dedos";
-"welcome.gesture.body" = "Un deslizamiento horizontal avanza una app, a la izquierda o a la derecha: no hay que recordar ninguna dirección. Las flechas ‹ › sí la tienen.";
+"welcome.gesture.body" = "Un deslizamiento horizontal avanza una app, a la izquierda o a la derecha: no hay que recordar ninguna dirección.";
 "welcome.gesture.shortcutNote" = "avanza el ciclo desde cualquier app.";
 
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */

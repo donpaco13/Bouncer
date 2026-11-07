@@ -69,7 +69,7 @@
 /* MARK: - Welcome guide, step 4 (the gesture) */
 
 "welcome.gesture.title" = "Hover the notch, swipe with two fingers";
-"welcome.gesture.body" = "A horizontal swipe moves one app along, left or right: there’s no direction to remember. The arrows ‹ › do have one.";
+"welcome.gesture.body" = "A horizontal swipe moves one app along, left or right: there’s no direction to remember.";
 "welcome.gesture.shortcutNote" = "moves the cycle along, from any app.";
 
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */

@@ -66,7 +66,7 @@
 /* MARK: - Welcome guide, step 4 (the gesture) */
 
 "welcome.gesture.title" = "悬停在刘海上，双指轻扫";
-"welcome.gesture.body" = "横向轻扫切到下一个 App，向左向右都一样：没有方向需要记。箭头 ‹ › 则各有方向。";
+"welcome.gesture.body" = "横向轻扫切到下一个 App，向左向右都一样：没有方向需要记。";
 "welcome.gesture.shortcutNote" = "可在任何 App 中推进循环。";
 
 /* Interactive notch simulator. Fake content, shown to teach the gesture. */
