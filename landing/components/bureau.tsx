@@ -43,9 +43,13 @@ const CHEVAUCHEMENT_MS = 320;
  * menu de Bouncer en haut à droite, avec ● ○ ◐ et l'interrupteur. Ce sont les
  * vraies pièces de l'app, pas un panneau de test posé sous une illustration.
  *
- * Rien ne bouge tout seul. Chaque changement d'état vient d'un geste du
- * visiteur, et la voie relance montre la règle du moteur : l'app en place reste
- * affichée tant que la suivante n'est pas arrivée.
+ * Sur Mac, rien ne bouge tout seul. Chaque changement d'état vient d'un geste
+ * du visiteur, et la voie relance montre la règle du moteur : l'app en place
+ * reste affichée tant que la suivante n'est pas arrivée.
+ *
+ * Sur téléphone, personne n'a de trackpad sous la main : l'encoche tourne
+ * seule, en CSS, jusqu'au premier geste (`.desk` sans `.used`). Ce geste
+ * reprend la démo depuis l'app à l'écran, lue dans l'animation.
  *
  * Le texte du héros arrive en `children`, rendu au serveur.
  */
@@ -84,8 +88,28 @@ export function Bureau({
   };
   useEffect(() => annuler, []);
 
-  function go(k: number) {
-    if (!on || busy >= 0 || k === cur) return;
+  /* L'app que montre le cycle CSS du téléphone, lue dans la progression de
+     l'animation de la première pastille. Sans cycle en cours (Mac, mouvement
+     réduit, ou après le premier geste), c'est l'app courante. */
+  const affichee = () => {
+    if (touche) return cur;
+    const cycle = scene.current
+      ?.querySelector(".pill")
+      ?.getAnimations()
+      .find((a) => a instanceof CSSAnimation);
+    const p = cycle?.effect?.getComputedTiming().progress;
+    return typeof p === "number" ? Math.floor(p * apps.length) % apps.length : cur;
+  };
+  /* Le premier geste arrête le cycle et fige l'app qu'il montrait. */
+  const reprendre = () => {
+    const k = affichee();
+    setTouche(true);
+    setCur(k);
+    return k;
+  };
+
+  function go(k: number, depuis = cur) {
+    if (!on || busy >= 0 || k === depuis) return;
     setTouche(true);
     const a = apps[k];
     if (a.voie === "rapide") {
@@ -106,7 +130,10 @@ export function Bureau({
       }, RELANCE_MS + CHEVAUCHEMENT_MS),
     );
   }
-  const step = (d: number) => go((cur + d + apps.length) % apps.length);
+  const step = (d: number) => {
+    const depuis = reprendre();
+    go((depuis + d + apps.length) % apps.length, depuis);
+  };
   /* Un balayage de trackpad émet des dizaines d'événements : un seul cran par
      demi-seconde, comme dans l'app. */
   const freine = (d: number) => {
@@ -198,7 +225,7 @@ export function Bureau({
               onClick={() => {
                 /* Ouvrir le menu compte comme un premier geste : l'infobulle
                    s'efface, sinon elle passerait devant le menu sur téléphone. */
-                setTouche(true);
+                reprendre();
                 setOuvert((o) => !o);
               }}
             >
@@ -271,7 +298,7 @@ export function Bureau({
               key={a.nom}
               type="button"
               className={["pill", visible && "show", k === busy && "front"].filter(Boolean).join(" ")}
-              style={largeur(a.largeur)}
+              style={{ ...largeur(a.largeur), "--i": k } as CSSProperties}
               tabIndex={-1}
               aria-hidden="true"
               onClick={() => step(1)}
@@ -294,7 +321,20 @@ export function Bureau({
         <span className="arw n" aria-hidden="true">
           <span>›</span>
         </span>
-        <p className="hint" aria-hidden="true">
+        {/* Le cycle du téléphone : deux doigts balaient l'encoche avant chaque
+            bascule, et la file ●○○ suit. Affiché seulement pendant le cycle. */}
+        <span className="boucle" aria-hidden="true">
+          <span className="doigts">
+            <i />
+            <i />
+          </span>
+          <span className="file">
+            {apps.map((a, k) => (
+              <i key={a.nom} style={{ "--i": k } as CSSProperties} />
+            ))}
+          </span>
+        </span>
+        <p className="hint v-mac" aria-hidden="true">
           <span className="fingers">
             <i />
             <i />

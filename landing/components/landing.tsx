@@ -97,35 +97,43 @@ export function Landing() {
           indice={t.rich("apercu.indice", { kbd: (c) => <kbd>{c}</kbd> })}
         >
           <div className="intro" id="top">
-            <p className="eyebrow">{t("heros.surtitre")}</p>
+            {/* Deux variantes, choisies par le CSS selon le pointeur : `.v-mac`
+                pour la souris et le trackpad, `.v-tel` pour le doigt. */}
+            <p className="eyebrow v-mac">{t("heros.surtitre")}</p>
             <h1>
               {t("heros.titreLigne1")}
               <br />
               {t("heros.titreLigne2")}
             </h1>
-            <p className="who">{t("heros.pourQui")}</p>
+            <p className="who v-mac">{t("heros.pourQui")}</p>
+            <p className="who v-tel">{t("heros.resume")}</p>
             <div className="cta">
-              <a className="btn mac" href="#install">
+              <a className="btn mac v-mac" href="#install">
                 <Pomme />
                 {t("heros.installer")}
               </a>
               {/* Sur téléphone, un bouton d'installation d'app Mac ne mène
-                  nulle part : on propose d'emporter l'adresse à la place. */}
-              <div className="ailleurs">
+                  nulle part : on propose d'envoyer l'adresse au Mac. */}
+              <div className="ailleurs v-tel">
                 <p>{t("heros.surMac")}</p>
                 <BoutonCopie
                   className="btn"
+                  partage
                   texte={absolue(`/${locale}/`)}
-                  copier={t("heros.copierLien")}
+                  copier={t("heros.envoyer")}
                   copie={t("heros.lienCopie")}
                   echec={t("heros.echecLien")}
                 />
+                <a className="link" href={LIENS.depot}>
+                  {t("heros.voirCode")}
+                </a>
               </div>
-              <a className="link" href="#apps">
+              <a className="link v-mac" href="#apps">
                 {t("heros.voirCompatibles")}
               </a>
             </div>
-            <p className="fine">{t.rich("heros.mentions", { lien: lienVers(LIENS.depot) })}</p>
+            <p className="fine v-mac">{t.rich("heros.mentions", { lien: lienVers(LIENS.depot) })}</p>
+            <p className="fine v-tel">{t("heros.mentionsTel")}</p>
           </div>
 
           <svg className="hills" viewBox="0 0 1440 190" preserveAspectRatio="none" aria-hidden="true">

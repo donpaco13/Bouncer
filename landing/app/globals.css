@@ -22,7 +22,17 @@
   --disp:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,monospace;
   --ease:cubic-bezier(.2,.8,.2,1);
+  /* Espacement : une seule échelle, du plus serré au plus large */
+  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:64px; --s6:104px;
 }
+
+/* ---------- Deux variantes : la souris ou le doigt ----------
+   Le téléphone reçoit une page courte, en quatre écrans, et le Mac garde la
+   page complète. Le critère est le pointeur, pas la largeur : un Mac en
+   fenêtre étroite reste un Mac, et n'a rien à faire d'un bouton « Envoyer sur
+   mon Mac ». Sans JS, le choix se fait pareil. */
+@media not all and (hover:none) and (pointer:coarse){.v-tel{display:none!important}}
+@media (hover:none) and (pointer:coarse){.v-mac{display:none!important}}
 *{box-sizing:border-box;margin:0}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{background:var(--alu);color:var(--ink);font:17px/1.5 var(--sys);-webkit-font-smoothing:antialiased;overflow-x:clip}
@@ -138,7 +148,9 @@ h1{font:700 clamp(46px,7.4vw,96px)/1 var(--disp);letter-spacing:-.04em;margin-to
 .fine a{color:inherit;text-decoration:underline;text-underline-offset:3px}
 /* Un lien dans une ligne de texte : la zone de toucher grandit sans écarter les lignes. */
 .fine a,.trust a,.pair a{padding-block:12px}
-.ailleurs{display:none}
+.ailleurs{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+.ailleurs p{max-width:22em;color:rgba(255,255,255,.8)}
+.ailleurs .link{margin-top:-6px}
 /* Collines : le fond d'écran se pose sur l'aluminium de la page */
 .hills{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:clamp(90px,14vw,190px);display:block;z-index:0}
 
@@ -345,10 +357,37 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .menu{right:4px;width:min(268px,100vw - 8px)}
   .desk{min-height:auto;border-radius:0}
   .intro{padding:92px 16px 128px}
-  .cta .mac{display:none}
-  .ailleurs{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
-  .ailleurs p{max-width:22em;color:rgba(255,255,255,.8)}
 }
 /* Sous 380 px, l'heure cède sa place au menu de Bouncer. */
 @media (max-width:379px){.menubar .time{display:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+
+/* ---------- Téléphone : l'encoche du héros tourne seule ----------
+   Trois apps, une seule dépliée à la fois, deux doigts qui balaient avant
+   chaque bascule, et la file ●○○ dessous. Le premier geste ajoute `.used` et
+   rend la main à la démo. Seuls transform et opacity bougent : une pastille
+   repliée est la même pastille, ramenée à la largeur de l'encoche (--k), son
+   texte éteint, cachée sous l'encoche. */
+.pill{--k:calc(1 / var(--w))}
+.boucle{display:none}
+@keyframes tour{0%,34%,100%{transform:translateX(-50%) scaleX(var(--k))}5%,29%{transform:translateX(-50%)}}
+@keyframes tour-t{0%,4%,31%,100%{opacity:0}8%,27%{opacity:1}}
+@keyframes balaye{0%,60%{opacity:0;transform:translateX(-46px)}68%{opacity:1}88%{opacity:1;transform:translateX(40px)}95%,100%{opacity:0;transform:translateX(40px)}}
+@keyframes point{0%,32%{opacity:1}34%,100%{opacity:0}}
+@media (hover:none) and (pointer:coarse) and (prefers-reduced-motion:no-preference){
+  .desk:not(.used) .stage{--T:9s}
+  .desk:not(.used) .stage .pill{width:calc(var(--nw)*var(--w));opacity:1;transition:none;
+    animation:tour var(--T) var(--ease) calc(var(--i)*var(--T)/3 - var(--T)) infinite}
+  .desk:not(.used) .stage .pill>*{opacity:1;transition:none;animation:tour-t var(--T) ease calc(var(--i)*var(--T)/3 - var(--T)) infinite}
+  .desk:not(.used) .boucle{display:block}
+}
+.boucle .doigts{position:absolute;left:50%;top:calc(var(--nh)/2 - 7px);z-index:5;display:flex;gap:6px;margin-left:-13px;opacity:0;animation:balaye calc(var(--T)/3) var(--ease) infinite}
+.boucle .doigts i{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 0 5px rgba(255,255,255,.14)}
+.boucle .file{position:absolute;left:50%;top:calc(var(--nh) + 14px);transform:translateX(-50%);display:flex;gap:8px}
+.boucle .file i{position:relative;width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7)}
+.boucle .file i::after{content:"";position:absolute;inset:0;border-radius:50%;background:#fff;animation:point var(--T) linear calc(var(--i)*var(--T)/3 - var(--T)) infinite}
+/* Le héros du téléphone remplit l'écran : un écran, une idée. */
+@media (hover:none) and (pointer:coarse) and (max-width:760px){
+  .desk{min-height:92svh}
+  .intro{padding:var(--s6) var(--s2) 120px}
+}

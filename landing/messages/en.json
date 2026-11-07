@@ -55,10 +55,13 @@
     "voirCompatibles": "Does it work with my apps? ›",
     "mentions": "<lien>Source code on GitHub</lien> · macOS 14 or later · no account",
     "installer": "Install Bouncer, it’s free",
-    "surMac": "Bouncer runs on your Mac. Open this page on your MacBook.",
-    "copierLien": "Copy link",
+    "surMac": "Bouncer runs on your Mac.",
     "lienCopie": "Link copied",
-    "echecLien": "Copy the page address"
+    "echecLien": "Copy the page address",
+    "resume": "Bouncer shows one notch app at a time (Vibe Island, boringNotch, NotchNook…) and moves to the next with a two-finger swipe.",
+    "envoyer": "Send to my Mac",
+    "voirCode": "See the code on GitHub",
+    "mentionsTel": "Free · open source · macOS 14+ · no account"
   },
   "probleme": {
     "titre": "macOS doesn’t coordinate notch apps",
