@@ -470,7 +470,9 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 .chev{position:absolute;top:0;z-index:4;width:22px;height:var(--nh);place-items:center}
 .chev i{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.2);font:600 13px/1 var(--sys);font-style:normal}
 .chev.p{right:calc(50% + var(--nw)*(2.14 + var(--dw,0))/2 + 3px)}.chev.n{left:calc(50% + var(--nw)*(2.14 + var(--dw,0))/2 + 3px)}
-.curseur{position:absolute;top:38px;left:calc(50% + var(--nw)*(2.14 + var(--dw,0))/2 + 18px);width:15px;z-index:5}
+/* Pendant le balayage, le curseur est posé sur la pastille, dans l'aile gauche
+   entre le signe de l'app et l'encoche : on balaie l'app, pas une flèche. */
+.curseur{position:absolute;top:calc(var(--nh)*.4);left:calc(50% - var(--nw)*.5 - 13px);width:15px;z-index:5}
 .gest .doigts{position:absolute;left:50%;top:calc(var(--nh) + 6px);z-index:5;gap:6px;margin-left:-13px}
 .gest .doigts i{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 0 5px rgba(255,255,255,.14)}
 .gmenu{position:absolute;top:calc(var(--nh) + 6px);right:12px;width:200px;padding:4px;border-radius:11px;color:var(--ink);font-size:12px;
