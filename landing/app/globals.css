@@ -393,9 +393,9 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .desk:not(.used) .stage .pill>*{opacity:1;transition:none;animation:tour-t var(--T) ease calc(var(--i)*var(--T)/3 - var(--T)) infinite}
   .desk:not(.used) .boucle{display:block}
 }
-.boucle .doigts{position:absolute;left:50%;top:calc(var(--nh)/2 - 7px);z-index:5;display:flex;gap:6px;margin-left:-13px;opacity:0;animation:balaye calc(var(--T)/3) var(--ease) infinite}
+.boucle .doigts{position:absolute;left:50%;top:calc(var(--nh) + 6px);z-index:5;display:flex;gap:6px;margin-left:-13px;opacity:0;animation:balaye calc(var(--T)/3) var(--ease) infinite}
 .boucle .doigts i{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 0 5px rgba(255,255,255,.14)}
-.boucle .file{position:absolute;left:50%;top:calc(var(--nh) + 14px);transform:translateX(-50%);display:flex;gap:8px}
+.boucle .file{position:absolute;left:50%;top:calc(var(--nh) + 32px);transform:translateX(-50%);display:flex;gap:8px}
 .boucle .file i{position:relative;width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7)}
 .boucle .file i::after{content:"";position:absolute;inset:0;border-radius:50%;background:#fff;animation:point var(--T) linear calc(var(--i)*var(--T)/3 - var(--T)) infinite}
 /* Le héros du téléphone remplit l'écran : un écran, une idée. */
@@ -452,7 +452,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 .chev i{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.2);font:600 13px/1 var(--sys);font-style:normal}
 .chev.p{right:calc(50% + var(--nw)*(2.14 + var(--dw,0))/2 + 3px)}.chev.n{left:calc(50% + var(--nw)*(2.14 + var(--dw,0))/2 + 3px)}
 .curseur{position:absolute;top:38px;left:calc(50% + var(--nw)*(2.14 + var(--dw,0))/2 + 18px);width:15px;z-index:5}
-.gest .doigts{position:absolute;left:50%;top:calc(var(--nh)/2 - 7px);z-index:5;gap:6px;margin-left:-13px}
+.gest .doigts{position:absolute;left:50%;top:calc(var(--nh) + 6px);z-index:5;gap:6px;margin-left:-13px}
 .gest .doigts i{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 0 5px rgba(255,255,255,.14)}
 .gmenu{position:absolute;top:calc(var(--nh) + 6px);right:12px;width:200px;padding:4px;border-radius:11px;color:var(--ink);font-size:12px;
   background:rgba(246,246,248,.94);box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 16px 40px -12px rgba(0,0,0,.5);transform-origin:top right}
