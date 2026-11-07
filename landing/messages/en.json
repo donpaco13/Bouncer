@@ -81,7 +81,7 @@
   },
   "commandes": {
     "titre": "Three ways to switch",
-    "chapo": "Take whichever is closest to hand. They all move one step through the cycle, and the cycle loops.",
+    "chapo": "Take whichever is closest to hand. The swipe and the shortcut move one step. The menu goes straight to the app you pick.",
     "swipeTitre": "Swipe on the notch",
     "swipeCorps": "Pointer over the notch app, two fingers sideways on the trackpad. Left or right makes no difference, the gesture moves one step.",
     "flechesTitre": "Arrows as a cue",
