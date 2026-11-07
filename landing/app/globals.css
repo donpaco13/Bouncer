@@ -435,7 +435,10 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 /* Problème : la collision, puis Bouncer qui range. 8 s. */
 .heurt{--T:8s;height:212px}
 .heurt .halo{position:absolute;left:50%;top:0;transform:translateX(-50%);width:calc(var(--nw)*2.3);height:calc(var(--nh) + 26px);border-radius:0 0 22px 22px;background:rgba(255,69,58,.14)}
-.heurt .b{transform:translateX(-50%) translateY(20px) scaleX(1)}
+/* La seconde app se pose en travers de la première : décalée d'un quart
+   d'encoche et de 12 px, elle la recouvre, et les pastilles de couleur de
+   la première dépassent encore. */
+.heurt .b{transform:translateX(calc(-50% + var(--nw)*.24)) translateY(12px) scaleX(1)}
 .heurt .b::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 1.5px #ff453a}
 .heurt .queue{top:74px;display:none}
 .etats{position:absolute;left:18px;right:18px;bottom:16px;display:flex;flex-wrap:wrap;gap:4px 18px;font:600 14px/1.3 var(--sys)}
@@ -443,7 +446,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 .etats span::before{content:"";width:8px;height:8px;border-radius:50%;background:#ff453a}
 .etats .avec{display:none}
 .etats .avec::before{background:#30d158}
-@keyframes heurt{0%,8%,56%,100%{transform:translateX(-50%) translateY(0) scaleX(var(--k))}16%,50%{transform:translateX(-50%) translateY(20px) scaleX(1)}}
+@keyframes heurt{0%,8%,56%,100%{transform:translateX(-50%) translateY(0) scaleX(var(--k))}16%,50%{transform:translateX(calc(-50% + var(--nw)*.24)) translateY(12px) scaleX(1)}}
 @keyframes heurt-t{0%,10%,53%,100%{opacity:0}16%,48%{opacity:1}}
 @keyframes rouge{0%,12%,54%,100%{opacity:0}18%,48%{opacity:1}}
 @keyframes range{0%,52%,100%{opacity:0}58%,95%{opacity:1}}
