@@ -173,7 +173,7 @@
     "cacheeFermee": "Quit, then relaunched",
     "pasPourVous": "Not for you if you only run one notch app. With just one, there’s nothing for Bouncer to choose between.",
     "groupeRapide": "Instant, ≈ 50 ms",
-    "groupeRelance": "Relaunched, ≈ 1 s",
+    "groupeRelance": "Relaunch, ≈ 1 s",
     "groupeATester": "Not tested yet",
     "legendePredit": "Solid outline: predicted. Dashed: not tested yet.",
     "detail": "Per-app details",

@@ -14,7 +14,7 @@
     "marque": "Bouncer, haut de page",
     "nav": {
       "pourquoi": "Pourquoi",
-      "changer": "Gestes",
+      "changer": "Changer d’app",
       "fonctionnement": "Fiabilité",
       "apps": "Apps",
       "installer": "Installer"
@@ -172,7 +172,7 @@
     "cacheeOuverte": "Reste ouverte",
     "cacheeFermee": "Fermée, puis relancée",
     "pasPourVous": "Pas pour vous si vous n’avez qu’une app d’encoche. Avec une seule, Bouncer n’a rien à départager.",
-    "groupeRapide": "Instantané, ≈ 50 ms",
+    "groupeRapide": "Instantanée, ≈ 50 ms",
     "groupeRelance": "Par relance, ≈ 1 s",
     "groupeATester": "Pas encore testées",
     "legendePredit": "Contour plein : prédites. Pointillés : pas encore testées.",
