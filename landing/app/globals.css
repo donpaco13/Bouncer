@@ -398,10 +398,10 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 .boucle .file{position:absolute;left:50%;top:calc(var(--nh) + 32px);transform:translateX(-50%);display:flex;gap:8px}
 .boucle .file i{position:relative;width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7)}
 .boucle .file i::after{content:"";position:absolute;inset:0;border-radius:50%;background:#fff;animation:point var(--T) linear calc(var(--i)*var(--T)/3 - var(--T)) infinite}
-/* Le héros du téléphone remplit l'écran : un écran, une idée. */
+/* Le héros du téléphone tient dans l'écran, le titre juste sous la file ●○○,
+   et le haut de la section suivante dépasse en bas : on voit qu'il y a une suite. */
 @media (hover:none) and (pointer:coarse) and (max-width:760px){
-  .desk{min-height:92svh}
-  .intro{padding:var(--s6) var(--s2) 120px}
+  .intro{padding:72px var(--s2) 120px}
   .install{padding-bottom:var(--s5)}
 }
 
