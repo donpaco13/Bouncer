@@ -371,8 +371,15 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
    texte éteint, cachée sous l'encoche. */
 .pill{--k:calc(1 / var(--w))}
 .boucle{display:none}
-@keyframes tour{0%,34%,100%{transform:translateX(-50%) scaleX(var(--k))}5%,29%{transform:translateX(-50%) scaleX(1)}}
-@keyframes tour-t{0%,4%,31%,100%{opacity:0}8%,27%{opacity:1}}
+/* Chaque app tient un tiers du cycle. La suivante grandit par-dessus avant
+   que celle en place se replie dessous : l'encoche n'est jamais vide. Le
+   z-index ne bouge pas, il bascule une fois, quand plus rien ne se chevauche. */
+@keyframes tour{
+  0%{transform:translateX(-50%) scaleX(var(--k));z-index:2}
+  6%,39.5%{transform:translateX(-50%) scaleX(1)}
+  20%{z-index:2}20.01%,100%{z-index:1}
+  45%,100%{transform:translateX(-50%) scaleX(var(--k))}}
+@keyframes tour-t{0%,37%,100%{opacity:0}1.2%,34%{opacity:1}}
 @keyframes balaye{0%,60%{opacity:0;transform:translateX(-46px)}68%{opacity:1}88%{opacity:1;transform:translateX(40px)}95%,100%{opacity:0;transform:translateX(40px)}}
 @keyframes point{0%,32%{opacity:1}34%,100%{opacity:0}}
 @media (hover:none) and (pointer:coarse) and (prefers-reduced-motion:no-preference){
