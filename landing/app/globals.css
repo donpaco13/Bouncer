@@ -61,8 +61,11 @@ button{font:inherit;color:inherit}
 /* Quand la place manque, un menu passe à la ligne, donc hors de la barre,
    au lieu d'être coupé au milieu d'un mot. */
 .menubar ul{list-style:none;padding:0;display:flex;flex-wrap:wrap;align-items:center;min-width:0;height:var(--nh);overflow:hidden;white-space:nowrap}
-.menubar .l{padding-left:12px;gap:2px}
-.menubar .r{justify-content:flex-end;padding-right:12px;gap:2px}
+/* Les flèches dépassent de la zone de l'encoche d'une douzaine de pixels :
+   chaque colonne garde 20 px de leur côté, et un menu qui n'a plus la place
+   passe à la ligne au lieu de les toucher. */
+.menubar .l{padding:0 20px 0 12px;gap:2px}
+.menubar .r{justify-content:flex-end;padding:0 12px 0 20px;gap:2px}
 .mb{display:inline-flex;align-items:center;gap:7px;height:var(--nh);padding:0 9px;border-radius:5px;color:#fff;text-decoration:none;border:0;background:none;cursor:default}
 a.mb,button.mb{cursor:pointer}
 a.mb:hover,button.mb:hover,button.mb[aria-expanded="true"]{background:rgba(255,255,255,.16)}
@@ -105,8 +108,9 @@ a.mb:hover,button.mb:hover,button.mb[aria-expanded="true"]{background:rgba(255,2
 .off .pill.show~.pill.show{top:7px;opacity:.82}
 
 /* Flèches au survol, comme dans l'app : de part et d'autre de l'encoche. Un
-   repère qui signale l'app suivante, pas un bouton : le clic les traverse. */
-.arw{position:absolute;top:0;z-index:4;width:44px;height:var(--nh);display:grid;place-items:center;pointer-events:none;opacity:.5;transition:opacity .2s}
+   repère qui signale l'app suivante, pas un bouton : le clic les traverse,
+   donc pas de zone de toucher à garder, la boîte colle au rond. */
+.arw{position:absolute;top:0;z-index:4;width:28px;height:var(--nh);display:grid;place-items:center;pointer-events:none;opacity:.5;transition:opacity .2s}
 .arw span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.55);font:600 15px/1 var(--sys);color:#fff}
 .arw.p{right:calc(50% + var(--nw)*var(--cw)/2 + 2px)}
 .arw.n{left:calc(50% + var(--nw)*var(--cw)/2 + 2px)}
@@ -358,7 +362,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .hint{white-space:normal;width:max-content;max-width:calc(100vw - 24px)}
   .menubar .l .nav,.menubar .r .gh,.menubar .r .date,.menubar .lang-d,.brand .bt{display:none}
   .menubar .lang-m{display:block}
-  .menubar .l{padding-left:0}.menubar .r{padding-right:0}.mb{padding:0 7px}
+  .menubar .l,.menubar .r{padding:0}.mb{padding:0 7px}
   .stage{width:calc(var(--nw)*2.14);pointer-events:none}
   .stage .pill.show{pointer-events:none}
   .zone{display:block;position:absolute;inset:0 calc(var(--nw)*.045);pointer-events:auto;cursor:pointer}
@@ -372,6 +376,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 /* Entre le téléphone et le grand écran, trois colonnes n'ont plus la place
    de la pastille : chaque carte se pose en ligne, la scène à gauche. */
 @media (min-width:761px) and (max-width:1060px){
+  .menubar .l{padding-left:6px}.menubar .r{padding-right:6px}.mb{padding:0 6px}
   .ways{grid-template-columns:1fr;gap:16px}
   .way{grid-template-columns:minmax(0,330px) 1fr;column-gap:24px;align-items:center;padding-bottom:14px}
   .way .scene{grid-row:span 2}
