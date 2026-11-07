@@ -77,12 +77,6 @@
 "welcome.sim.app3.subtitle" = "未読の通知が2件";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "模擬App: %1$@、%2$@";
-"welcome.sim.arrow.previous.label" = "左矢印: 前のApp";
-"welcome.sim.arrow.previous.hint" = "サイクル内の前のAppに戻ります";
-"welcome.sim.arrow.previous.tooltip" = "クリックで前のAppに戻る";
-"welcome.sim.arrow.next.label" = "右矢印: 次のApp";
-"welcome.sim.arrow.next.hint" = "サイクル内の次のAppに進みます";
-"welcome.sim.arrow.next.tooltip" = "クリックで次のAppに進む";
 
 /* MARK: - Welcome guide, step 5 (ready) */
 
@@ -161,7 +155,7 @@
 "settings.gesture.margin.max" = "広い";
 "settings.gesture.margin.label" = "矢印を置く両側の帯の幅";
 "settings.gesture.margin.value" = "片側 %d ポイント";
-"settings.gesture.margin.note" = "矢印はノッチを覆っているものの両側に置かれ、その上に重なることはありません。広いほどクリックしやすく、狭いほどメニューバーの邪魔になりません。";
+"settings.gesture.margin.note" = "矢印はノッチの両側に置かれ、その上に重なることはありません。広くするとノッチから離れ、狭くすると近づきます。";
 /* %@: one of settings.gesture.slide.summary / .summary.zero. */
 "settings.gesture.slide" = "スライド — %@";
 "settings.gesture.slide.min" = "フェードのみ";
@@ -195,7 +189,7 @@
 "mode.both" = "スワイプと矢印";
 "mode.swipeOnly" = "スワイプのみ";
 "mode.arrowsOnly" = "矢印のみ";
-"mode.both.note" = "ノッチの上で2本指の横スワイプ、または矢印をクリック。";
+"mode.both.note" = "ノッチの上で2本指の横スワイプ。ポインタを近づけると、矢印が場所を示します。";
 "mode.swipeOnly.note" = "矢印は表示されません。メニューバーを覆うものは何もありません。";
 "mode.arrowsOnly.note" = "スワイプは無視されます。マウスを使う場合や、ジェスチャが勝手に反応する場合に。";
 "anchor.notchWindow" = "ノッチAppのウインドウ";

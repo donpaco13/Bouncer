@@ -43,17 +43,17 @@ struct FlechesEntieresTests {
         let cadres = cadresFleches(overlay: bande, marge: marge)
 
         for cadre in [cadres.gauche, cadres.droite] {
-            let bouton = NSButton(frame: cadre)
-            bouton.wantsLayer = true
-            hote.addSubview(bouton)
-            guard let calque = bouton.layer else {
+            let fleche = NSImageView(frame: cadre)
+            fleche.wantsLayer = true
+            hote.addSubview(fleche)
+            guard let calque = fleche.layer else {
                 Issue.record("la vue n'a pas de calque, le test ne mesure rien")
                 return
             }
-            ancreAuCentre(calque, cadreVue: bouton.frame)
+            ancreAuCentre(calque, cadreVue: fleche.frame)
             calque.transform = CATransform3DMakeScale(1, 1, 1)
 
-            // `calque.frame`, pas `bouton.frame` : la vue était au bon endroit même quand le
+            // `calque.frame`, pas `fleche.frame` : la vue était au bon endroit même quand le
             // dessin ne l'était pas — c'est toute la raison d'être de ce test.
             #expect(calque.frame == cadre)
             #expect(hote.bounds.contains(calque.frame))

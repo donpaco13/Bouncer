@@ -106,26 +106,6 @@ public func zoneEncoche() -> (rect: CGRect, ecran: String, cadre: CGRect)? {
     return (rect, ecranNotch.localizedName, frame)
 }
 
-/// Hauteur de la rangée de la barre des menus réservée par le système (`frame.maxY - visibleFrame.maxY`).
-///
-/// Relevé du 2026-09-06 (défaut D1 de la QA passe 4) :
-/// Sur un écran à encoche, la rangée réservée par macOS fait 35 pt (34 pt dessinés), alors que le
-/// boîtier caméra (`safeAreaInsets.top`) ne fait que 29 pt.
-///
-/// Interroge en priorité l'écran portant l'encoche, puis `main`, puis le premier écran disponible.
-/// Repli de référence : 35 pt (la valeur réservée standard sur MacBook avec encoche).
-public func hauteurBarreDesMenus(ecran: NSScreen? = nil) -> CGFloat {
-    let s = ecran
-        ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
-        ?? NSScreen.main
-        ?? NSScreen.screens.first
-    if let s {
-        let reserve = s.frame.maxY - s.visibleFrame.maxY
-        if reserve > 0 { return reserve }
-    }
-    return 35
-}
-
 /// Le boîtier caméra tel qu'on le DESSINE, quand on ne peut pas dessiner le vrai.
 ///
 /// Les aperçus (`ApercuGeste` dans les réglages, `SimulateurNotchInteractif` dans le guide) figurent
@@ -141,253 +121,91 @@ public var boitierEncocheReference: CGSize {
     zoneEncoche()?.rect.size ?? CGSize(width: 166, height: 29)
 }
 
-/// Bande de référence : le boîtier caméra, plus une marge VISIBLE de chaque côté.
+/// La bande des flèches : le boîtier caméra plus une marge VISIBLE de chaque côté, dans la rangée
+/// de la barre des menus. C'est le cadre du panel (`panelFleches`) et la base de la zone écoutée
+/// (`zoneSwipe`).
 ///
-/// Ce n'est PLUS le cadre du panel — celui-ci se déduit d'ici en descendant d'une rangée
-/// (`bandeFleches`), depuis qu'on a mesuré que la barre des menus n'a aucune portion libre à
-/// gauche. Cette bande reste la référence de la zone ÉCOUTÉE (`zoneSwipe`), qui elle a le droit
-/// d'y vivre : c'est un test géométrique, pas une fenêtre, donc elle ne recouvre rien.
+/// La marge existe parce que le boîtier n'est pas affichable : relevé sur le MacBook de référence
+/// (écran 1352×878), aire gauche 0→593, boîtier 593→759, aire droite 759→1352. Une flèche dessinée
+/// dans le boîtier est cachée par le matériel.
 ///
-/// `zoneEncoche()` décrit le boîtier lui-même — tout ce qui sépare `auxiliaryTopLeftArea.maxX` de
-/// `auxiliaryTopRightArea.minX`. Cette bande n'est pas affichable : c'est la caméra, pas de l'écran.
-/// Mesuré en réel sur le MacBook de référence (écran 1352×878) : aire gauche 0→593, boîtier
-/// 593→759, aire droite 759→1352. Une flèche dessinée dans le boîtier est cachée par le matériel,
-/// et un curseur qu'on y attend y est invisible — personne ne vise ce qu'il ne voit pas. D'où la
-/// marge : les flèches vivent dedans, et la zone du swipe (`zoneSwipe`) part de cette bande.
-///
-/// **Les flèches se calent sur le BOÎTIER, jamais sur la fenêtre de l'app d'encoche**, et c'est
-/// une régression corrigée. Calées sur la fenêtre, elles se logeaient aux extrémités d'un panel de
-/// 768 pt — c'est-à-dire au beau milieu du bandeau des icônes de statut, qu'elles privaient de
-/// leurs clics (le panel vit au niveau `statusBar + 10`, au-dessus d'elles). Relevé CGWindowList
-/// du 2026-09-05 : les items de statut occupent les 448 pt les plus à DROITE de la barre des
-/// menus (2112→2560 sur l'écran 2560 de la machine ; Hidden Bar, CopyClip, Bouncer, Vorssaint,
-/// One Thing, Centre de contrôle). Ramené sur l'écran interne 1352, leur bord gauche tombe à 904
-/// quand le boîtier finit à 759 :
-///
-///   - flèche calée sur le boîtier, marge 64 -> 780→802, soit 102 pt de libre devant le bandeau ;
-///   - flèche calée sur la fenêtre, marge 64 -> 1025→1047, soit 118 pt DEDANS, sur Vorssaint.
-///
-/// La géométrie du swipe, elle, n'a aucune raison de se limiter à cette bande : elle ne recouvre
-/// rien, donc elle ne vole rien. C'est tout l'intérêt de les dissocier — un clic doit être précis,
-/// un geste peut être large.
-///
-/// ponytail: la marge est libre parce que les items de statut sont alignés à droite et que macOS
-/// les arrête au boîtier. Une barre des menus remplie jusqu'à l'encoche reprendrait ce dégagement.
-/// La mesure à relever serait alors le bord gauche réel du bandeau (CGWindowList, `layer` 25).
+/// Calée sur le BOÎTIER, jamais sur la fenêtre de l'app d'encoche : aux bornes de celle-ci, les
+/// flèches atterrissaient 118 pt dans le bandeau des icônes de statut (relevé du 2026-09-05).
 public func zoneSurvol(encoche: CGRect, marge: CGFloat) -> CGRect {
     encoche.insetBy(dx: -marge, dy: 0)
 }
 
-/// Le cadre du PANEL, c'est-à-dire la seule surface où Bouncer prend des clics : la bande de
-/// survol, descendue d'une rangée SOUS la barre des menus.
-///
-/// **Ce que ça corrige, mesuré le 2026-09-06 (relevés `kAXMenuBar`, Arc au premier plan).** Tant
-/// que le panel vivait DANS la rangée de la barre des menus, il volait des clics quelle que soit
-/// la marge, et des deux côtés :
-///
-/// ```
-/// marge 44  : panel 549→803 · flèche G 560→582 -> Arc « Window » 512→584   CLIC VOLÉ
-///                           · flèche D 770→792 -> Arc « Help »   768→819   CLIC VOLÉ
-/// marge 96  : panel 497→855 · les deux MÊMES menus volés
-/// ```
-///
-/// Le correctif précédent (T156) n'avait borné que le côté droit, et seulement contre le bandeau
-/// des icônes de statut — le seul obstacle qu'il avait mesuré. Or la barre des menus a DEUX
-/// occupants, et le premier ne tient pas en place : l'emprise des titres de menus appartient à
-/// l'app au premier plan et change avec elle. Relevé le même jour, même écran (1352 pt de large,
-/// boîtier 593→759) : Munder Difflin s'arrête à 362, le Finder à 489, Arc à 819 — Arc déborde le
-/// boîtier, macOS reprenant la pose de ses titres à droite de la caméra. Le dégagement de gauche
-/// va donc de 231 pt à 9 pt selon l'app active, et 9 pt ne logent pas un chevron de 22.
-///
-/// **Pourquoi une borne en Y et pas deux bornes en X.** Une condition géométrique non bornée est
-/// un demi-plan, et ce fichier a déjà cassé trois fois pour avoir été borné d'un seul côté (la
-/// zone du geste, la flèche droite, la flèche gauche). Borner en X demanderait de relire
-/// `kAXMenuBar` à chaque activation d'app ET à chaque changement de menus DANS une app — une
-/// mesure qui se périme entre deux clics, donc un vol de clic à chaque fois qu'elle traîne. La
-/// borne en Y n'a pas de côté : la rangée de la barre des menus est le seul endroit où vivent les
-/// titres et les icônes de statut, et un panel qui n'y entre pas ne peut rien y prendre, pour
-/// n'importe quelle app, sans rien relire.
-///
-/// Les flèches restent calées sur le BOÎTIER en X — l'acquis de T156, qu'on ne perd pas : posées
-/// aux bornes de la fenêtre d'encoche, elles atterrissaient à 118 pt dans le bandeau de statut.
-///
-/// ponytail: descente de la hauteur réelle de la rangée de la barre des menus (et non de celle du
-/// boîtier caméra). Relevé D1 du 2026-09-06 : le boîtier fait 29 pt mais la rangée réserve 35 pt
-/// (`NSScreen.frame.maxY - visibleFrame.maxY`). Descendre de 29 pt laissait le panel dans la rangée
-/// sur 5 pt et les flèches sur 1,5 pt, privant Arc de clics bas sur « Window » et « Help ».
-/// Descendre de la hauteur réservée par le système garantit que le panel et ses contrôles sortent
-/// intégralement de la barre des menus.
-public func bandeFleches(survol: CGRect, hauteurRangee: CGFloat = hauteurBarreDesMenus()) -> CGRect {
-    survol.offsetBy(dx: 0, dy: -hauteurRangee)
+/// Le panel qui porte les flèches. Indicateur PASSIF : `ignoresMouseEvents`, donc aucune cible de
+/// clic, et c'est ce qui l'autorise à vivre dans la rangée de la barre des menus, dont les titres
+/// appartiennent à l'app au premier plan (Arc pose « Window » et « Help » contre le boîtier, relevé
+/// `kAXMenuBar` du 2026-09-06). On bascule par swipe, raccourci global ou menu, jamais ici.
+@MainActor public func panelFleches(cadre: CGRect) -> NSPanel {
+    let p = NSPanel(
+        contentRect: cadre, styleMask: [.borderless, .nonactivatingPanel],
+        backing: .buffered, defer: false
+    )
+    // Au-dessus des apps d'encoche (niveau CGWindowList 27, mesuré), sans quoi leurs canevas
+    // recouvrent les chevrons ; loin sous `popUpMenu` (101).
+    p.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 10)
+    p.ignoresMouseEvents = true
+    p.isOpaque = false
+    p.backgroundColor = .clear
+    p.hasShadow = false
+    p.isMovable = false
+    p.isReleasedWhenClosed = false
+    p.hidesOnDeactivate = false
+    p.becomesKeyOnlyIfNeeded = true
+    p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+    return p
 }
 
-/// La RANGÉE de la barre des menus au-dessus du boîtier, marges comprises : l'endroit où le
-/// curseur fait se déployer l'app d'encoche tierce.
+/// L'app d'encoche est-elle déployée par-dessus les flèches ? Rend le nouvel état, à repasser au
+/// tour suivant dans `dejaOccupee`.
 ///
-/// Ce n'est pas tout à fait `zoneSurvol`. Celle-ci part du boîtier caméra, qui fait 29 pt, quand
-/// la rangée que macOS réserve en fait 35 (relevé D1 du 2026-09-06, cf. `hauteurBarreDesMenus`).
-/// Les 6 pt d'écart tombaient entre les deux bandes : ni « sur l'encoche », ni « sur les flèches ».
-/// Un curseur qui monte du chevron vers l'encoche les traverse à chaque fois, et une frontière
-/// qu'on traverse est une frontière qui clignote.
-public func bandeEncoche(survol: CGRect, hauteurRangee: CGFloat = hauteurBarreDesMenus()) -> CGRect {
-    let hauteur = max(survol.height, hauteurRangee)
-    return CGRect(x: survol.minX, y: survol.maxY - hauteur, width: survol.width, height: hauteur)
-}
-
-/// L'app d'encoche occupe-t-elle la place, au point que les flèches n'aient plus rien à y faire ?
+/// Défaut d'origine, dans les mots de François (2026-09-07) : « quand on est sur le notch les
+/// flèches restent visibles alors que l'application du notch est ouverte ». Rien ne publie l'état
+/// d'une app d'encoche et ses conteneurs sont fixes et transparents (relevé du 2026-09-05) : on le
+/// déduit du curseur. Il a touché le boîtier — le geste qui la déploie — et n'a pas quitté sa
+/// fenêtre depuis. Le boîtier seul, pas les marges : les flèches y sont dessinées, et s'éteindre
+/// là les rendrait invisibles au moment même où on les survole.
 ///
-/// **Le défaut, dans ses mots** (2026-09-07) : « quand on est sur le notch les flèches restent
-/// visibles alors que l'application du notch est ouverte, donc c'est pas propre propre ». Les
-/// chevrons vivent une rangée SOUS la barre des menus (`bandeFleches`) et le panel monte au niveau
-/// `statusBar + 10` : quand l'app tierce déploie son panneau, ils sont dessinés PAR-DESSUS. Et ils
-/// y étaient à pleine opacité, la portée d'approche (72 pt) couvrant très largement les 6 pt qui
-/// séparent la rangée de la barre des menus de la leur.
+/// Sans recouvrement réel entre la fenêtre et les MARGES (là où vivent les flèches), il n'y a rien
+/// à cacher. La bande entière ne dirait rien : toute fenêtre d'encoche couvre le boîtier.
 ///
-/// **Quand exactement, et pourquoi ce signal-là.** Trois candidats se présentaient :
-///
-///   1. *La fenêtre a grandi au-delà de la bande.* Écarté, et c'est mesuré : les conteneurs des
-///      apps d'encoche NE BOUGENT PAS au déploiement (relevé du 2026-09-05, cf.
-///      `WindowManager.cadreFenetresEncoche` — boringNotch 640×210, Vibe Island 740×520, fixes,
-///      transparents). Il n'y a pas de croissance à observer.
-///   2. *Le curseur est entré dans la surface de la fenêtre.* Écarté d'abord, et c'était le piège :
-///      cette surface couvre la bande des flèches elle-même, donc les chevrons s'effaceraient
-///      exactement au moment où l'on va les cliquer. **Retenu depuis, mais amputé** — cf. la
-///      seconde règle plus bas : la crainte était juste, la conclusion trop large.
-///   3. *Le curseur est sur l'encoche.* Retenu. C'est le geste qui fait se déployer l'app tierce —
-///      c'est même sa seule commande —, et c'est littéralement ce que dit le rapport : « quand on
-///      est sur le NOTCH ». La bande est une rangée AU-DESSUS de celle des chevrons : une main qui
-///      descend vers un chevron n'y entre jamais, une main qui monte vers l'encoche y entre
-///      toujours. Le bouton est intact, la révélation graduelle aussi.
-///
-/// La garde de recouvrement n'est pas décorative : sans recouvrement réel, il n'y a rien de sale à
-/// corriger, et effacer les flèches ne serait qu'une perte. C'est la même règle que la pastille de
-/// contraste (`flechesPoseesSurUneAppTierce`) — c'est la géométrie qui décide, pas le réglage.
-///
-/// **La seconde règle, et pourquoi la première ne suffisait pas** (capture du 2026-09-07, app
-/// d'encoche déployée en widget média large, les deux chevrons toujours dessinés à ses
-/// extrémités). `bandeEncoche.contains` ne rend vrai que si le curseur est sur la RANGÉE de
-/// l'encoche. Or une fois l'app déployée, la main descend sur le widget — une rangée plus bas ou
-/// davantage — et la condition redevient fausse alors que le widget, lui, est toujours là. C'est
-/// exactement le défaut que le `ponytail` ci-dessous annonçait.
-///
-/// On reprend donc le candidat 2, mais amputé de ce qui le rendait dangereux. Ce qu'il fallait
-/// protéger, ce n'est pas la bande des flèches entière : ce sont les deux CIBLES DE CLIC, et leur
-/// abord. Partout ailleurs dans la fenêtre, le chrome n'a rien à faire.
-///
-/// « Et leur abord », pas « les 22 pt » : c'est là qu'était le trou. Une cible nue laisserait le
-/// chevron s'éteindre dès que la main s'en approche par le côté sans encore la toucher — donc
-/// n'apparaître qu'une fois le curseur DESSUS, une cible qu'on ne voit pas. Cet abord, c'est
-/// `abordChevron`, et le passage par `opaciteFleches` qui le mesurait est précisément ce qui a
-/// fait revenir le défaut une troisième fois : cf. le raisonnement là-bas.
-///
-/// **Ce qu'on ne peut pas savoir, et qu'on ne suppose donc pas.** Rien ne distingue « déployée »
-/// de « repliée » par la géométrie : les conteneurs des apps d'encoche sont fixes et transparents
-/// dans les deux états (relevé du 2026-09-05, cf. `WindowManager.cadreFenetresEncoche`).
-/// `fenetre` donne l'emprise MAXIMALE, pas l'état. Le raisonnement porte donc uniquement sur la
-/// position du curseur. Conséquence assumée : app repliée, un curseur posé dans le conteneur
-/// transparent loin des deux chevrons les efface aussi. Il n'y perd rien — les chevrons
-/// reviennent dès qu'il se rapproche de l'un d'eux, à la portée près, qui est exactement la
-/// distance à laquelle ils étaient devinables auparavant.
-///
-/// ponytail: le signal reste le curseur, pas l'état réel de l'app tierce, qui ne se publie nulle
-/// part. La mesure qui trancherait serait la région DESSINÉE de sa fenêtre
-/// (`CGWindowListCreateImage` sur le cadre du chevron), au prix d'une capture d'écran par
-/// approche et de l'autorisation qui va avec.
-///
-/// - Parameters:
-///   - ciblesFleches: les cadres des deux chevrons EN REPÈRE ÉCRAN (cf. `cadresFleches`, décalés
-///     de l'origine du panel). Vide = aucune protection, donc à ne pas laisser vide.
-///   - portee: la portée d'approche du réglage, celle qui sert déjà à `opaciteFleches`.
+/// ponytail: le signal est le curseur, pas l'état réel de l'app. Une app qui se déploie aussi au
+/// survol des marges montrera les flèches sur son île ; ce qui trancherait serait la région
+/// DESSINÉE de sa fenêtre (`CGWindowListCreateImage`), au prix de l'autorisation de capture.
 public func encocheOccupee(
-    curseur: CGPoint, bandeEncoche: CGRect, cadreFleches: CGRect, fenetre: CGRect?,
-    ciblesFleches: [CGRect], portee: CGFloat
+    dejaOccupee: Bool, curseur: CGPoint, boitier: CGRect, fenetre: CGRect?, cadreFleches: CGRect
 ) -> Bool {
-    guard let fenetre, !fenetre.isEmpty, fenetre.intersects(cadreFleches) else { return false }
-    if bandeEncoche.contains(curseur) { return true }
-    guard fenetre.contains(curseur) else { return false }
-    return !ciblesFleches.contains { abordChevron(cible: $0, portee: portee).contains(curseur) }
-}
-
-/// La zone qui PROTÈGE un chevron de l'effacement. Ce n'est pas celle qui le RÉVÈLE, et les
-/// confondre est le défaut du 2026-09-07, revenu deux fois.
-///
-/// **Ce qui ratait, en chiffres** (géométrie de référence : bande des flèches en y 814→843,
-/// chevron gauche 560→582 × 817,5→839,5, portée 72). La protection était mesurée par
-/// `opaciteFleches`, une distance EUCLIDIENNE au cadre du chevron — donc un disque, donc autant
-/// vers le bas que vers le côté. Curseur posé 40 pt sous la bande, en plein widget déployé :
-///
-/// ```
-/// x = 571 (sous le chevron)  opacité cible 0,396 -> PROTÉGÉ    révélation 0,444 -> allumé
-/// x = 600                    opacité cible 0,346 -> PROTÉGÉ    révélation 0,444 -> allumé
-/// x = 640                    opacité cible 0,000 -> effacé
-/// ```
-///
-/// Soit, dans ses mots : « dès que je suis un peu plus bas sur le panel de l'app qui s'est
-/// ouverte, ils réapparaissent ». La protection descendait 72 pt sous les chevrons, sur ~114 pt de
-/// large chacune, et cette nappe recouvrait la moitié de la rangée juste sous l'encoche. L'autre
-/// hypothèse — une fenêtre d'app qui ne descendrait pas jusque-là — est écartée par le relevé :
-/// `CGWindowList` du 2026-09-07, Vibe Island 740×520 et TheBoringNotch 640×210 en repère AppKit,
-/// tous deux couvrant ces points ; `fenetre.contains` était vrai partout dans la zone décrite.
-///
-/// **La géométrie juste.** On protège le chevron d'une extinction quand la main VIENT LE
-/// CHERCHER, et une main ne le cherche pas par en dessous : sous la rangée des chevrons il n'y a
-/// que le panneau de l'app tierce, rien à viser. La protection s'étend donc de `portee` sur les
-/// côtés et vers le haut — le trajet réel, puisque au-dessus la rangée de l'encoche prend le
-/// relais et efface —, et à peine plus bas que la cible.
-///
-/// « À peine », c'est la hauteur du chevron : on tolère de dépasser sa cible d'au plus la taille
-/// de la cible. 22 pt sur la machine de référence, ce qui garde couverte la bande entière (le
-/// chevron a 3,5 pt de marge sous lui) et le dépassement franc qu'un doigt produit — mais plus la
-/// nappe de 72. Aucune constante nouvelle : la hauteur sort du cadre reçu. Bornée par `portee`
-/// Pas de débordement latéral de `portee` : cette nappe de 166 pt recouvrait les contrôles
-/// média (pochette, piste précédente à gauche, piste suivante à droite) aux extrémités du widget
-/// déployé, laissant les chevrons visibles par-dessus. La protection s'arrête aux bords du
-/// chevron (sa largeur propre) et s'étend en hauteur pour couvrir la rangée sans trou.
-public func abordChevron(cible: CGRect, portee: CGFloat) -> CGRect {
-    let dessous = min(portee, cible.height)
-    let dessus = min(portee, cible.height)
-    return CGRect(x: cible.minX, y: cible.minY - dessous,
-                  width: cible.width, height: cible.height + dessous + dessus)
+    let gauche = CGRect(x: cadreFleches.minX, y: cadreFleches.minY,
+                        width: boitier.minX - cadreFleches.minX, height: cadreFleches.height)
+    let droite = CGRect(x: boitier.maxX, y: cadreFleches.minY,
+                        width: cadreFleches.maxX - boitier.maxX, height: cadreFleches.height)
+    guard let fenetre, !fenetre.isEmpty,
+          fenetre.intersects(gauche) || fenetre.intersects(droite) else { return false }
+    if boitier.contains(curseur) { return true }
+    return dejaOccupee && fenetre.contains(curseur)
 }
 
 /// Ce que Bouncer ÉCOUTE : la bande des flèches, détendue de 6 pt en haut et en bas (elle fait
 /// ~29 pt, difficile à survoler pile), réunie à la fenêtre d'encoche mais BORNÉE en hauteur.
 ///
-/// Contrairement à la bande des flèches, cette zone n'est pas une fenêtre : c'est un test
-/// géométrique, elle peut donc s'étendre bien au-delà du boîtier sans rien recouvrir. C'est ce qui
-/// rattrape le geste que l'utilisateur pose sur l'île qu'il VOIT — mesuré le 2026-09-05 : un geste
-/// à 180 pt à droite de l'ancienne bande tombait 13 fois par le garde `horsZone`, un geste posé
-/// 80 pt sous la barre des menus ne laissait aucune trace, le monitor n'étant même pas attaché.
-/// La LARGEUR suit donc la fenêtre, sans réserve : c'est elle qui rend le geste trouvable, et un
-/// défilement horizontal à hauteur de barre des menus n'existe pratiquement pas.
+/// Cette zone n'est pas une fenêtre : c'est un test géométrique, elle peut donc s'étendre bien
+/// au-delà du boîtier sans rien recouvrir. C'est ce qui rattrape le geste que l'utilisateur pose
+/// sur l'île qu'il VOIT — mesuré le 2026-09-05 : un geste à 180 pt à droite de l'ancienne bande
+/// tombait 13 fois par le garde `horsZone`, un geste posé 80 pt sous la barre des menus ne laissait
+/// aucune trace. La LARGEUR suit donc la fenêtre, sans réserve.
 ///
-/// La HAUTEUR, elle, est plafonnée, et c'est une régression corrigée. Prendre la fenêtre entière
-/// portait la zone à 38,5 % de l'écran interne avec Vibe Island (868×526 sur 1352×878), où un
-/// défilement horizontal ORDINAIRE suffisait à basculer l'encoche — rejeu mesuré : 40 événements
-/// de −12 pt en X, soit 480 pt continus, une bascule. Et le garde qui devait tenir ce faux positif
-/// (la dominance horizontale du `DetecteurSwipe`) ne peut rien : un défilement de carrousel EST
-/// horizontal.
-///
-/// La fenêtre d'une app d'encoche n'est pas son île. Relevé CGWindowList du 2026-09-05 :
-/// TheBoringNotch publie un canevas de 640×210 et Vibe Island un de 740×520, quand l'île fermée
-/// en fait quelques dizaines de points ; capture de la région exacte du canevas de boringNotch —
-/// 640×210 — pas un pixel dessiné, luminance uniforme du fond d'écran sur les 210 pt. Écouter la
-/// fenêtre entière revenait à écouter un canevas transparent.
-///
-/// Le plafond est posé sur le geste le plus BAS réellement mesuré, pas au jugé : cf.
-/// `descenteMaxZoneSwipe`.
+/// La HAUTEUR est plafonnée : la fenêtre entière portait la zone à 38,5 % de l'écran avec Vibe
+/// Island, où un défilement horizontal ORDINAIRE (un carrousel) suffisait à basculer — et la
+/// dominance horizontale du `DetecteurSwipe` ne peut rien contre un défilement horizontal. La
+/// fenêtre d'une app d'encoche n'est pas son île : boringNotch publie un canevas transparent de
+/// 640×210 (relevé CGWindowList du 2026-09-05). Plafond : cf. `descenteMaxZoneSwipe`.
 public func zoneSwipe(bande: CGRect, fenetre: CGRect?) -> CGRect {
-    // La bande des flèches est comprise sans condition : depuis qu'elle est descendue d'une
-    // rangée (`bandeFleches`), un curseur qui va CHERCHER une flèche sort de la rangée de la
-    // barre des menus. S'il sortait du même coup de la zone écoutée, le panel se retirerait sous
-    // la main — et en mode « boîtier seul », où `fenetre` vaut nil, il n'y aurait rien d'autre
-    // pour rattraper la descente.
-    let base = bande.union(bandeFleches(survol: bande)).insetBy(dx: 0, dy: -6)
+    let base = bande.insetBy(dx: 0, dy: -6)
     guard let fenetre, !fenetre.isEmpty else { return base }
     let elargi = base.union(fenetre)
-    // Le plafond se mesure depuis la RANGÉE de la barre des menus, pas depuis le bas de `base` :
-    // c'est de là que partait le relevé des 120 pt, et l'ancrer sur `base` ferait descendre la
-    // zone d'une rangée de plus à chaque fois qu'on descend les flèches.
     let plancher = bande.minY - descenteMaxZoneSwipe
     guard elargi.minY < plancher else { return elargi }
     return CGRect(x: elargi.minX, y: plancher, width: elargi.width, height: elargi.maxY - plancher)
@@ -411,8 +229,8 @@ private let descenteMaxZoneSwipe: CGFloat = 120
 
 /// Côté du chevron dessiné dans une bande de `hauteurBande` points.
 ///
-/// 22 pt et non 14 : une cible de clic de 14 pt dans une marge de 44 était petite pour rien, et la
-/// pastille — quand elle est nécessaire — doit rester lisible sur une pochette d'album. Les 4 pt
+/// 22 pt et non 14 : un chevron de 14 pt dans une marge de 44 se lisait mal, et la pastille —
+/// quand elle est nécessaire — doit rester lisible sur une pochette d'album. Les 4 pt
 /// retirés sont la respiration au-dessus et en dessous : la bande fait 29 pt sur la machine de
 /// référence, le chevron 22, il reste 3,5 pt de chaque côté.
 public func tailleFleche(hauteurBande: CGFloat) -> CGFloat {
@@ -455,10 +273,9 @@ public func cadresFleches(
 /// vers le bas et vers la gauche. Ses 7,5 pt du bas tombent sous le bord du panel, qui ne fait que
 /// la hauteur du boîtier : ils sont écrêtés par la fenêtre, sans erreur ni log.
 ///
-/// La vue, elle, n'avait pas bougé d'un point : `hitTest` répondait toujours au bon endroit, ce
-/// qui explique que ni un test de géométrie ni un relevé de cadre n'aient pu le voir. Recaler
-/// `position` sur le centre du cadre remet le dessin là où la vue l'annonce, et ne touche à AUCUNE
-/// cible de clic.
+/// Le cadre de la vue, lui, n'avait pas bougé d'un point, ce qui explique que ni un test de
+/// géométrie ni un relevé de cadre n'aient pu le voir. Recaler `position` sur le centre du cadre
+/// remet le dessin là où la vue l'annonce.
 @MainActor public func ancreAuCentre(_ calque: CALayer, cadreVue: CGRect) {
     calque.anchorPoint = CGPoint(x: 0.5, y: 0.5)
     calque.position = CGPoint(x: cadreVue.midX, y: cadreVue.midY)

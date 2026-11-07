@@ -11,50 +11,29 @@
 // `TraceSwipe` note par quel garde chaque événement est tombé — sans quoi un swipe raté est un
 // silence, et un silence ne se débogue pas.
 //
-// ET CE N'EST PAS LA MÊME ZONE QUE CELLE DES FLÈCHES, depuis que les avoir confondues a coûté deux
-// régressions (QA du 2026-09-05, `docs/rapport-qa-round-2.html`). Elles n'ont pas les mêmes
-// contraintes : un CLIC doit être précis et il se pose sur une fenêtre qui recouvre la barre des
-// menus, donc la bande des flèches reste collée au boîtier, là où la mesure montre du dégagement ;
-// un GESTE ne recouvre rien, donc sa zone peut suivre l'île en largeur — bornée en hauteur, sans
-// quoi elle avale les défilements horizontaux ordinaires. Les deux calculs vivent côte à côte dans
-// BouncerCore (`zoneSurvol` / `zoneSwipe`), chacun avec le relevé qui le fonde.
+// CE N'EST PAS LA MÊME ZONE QUE CELLE DES FLÈCHES. Les flèches restent collées au boîtier (calées
+// sur la fenêtre d'encoche, elles tombaient sur les icônes de statut) ; le geste suit l'île en
+// largeur, borné en hauteur sans quoi il avale les défilements horizontaux ordinaires. Les deux
+// calculs vivent côte à côte dans BouncerCore (`zoneSurvol` / `zoneSwipe`).
 //
-// Géométrie dérivée de `WindowManager.notchZone()` (source unique, cf. CLAUDE.md "zéro
-// hardcoding d'encoche"), MAIS élargie : `notchZone()` décrit le boîtier caméra, c'est-à-dire la
-// bande NON AFFICHABLE de la barre des menus. Y dessiner les flèches revenait à les cacher
-// derrière le matériel, et y attendre le curseur revenait à demander de viser une cible
-// invisible — mesuré : sur deux minutes d'usage réel, 342 événements de scroll et pas un seul
-// avec le curseur dans cette bande. Le panel couvre donc le boîtier PLUS `margeLaterale` points
-// de chaque côté en X, et les flèches se logent dans ces marges.
+// Géométrie dérivée de `zoneEncoche()` (source unique, cf. CLAUDE.md "zéro hardcoding
+// d'encoche"), élargie de `margeLaterale` de chaque côté : le boîtier n'est pas affichable, une
+// flèche dessinée dedans serait cachée par le matériel. Les flèches se logent dans ces marges.
 //
-// EN Y, LE PANEL VIT UNE RANGÉE SOUS LA BARRE DES MENUS, et c'est le correctif du 2026-09-06.
-// L'idée qu'il restait des marges « libres » dans la barre était fausse : la moitié droite l'était
-// (les icônes de statut sont alignées à droite et macOS les arrête au boîtier), la gauche jamais —
-// les TITRES de menus appartiennent à l'app au premier plan et leur emprise change avec elle
-// (relevés `kAXMenuBar` : Munder Difflin 362, Finder 489, Arc 819 sur le même écran de 1352). Un
-// panel posé dans cette rangée volait le clic de « Window » à gauche et de « Help » à droite, à
-// toutes les marges du domaine. Le raisonnement complet, les relevés et le choix de borner en Y
-// plutôt qu'en X vivent dans `bandeFleches` (BouncerCore) ; `BarreDesMenusTests` le verrouille.
-// Calcul dans `zoneSurvol` / `bandeFleches` / `abscissesFleches` (BouncerCore).
+// LES FLÈCHES SONT DES INDICATEURS PASSIFS, dans la rangée de la barre des menus, à hauteur de
+// l'encoche. Le panel ignore la souris (`panelFleches`, BouncerCore) : il dessine par-dessus les
+// titres de menus sans jamais leur prendre un clic. On bascule par swipe, raccourci ou menu.
 //
-// Le panel (NSPanel transparent) n'existe que pour porter ces flèches et leur donner une cible de
-// clic : il est construit une seule fois puis ordonné à l'écran (`orderFrontRegardless()`)
-// UNIQUEMENT pendant le survol de la zone, et retiré (`orderOut(nil)`) dès que le curseur en sort.
-// Hors survol, aucune fenêtre de Bouncer ne recouvre l'encoche — un panel resté à l'écran en
-// permanence, même transparent en théorie (`isOpaque = false`), masquait visuellement le logo
-// replié des apps d'encoche tierces (constaté en réel avec Vibe Island) sans qu'on ait pu établir
-// pourquoi la transparence ne s'appliquait pas ; plutôt que déboguer ça, on supprime le besoin.
+// Le panel n'est à l'écran (`orderFrontRegardless()`) que pendant l'approche, et retiré
+// (`orderOut(nil)`) dès que le curseur s'éloigne : resté en permanence, même transparent, il
+// masquait le logo replié de Vibe Island (constaté en réel) ; on supprime le besoin.
 //
-// Le survol est détecté par un monitor GLOBAL (`.mouseMoved`) : tant que le panel n'est pas à
-// l'écran (ou que `ignoresMouseEvents = true`), il ne reçoit RIEN — un monitor local ne
-// verrait donc jamais l'entrée dans la zone. Le scroll est capté par un monitor GLOBAL aussi
-// (`.scrollWheel`) : un monitor local ne voit que les événements que macOS a déjà remis à notre
-// app, or dès qu'une app d'encoche tierce (Vibe Island, boringNotch…) déploie son panneau, sa
-// fenêtre consomme le scroll avant nous, même quand notre panel est à l'écran. Le monitor
-// global observe l'événement quel que soit qui le consomme ensuite — c'est pour ça que
-// `handleScroll` et `updateHover` revérifient la position du curseur directement via
-// `zoneSensible` plutôt que de faire confiance au frame du panel, qui peut être hors écran
-// (retiré) ou nil (pas encore construit / plus d'encoche détectée).
+// Le survol est détecté par un monitor GLOBAL (`.mouseMoved`) : le panel ignore la souris, il ne
+// reçoit donc RIEN, et un monitor local ne verrait jamais l'entrée dans la zone. Le scroll est
+// capté par un monitor GLOBAL aussi (`.scrollWheel`) : dès qu'une app d'encoche tierce déploie son
+// panneau, sa fenêtre consomme le scroll avant nous. Le monitor global observe l'événement quel
+// que soit qui le consomme ensuite — c'est pour ça que `handleScroll` et `updateHover` revérifient
+// la position du curseur via `zoneSensible` plutôt que de faire confiance au frame du panel.
 //
 // MESURÉ le 2026-09-03 sur la machine de référence, en capturant un geste réel à travers ce même
 // monitor global : le repère est bien celui annoncé (NSEvent.mouseLocation et zoneEncoche() sont
@@ -92,11 +71,9 @@ final class NotchOverlayController: NSObject {
     /// Zone sensible courante, calculée par `rebuild()`. Cf. commentaire d'en-tête : la relire à
     /// chaque événement souris coûtait une publication SwiftUI par mouvement.
     private var zoneSensible: CGRect?
-    /// La RANGÉE de la barre des menus au-dessus du boîtier : l'endroit où le curseur fait se
-    /// déployer l'app d'encoche tierce, et donc celui où les chevrons n'ont plus rien à faire.
-    /// Mise en cache pour la même raison que `zoneSensible` — la calculer interroge `NSScreen`, et
-    /// `updateHover` tourne à chaque mouvement du curseur.
-    private var bandeEncocheCourante: CGRect?
+    /// Le boîtier caméra : le toucher est le geste qui déploie l'app d'encoche (cf.
+    /// `encocheOccupee`). Mis en cache comme `zoneSensible`, pour la même raison.
+    private var boitierCourant: CGRect?
     private var opaciteCourante: CGFloat = 0
 
     /// Les deux horloges des pistes temporelles (P1/P2). Repère `systemUptime` : monotone, donc
@@ -109,6 +86,7 @@ final class NotchOverlayController: NSObject {
     /// Aux valeurs par défaut (les deux à zéro) il n'existe jamais : les pistes ne coûtent rien
     /// tant qu'on ne les essaie pas.
     private var tickerTemporel: Timer?
+    /// L'app d'encoche est-elle déployée sur les flèches ? État tenu par `encocheOccupee`.
     private var appDeployee = false
 
     // `sideMargin` (44 pt) et `porteeApproche` (72 pt) étaient des constantes ici. La seconde
@@ -121,11 +99,8 @@ final class NotchOverlayController: NSObject {
 
     /// Le cycle a-t-il au moins une cible ? Mis en cache et non redemandé à chaque événement :
     /// `cycleAUneCible` traverse `entreesMenu`, qui interroge LaunchServices pour chaque bundleID
-    /// du catalogue, et `updateHover` tourne à chaque mouvement du curseur.
-    ///
-    /// Sans ça, décocher toutes les apps dans les réglages laissait les deux flèches s'allumer
-    /// normalement au survol et ne RIEN faire au clic (`cycle` sort sur une liste vide). Un
-    /// contrôle qui répond visuellement et n'agit pas est pire qu'un contrôle absent.
+    /// du catalogue, et `updateHover` tourne à chaque mouvement du curseur. Sans cible, les
+    /// flèches annonceraient une bascule qui ne fera rien.
     private var cycleAUneCible = true
 
     /// Dernier cadre de fenêtre d'encoche sur lequel la géométrie a été calée. Comparé à chaque
@@ -175,43 +150,24 @@ final class NotchOverlayController: NSObject {
         reglages.ancrageZone == .fenetreEncoche ? windowManager.cadreFenetresEncoche : nil
     }
 
-    /// Cadre du panel : de quoi loger une flèche de part et d'autre du BOÎTIER, une rangée SOUS
-    /// la barre des menus.
-    ///
-    /// Le panel est une vraie fenêtre au niveau `statusBar + 10` : tout ce qu'il couvre, il peut
-    /// le voler. Il n'y a AUCUNE portion de la rangée de la barre des menus dont on puisse dire
-    /// qu'elle est libre — l'emprise des titres de menus appartient à l'app au premier plan et
-    /// change avec elle (Munder Difflin 362, Finder 489, Arc 819 sur le même écran), les icônes
-    /// de statut tiennent l'autre bout. Le panel sort donc de la rangée, ce qui règle les deux
-    /// côtés d'un coup et sans rien avoir à relire. Le raisonnement complet et les relevés vivent
-    /// dans `bandeFleches` (BouncerCore), où un test les regarde.
-    ///
-    /// La zone ÉCOUTÉE, elle, part de la rangée (`zoneSurvol`) et suit la fenêtre en largeur
-    /// (`zoneSwipe`) : c'est un test géométrique, pas une fenêtre, donc l'agrandir ne recouvre
-    /// rien et ne vole rien.
-    private func cadrePanel() -> CGRect? {
-        bandeSurvol().map { bandeFleches(survol: $0) }
-    }
-
-    /// La bande de référence, à hauteur de barre des menus : c'est d'elle que part la zone écoutée
-    /// (`zoneSwipe`), et le panel s'en déduit en descendant d'une rangée.
-    private func bandeSurvol() -> CGRect? {
+    /// La bande des flèches (cadre du panel, dans la rangée de la barre des menus) et le boîtier
+    /// caméra, ou `nil` sans encoche.
+    private func geometrie() -> (bande: CGRect, boitier: CGRect)? {
         guard let (encoche, _, _) = zoneEncoche() else { return nil }
-        return zoneSurvol(encoche: encoche, marge: reglages.margeLaterale)
+        return (zoneSurvol(encoche: encoche, marge: reglages.margeLaterale), encoche)
     }
 
     /// (Re)positionne le panel sur la zone actuelle. Pas d'encoche détectée -> pas de
     /// panel, pas de crash (appelé aussi au changement de configuration d'écrans).
     @objc private func rebuild() {
-        guard let survol = bandeSurvol() else {
+        guard let (zone, boitier) = geometrie() else {
             zoneSensible = nil
-            bandeEncocheCourante = nil
+            boitierCourant = nil
             teardownPanel()
             return
         }
-        let zone = bandeFleches(survol: survol)
-        zoneSensible = zoneSwipe(bande: survol, fenetre: fenetreDeReference())
-        bandeEncocheCourante = bandeEncoche(survol: survol)
+        zoneSensible = zoneSwipe(bande: zone, fenetre: fenetreDeReference())
+        boitierCourant = boitier
         if let panel {
             panel.setFrame(zone, display: true)
             arrowsView?.frame = NSRect(origin: .zero, size: zone.size)
@@ -221,13 +177,8 @@ final class NotchOverlayController: NSObject {
         }
         arrowsView?.retrait = reglages.retraitFleches
         arrowsView?.alignement = reglages.alignementFleches
-        // La pastille sombre n'est pas un parti pris graphique, c'est un correctif de contraste :
-        // elle n'a de raison d'être que si la flèche est dessinée PAR-DESSUS la fenêtre d'une app
-        // tierce, dont on ne sait rien (noir de l'île, pochette d'album, visualiseur). Calées sur
-        // le boîtier, les flèches retombent dessus dès que l'île est plus large que le boîtier,
-        // c'est-à-dire presque toujours — la pastille est donc la règle, pas l'exception. Elle
-        // reste conditionnée à la géométrie et non au réglage : c'est le recouvrement réel qui
-        // décide.
+        // Correctif de contraste, gardé : dans les marges du boîtier, une app d'encoche peut
+        // dessiner sous les flèches (île, pochette), et c'est le recouvrement réel qui décide.
         arrowsView?.pastilleNecessaire = flechesPoseesSurUneAppTierce(cadre: zone)
         // Force le recalcul : `updateHover` sort tôt quand l'opacité n'a pas bougé, or ici c'est
         // la géométrie, le mode d'activation ou la liste des apps cochées qui vient de changer,
@@ -285,36 +236,8 @@ final class NotchOverlayController: NSObject {
     }
 
     private func buildPanel(zone: CGRect) {
-        let p = NSPanel(
-            contentRect: zone,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        // .statusBar + 1 (niveau 26) ne suffit PAS : mesuré en réel, Vibe Island et boringNotch
-        // tournent au niveau CGWindowList 27 (kCGWindowLayer) — juste au-dessus. Sans marge plus
-        // large, leurs fenêtres captent le clic/scroll avant notre panel. Marge de +10 pour rester
-        // au-dessus de variations similaires sans grimper jusqu'à popUpMenu(101)/screenSaver(1000).
-        p.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 10)
-        p.isOpaque = false
-        p.backgroundColor = .clear
-        p.hasShadow = false
-        p.isMovable = false
-        p.isReleasedWhenClosed = false
-        p.hidesOnDeactivate = false
-        p.becomesKeyOnlyIfNeeded = true
-        // Pas de `ignoresMouseEvents` : le panel n'est à l'écran que pendant le survol, et sa vue
-        // ne retient que les clics sur les flèches (`hitTest`) — le reste de la bande reste
-        // cliquable normalement. Cette promesse a été cassée une fois, quand le panel s'est mis à
-        // faire 768 pt et à poser ses chevrons sur les icônes de statut : ce n'est pas `hitTest`
-        // qui l'a rompue, c'est la géométrie. Et `hitTest` ne pouvait rien pour la moitié gauche
-        // du même défaut — un curseur posé sur « Window » est DANS le panel, donc l'opacité de
-        // révélation vaut 1,00 et le bouton prend le clic. Elle tient maintenant parce que le
-        // panel a quitté la rangée de la barre des menus (cf. `bandeFleches`, BouncerCore).
-        p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
-
+        let p = panelFleches(cadre: zone)
         let arrows = NotchArrowsView(frame: NSRect(origin: .zero, size: zone.size), margeLaterale: reglages.margeLaterale)
-        arrows.onArrowClicked = { [weak self] forward in self?.windowManager.cycle(forward: forward) }
         p.contentView = arrows
 
         // Pas d'orderFrontRegardless() ici : le panel n'est ordonné à l'écran que pendant le
@@ -377,7 +300,7 @@ final class NotchOverlayController: NSObject {
     /// curseur à la zone. Le panel n'est à l'écran que tant qu'elles sont visibles — hors de la
     /// portée, on le retire, ce que l'en-tête explique.
     private func updateHover() {
-        guard let panel, zoneSensible != nil else { return }
+        guard let panel, let boitier = boitierCourant, zoneSensible != nil else { return }
         // AVANT la garde d'opacité : en mode « swipe seul » l'opacité vaut zéro en permanence, et
         // une garde placée plus haut empêcherait le monitor d'être jamais attaché.
         majMoniteurScroll()
@@ -403,32 +326,16 @@ final class NotchOverlayController: NSObject {
             curseurEtaitDansLaZone = dansLaZone
         }
 
-        let dansEncoche = bandeEncocheCourante?.contains(curseur) ?? false
-        if dansEncoche && windowManager.cadreFenetresEncoche != nil {
-            appDeployee = true
-        } else if let fenetre = windowManager.cadreFenetresEncoche, !fenetre.contains(curseur) {
-            appDeployee = false
-        } else if windowManager.cadreFenetresEncoche == nil {
-            appDeployee = false
-        }
+        appDeployee = encocheOccupee(
+            dejaOccupee: appDeployee, curseur: curseur, boitier: boitier,
+            fenetre: windowManager.cadreFenetresEncoche, cadreFleches: panel.frame
+        )
 
-        // Flèches désactivées : le panel ne va JAMAIS à l'écran, donc rien de Bouncer ne recouvre
-        // la barre des menus. C'est la différence entre « invisible » et « absent », et c'est ce
-        // que promet le mode « swipe seul ».
-        // Deux raisons de ne rien montrer, et c'est la même : la flèche ne ferait rien. Le mode
-        // « swipe seul », que l'utilisateur a choisi ; et un cycle sans aucune cible, parce qu'il
-        // a tout décoché dans les réglages — `cycle` sort alors sur une liste vide.
-        // La progression se mesure à la BANDE des flèches, pas à la zone de swipe : celle-ci
-        // descend jusqu'en bas de l'île déployée, et les flèches s'allumeraient dès qu'on passe
-        // sous l'encoche, loin d'elles.
-        // Troisième raison de ne rien montrer, et elle vient d'un défaut réel : l'app d'encoche
-        // est déployée sous les chevrons. Cf. `encocheOccupee` (BouncerCore) pour le choix du
-        // signal — le curseur sur l'encoche OU sur la fenêtre déployée hors de l'abord des deux
-        // cibles de clic, sans quoi les flèches s'effaceraient au moment même où l'on va les
-        // cliquer.
-        let geometrique = (reglages.modeActivation.flechesActives && cycleAUneCible
-                           && !appDeployee
-                           && !encocheOccupeeParLApp(curseur: curseur, cadreFleches: panel.frame))
+        // Trois raisons de ne rien montrer, et c'est la même : la flèche n'aurait rien à dire.
+        // Le mode « swipe seul », choisi ; un cycle sans aucune cible ; et l'app d'encoche
+        // déployée par-dessus (`encocheOccupee`, BouncerCore). La progression se mesure à la
+        // BANDE des flèches, pas à la zone de swipe, qui descend jusqu'en bas de l'île.
+        let geometrique = (reglages.modeActivation.flechesActives && cycleAUneCible && !appDeployee)
             ? opaciteFleches(curseur: curseur, zone: panel.frame, portee: reglages.porteeApproche)
             : 0
         // L'horloge d'entrée démarre au franchissement de la portée et se remet à zéro à la
@@ -468,25 +375,6 @@ final class NotchOverlayController: NSObject {
                         "echelle=\(String(format: "%.2f", r.echelle))",
                         "pastille=\(arrowsView?.pastilleNecessaire ?? false)",
                         "cadre=\(panel.frame)", "curseur=\(NSEvent.mouseLocation)")
-    }
-
-    /// L'app d'encoche occupe-t-elle la place ? Passe-plat vers `encocheOccupee` (BouncerCore),
-    /// où vivent la règle et son raisonnement.
-    ///
-    /// Les cibles sont recalculées ici plutôt que lues sur `arrowsView.leftButton.frame` : ces
-    /// cadres-là glissent de `revelation.decalage` pendant le déploiement, et une zone protégée
-    /// qui bouge avec l'animation qu'elle commande est une boucle.
-    private func encocheOccupeeParLApp(curseur: CGPoint, cadreFleches: CGRect) -> Bool {
-        guard let bande = bandeEncocheCourante else { return false }
-        let cadres = cadresFleches(overlay: cadreFleches.size, marge: reglages.margeLaterale,
-                                   alignement: reglages.alignementFleches)
-        let cibles = [cadres.gauche, cadres.droite].map {
-            $0.offsetBy(dx: cadreFleches.minX, dy: cadreFleches.minY)
-        }
-        let fenetre = appDeployee ? windowManager.cadreFenetresEncoche : nil
-        return encocheOccupee(curseur: curseur, bandeEncoche: bande, cadreFleches: cadreFleches,
-                              fenetre: fenetre,
-                              ciblesFleches: cibles, portee: reglages.porteeApproche)
     }
 
     /// Attache ou détache le ticker des pistes temporelles, exactement sous la condition où un
@@ -540,10 +428,8 @@ final class NotchOverlayController: NSObject {
             "gesteEnCours=\(session.gesteEnCours)", "t=\(String(format: "%.4f", event.timestamp))"
         )
         // Toujours `forward: true` : un swipe horizontal avance d'un cran, quel que soit son
-        // sens, et le refaire du même côté continue de faire tourner le cycle. C'est `cycle` qui
-        // reboucle, il n'y a donc pas de cul-de-sac. Le sens reste porté par les deux flèches, où
-        // il est lisible ; dans un geste, il ne l'est pas — il faut le retenir, et il ne se
-        // retient pas (retour de test réel du 2026-09-05).
+        // sens, et `cycle` reboucle, donc pas de cul-de-sac. Un sens de geste se retient mal
+        // (retour de test réel du 2026-09-05).
         if case .bascule = decision {
             windowManager.cycle(forward: true)
         }
@@ -570,10 +456,10 @@ final class NotchOverlayController: NSObject {
 /// Flèches ‹ › de part et d'autre de ce qui couvre l'encoche, révélées progressivement à
 /// l'approche : elles GLISSENT vers l'extérieur en même temps qu'elles apparaissent.
 private final class NotchArrowsView: NSView {
-    var onArrowClicked: ((_ forward: Bool) -> Void)?
-
-    private let leftButton = NSButton()
-    private let rightButton = NSButton()
+    // Des `NSImageView` et pas des boutons : les flèches sont des indicateurs passifs, le panel
+    // ignore la souris (`panelFleches`).
+    private let leftArrow = NSImageView()
+    private let rightArrow = NSImageView()
     /// Largeur de la bande visible à chaque extrémité : les flèches s'y centrent, jamais au milieu
     /// où le boîtier caméra les cacherait. Variable, parce qu'elle est réglable et que le panel
     /// est construit une seule fois puis repositionné.
@@ -610,19 +496,13 @@ private final class NotchArrowsView: NSView {
         super.init(frame: frameRect)
         wantsLayer = true
 
-        for (button, symbol, forward) in [
-            (leftButton, "chevron.left", false), (rightButton, "chevron.right", true),
-        ] {
-            button.isBordered = false
-            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+        for (fleche, symbol) in [(leftArrow, "chevron.left"), (rightArrow, "chevron.right")] {
+            fleche.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
                 .withSymbolConfiguration(.init(pointSize: 11, weight: .semibold))
-            button.imageScaling = .scaleProportionallyDown
-            button.wantsLayer = true
-            button.target = self
-            button.tag = forward ? 1 : 0
-            button.action = #selector(arrowTapped(_:))
-            button.alphaValue = 0
-            addSubview(button)
+            fleche.imageScaling = .scaleProportionallyDown
+            fleche.wantsLayer = true
+            fleche.alphaValue = 0
+            addSubview(fleche)
         }
         appliqueHabillage()
         layoutArrows()
@@ -636,18 +516,9 @@ private final class NotchArrowsView: NSView {
     }
 
     /// Fond de la pastille. MESURÉ le 2026-09-05 : la fenêtre de boringNotch fait 640 pt de large
-    /// (975→1615 sur la machine de référence) alors que le boîtier caméra n'en fait que 166
-    /// (1212→1378). Tant que les flèches se logeaient dans une marge fixe de 44 pt, elles étaient
-    /// dessinées par-dessus une surface qui ne nous appartient pas et dont on ne sait rien : noir
-    /// de l'île déployée, pochette d'album, visualiseur. Un glyphe monochrome y disparaît quelle
-    /// que soit la couleur choisie — d'où cette pastille.
-    ///
-    /// Déplacer les flèches HORS de cette surface a été essayé, en les calant sur les bornes de la
-    /// fenêtre : ça réglait le contraste et ça posait les chevrons au milieu des icônes de statut,
-    /// à qui ils volaient le clic (QA du 2026-09-05, défaut N1). Le contraste ne vaut pas ça. Les
-    /// flèches sont donc revenues contre le boîtier, et la pastille avec elles — mais seulement
-    /// quand le recouvrement est réel, ce que `flechesPoseesSurUneAppTierce` mesure à chaque
-    /// reconstruction. Un chevron invisible reste pire qu'un chevron entouré.
+    /// quand le boîtier n'en fait que 166 ; dans les marges, l'app peut dessiner (île noire,
+    /// pochette d'album, visualiseur). Un glyphe monochrome y disparaît quelle que soit sa couleur.
+    /// `flechesPoseesSurUneAppTierce` mesure ce recouvrement à chaque reconstruction.
     private static let fondPastille = NSColor.black.withAlphaComponent(0.55).cgColor
 
     /// Sans pastille, le contraste repose sur la barre des menus — qui suit l'apparence système,
@@ -655,13 +526,13 @@ private final class NotchArrowsView: NSView {
     /// rendue translucide sur un fond d'écran clair en apparence sombre (ou l'inverse), où le
     /// glyphe seul frôlerait la limite. Il coûte une ombre de calque, pas un disque de 22 pt.
     private func appliqueHabillage() {
-        for button in [leftButton, rightButton] {
-            button.contentTintColor = pastilleNecessaire ? .white : .labelColor
-            button.layer?.backgroundColor = pastilleNecessaire ? Self.fondPastille : nil
-            button.layer?.shadowColor = pastilleNecessaire ? nil : NSColor.textBackgroundColor.cgColor
-            button.layer?.shadowOpacity = pastilleNecessaire ? 0 : 0.7
-            button.layer?.shadowRadius = 2.5
-            button.layer?.shadowOffset = .zero
+        for fleche in [leftArrow, rightArrow] {
+            fleche.contentTintColor = pastilleNecessaire ? .white : .labelColor
+            fleche.layer?.backgroundColor = pastilleNecessaire ? Self.fondPastille : nil
+            fleche.layer?.shadowColor = pastilleNecessaire ? nil : NSColor.textBackgroundColor.cgColor
+            fleche.layer?.shadowOpacity = pastilleNecessaire ? 0 : 0.7
+            fleche.layer?.shadowRadius = 2.5
+            fleche.layer?.shadowOffset = .zero
         }
         layoutArrows()
     }
@@ -671,38 +542,17 @@ private final class NotchArrowsView: NSView {
         // Le décalage est SIGNÉ par côté : la flèche gauche sort vers la gauche, la droite vers la
         // droite. Un décalage commun les ferait glisser toutes les deux du même côté, ce qui se
         // lit comme un défaut d'alignement et pas comme un déploiement.
-        leftButton.frame = cadres.gauche.offsetBy(dx: -revelation.decalage, dy: 0)
-        rightButton.frame = cadres.droite.offsetBy(dx: revelation.decalage, dy: 0)
-        for button in [leftButton, rightButton] {
-            guard let calque = button.layer else { continue }
+        leftArrow.frame = cadres.gauche.offsetBy(dx: -revelation.decalage, dy: 0)
+        rightArrow.frame = cadres.droite.offsetBy(dx: revelation.decalage, dy: 0)
+        for fleche in [leftArrow, rightArrow] {
+            guard let calque = fleche.layer else { continue }
             calque.cornerRadius = cadres.gauche.width / 2
-            // L'échelle se pose sur le calque et autour de son centre : redimensionner le `frame`
-            // décalerait aussi la cible de clic, et une cible qui change de taille pendant qu'on
-            // la vise est une cible qu'on rate.
-            //
-            // Centrer l'ancre ne suffit PAS à laisser le calque en place : AppKit garde sa
-            // `position` sur l'origine du cadre, si bien que déplacer l'ancre déplace le dessin
-            // d'une demi-taille vers le bas — et le bord bas du panel en écrêtait le reste. C'est
-            // le défaut des « flèches à moitié coupées » ; `ancreAuCentre` (BouncerCore) recale la
-            // position dans la foulée, et n'a aucun effet sur le cadre de la vue, donc aucun sur
-            // la cible de clic.
-            ancreAuCentre(calque, cadreVue: button.frame)
+            // L'échelle se pose sur le calque, autour de son centre. Centrer l'ancre seule
+            // décalerait le dessin d'une demi-taille (flèches « à moitié coupées ») :
+            // `ancreAuCentre` (BouncerCore) recale la position dans la foulée.
+            ancreAuCentre(calque, cadreVue: fleche.frame)
             calque.transform = CATransform3DMakeScale(revelation.echelle, revelation.echelle, 1)
         }
-    }
-
-    /// Le panel couvre une portion de barre des menus dès l'approche : sans ce passe-plat, il
-    /// avalerait les clics sur les menus et les icônes de statut qui s'y trouvent. Seuls les deux
-    /// boutons répondent, et seulement une fois franchement visibles — une flèche à 10 %
-    /// d'opacité est une cible qu'on ne voit pas, donc qu'on ne vise pas volontairement.
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        guard revelation.opacite >= 0.5 else { return nil }
-        let hit = super.hitTest(point)
-        return hit === self ? nil : hit
-    }
-
-    @objc private func arrowTapped(_ sender: NSButton) {
-        onArrowClicked?(sender.tag == 1)
     }
 
     /// Le fondu ET le déploiement, c'est cette valeur : elle suit la distance du curseur, donc la
@@ -711,8 +561,8 @@ private final class NotchArrowsView: NSView {
     /// curseur. La courbe, elle, vit dans `revelationFleches` (BouncerCore), où elle se teste.
     var revelation = RevelationFleches(opacite: 0, decalage: 0, echelle: 1) {
         didSet {
-            leftButton.alphaValue = revelation.opacite
-            rightButton.alphaValue = revelation.opacite
+            leftArrow.alphaValue = revelation.opacite
+            rightArrow.alphaValue = revelation.opacite
             // Le repositionnement est fait DANS la même passe que l'opacité, sans animation
             // implicite : Core Animation en poserait une de 0,25 s sur `frame` et `transform`, et
             // elle traînerait derrière le curseur exactement comme celle qu'on refuse.

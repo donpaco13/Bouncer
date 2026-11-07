@@ -77,12 +77,6 @@
 "welcome.sim.app3.subtitle" = "2 notificaciones en espera";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "App simulada: %1$@, %2$@";
-"welcome.sim.arrow.previous.label" = "Flecha izquierda: app anterior";
-"welcome.sim.arrow.previous.hint" = "Vuelve a la app anterior del ciclo";
-"welcome.sim.arrow.previous.tooltip" = "Haz clic para volver a la app anterior";
-"welcome.sim.arrow.next.label" = "Flecha derecha: app siguiente";
-"welcome.sim.arrow.next.hint" = "Pasa a la app siguiente del ciclo";
-"welcome.sim.arrow.next.tooltip" = "Haz clic para pasar a la app siguiente";
 
 /* MARK: - Welcome guide, step 5 (ready) */
 
@@ -161,7 +155,7 @@
 "settings.gesture.margin.max" = "Anchas";
 "settings.gesture.margin.label" = "Ancho de las franjas laterales de las flechas";
 "settings.gesture.margin.value" = "%d puntos a cada lado";
-"settings.gesture.margin.note" = "Las flechas se colocan a ambos lados de lo que cubre el notch, nunca encima. Más anchas: un objetivo de clic más fácil; más estrechas: la barra de menús queda tranquila.";
+"settings.gesture.margin.note" = "Las flechas se colocan a ambos lados del notch, nunca encima. Más ancho las aleja del notch; más estrecho las acerca.";
 /* %@: one of settings.gesture.slide.summary / .summary.zero. */
 "settings.gesture.slide" = "Despliegue — %@";
 "settings.gesture.slide.min" = "Solo fundido";
@@ -195,7 +189,7 @@
 "mode.both" = "Deslizamiento y flechas";
 "mode.swipeOnly" = "Solo deslizamiento";
 "mode.arrowsOnly" = "Solo flechas";
-"mode.both.note" = "Un deslizamiento horizontal con dos dedos sobre el notch, o un clic en una flecha.";
+"mode.both.note" = "Un deslizamiento horizontal con dos dedos sobre el notch. Las flechas aparecen al pasar el cursor para indicar dónde.";
 "mode.swipeOnly.note" = "No se muestra ninguna flecha. Nada cubre nunca la barra de menús.";
 "mode.arrowsOnly.note" = "El deslizamiento se ignora. Útil con un ratón, o si el gesto se dispara solo.";
 "anchor.notchWindow" = "La ventana de la app de notch";

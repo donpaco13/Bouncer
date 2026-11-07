@@ -76,12 +76,6 @@
 "welcome.sim.app3.subtitle" = "2 条通知待处理";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "模拟 App：%1$@，%2$@";
-"welcome.sim.arrow.previous.label" = "左箭头：上一个 App";
-"welcome.sim.arrow.previous.hint" = "回到循环中的上一个 App";
-"welcome.sim.arrow.previous.tooltip" = "点按以回到上一个 App";
-"welcome.sim.arrow.next.label" = "右箭头：下一个 App";
-"welcome.sim.arrow.next.hint" = "前往循环中的下一个 App";
-"welcome.sim.arrow.next.tooltip" = "点按以前往下一个 App";
 
 /* MARK: - Welcome guide, step 5 (ready) */
 
@@ -160,7 +154,7 @@
 "settings.gesture.margin.max" = "宽";
 "settings.gesture.margin.label" = "箭头侧边区宽度";
 "settings.gesture.margin.value" = "每侧 %d 点";
-"settings.gesture.margin.note" = "箭头位于遮盖刘海的内容两侧，从不压在上面。更宽，点按目标更大；更窄，不打扰菜单栏。";
+"settings.gesture.margin.note" = "箭头位于刘海两侧，从不压在上面。更宽，离刘海更远；更窄，离刘海更近。";
 /* %@: one of settings.gesture.slide.summary / .summary.zero. */
 "settings.gesture.slide" = "滑出 — %@";
 "settings.gesture.slide.min" = "仅淡入";
@@ -194,7 +188,7 @@
 "mode.both" = "轻扫和箭头";
 "mode.swipeOnly" = "仅轻扫";
 "mode.arrowsOnly" = "仅箭头";
-"mode.both.note" = "在刘海上双指横向轻扫，或点按箭头。";
+"mode.both.note" = "在刘海上双指横向轻扫。指针靠近时，箭头会标出位置。";
 "mode.swipeOnly.note" = "不显示箭头。菜单栏永远不会被遮盖。";
 "mode.arrowsOnly.note" = "忽略轻扫。适合用鼠标，或手势会自己误触发的情况。";
 "anchor.notchWindow" = "刘海 App 的窗口";

@@ -79,12 +79,6 @@
 "welcome.sim.app3.subtitle" = "2 notifications waiting";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "Simulated app: %1$@, %2$@";
-"welcome.sim.arrow.previous.label" = "Left arrow: previous app";
-"welcome.sim.arrow.previous.hint" = "Goes back to the previous app in the cycle";
-"welcome.sim.arrow.previous.tooltip" = "Click to go back to the previous app";
-"welcome.sim.arrow.next.label" = "Right arrow: next app";
-"welcome.sim.arrow.next.hint" = "Moves to the next app in the cycle";
-"welcome.sim.arrow.next.tooltip" = "Click to move to the next app";
 
 /* MARK: - Welcome guide, step 5 (ready) */
 
@@ -163,7 +157,7 @@
 "settings.gesture.margin.max" = "Wide";
 "settings.gesture.margin.label" = "Width of the arrow side bands";
 "settings.gesture.margin.value" = "%d points on each side";
-"settings.gesture.margin.note" = "The arrows sit on either side of whatever covers the notch, never on top of it. Wider makes an easier click target; narrower leaves the menu bar alone.";
+"settings.gesture.margin.note" = "The arrows sit on either side of the notch, never on top of it. Wider moves them away from the notch; narrower brings them closer.";
 /* %@: one of settings.gesture.slide.summary / .summary.zero. */
 "settings.gesture.slide" = "Slide — %@";
 "settings.gesture.slide.min" = "Fade only";
@@ -197,7 +191,7 @@
 "mode.both" = "Swipe and arrows";
 "mode.swipeOnly" = "Swipe only";
 "mode.arrowsOnly" = "Arrows only";
-"mode.both.note" = "A two-finger horizontal swipe over the notch, or a click on an arrow.";
+"mode.both.note" = "A two-finger horizontal swipe over the notch. The arrows show up on hover to mark where.";
 "mode.swipeOnly.note" = "No arrows are shown. Nothing ever covers the menu bar.";
 "mode.arrowsOnly.note" = "The swipe is ignored. Useful with a mouse, or if the gesture fires on its own.";
 "anchor.notchWindow" = "The notch app's window";
