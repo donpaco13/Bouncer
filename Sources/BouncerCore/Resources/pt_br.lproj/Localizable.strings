@@ -188,10 +188,10 @@
 
 "mode.both" = "Deslizar e setas";
 "mode.swipeOnly" = "Só deslizar";
-"mode.arrowsOnly" = "Só setas";
+"mode.swipeOff" = "Deslizar desativado";
 "mode.both.note" = "Deslizar na horizontal com dois dedos sobre o notch. As setas aparecem ao passar o cursor para indicar onde.";
 "mode.swipeOnly.note" = "Nenhuma seta é mostrada. Nada cobre a barra de menus, nunca.";
-"mode.arrowsOnly.note" = "O deslizar é ignorado. Útil com mouse, ou se o gesto dispara sozinho.";
+"mode.swipeOff.note" = "Sem deslizar e sem setas. Troque de app pelo atalho ou pela barra de menus. Útil com mouse, ou se o gesto dispara sozinho.";
 "anchor.notchWindow" = "A janela do app de notch";
 "anchor.cameraHousing" = "Só o gabinete da câmera";
 "anchor.notchWindow.note" = "O deslizar funciona em qualquer ponto da ilha que você vê, e as setas ficam dos dois lados dela. Sem app de notch na tela, recorre ao gabinete.";

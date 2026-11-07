@@ -188,10 +188,10 @@
 
 "mode.both" = "スワイプと矢印";
 "mode.swipeOnly" = "スワイプのみ";
-"mode.arrowsOnly" = "矢印のみ";
+"mode.swipeOff" = "スワイプなし";
 "mode.both.note" = "ノッチの上で2本指の横スワイプ。ポインタを近づけると、矢印が場所を示します。";
 "mode.swipeOnly.note" = "矢印は表示されません。メニューバーを覆うものは何もありません。";
-"mode.arrowsOnly.note" = "スワイプは無視されます。マウスを使う場合や、ジェスチャが勝手に反応する場合に。";
+"mode.swipeOff.note" = "スワイプも矢印も使いません。ショートカットかメニューバーからAppを切り替えます。マウスを使う場合や、ジェスチャが勝手に反応する場合に。";
 "anchor.notchWindow" = "ノッチAppのウインドウ";
 "anchor.cameraHousing" = "カメラの収容部のみ";
 "anchor.notchWindow.note" = "見えている島のどこでもスワイプが効き、矢印はその両側に置かれます。画面にノッチAppがないときは、収容部を基準にします。";

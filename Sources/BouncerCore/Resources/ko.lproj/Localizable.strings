@@ -190,10 +190,10 @@
 
 "mode.both" = "스와이프와 화살표";
 "mode.swipeOnly" = "스와이프만";
-"mode.arrowsOnly" = "화살표만";
+"mode.swipeOff" = "스와이프 끔";
 "mode.both.note" = "노치 위에서 두 손가락으로 가로 스와이프합니다. 포인터를 가까이 가져가면 화살표가 위치를 알려 줍니다.";
 "mode.swipeOnly.note" = "화살표가 표시되지 않습니다. 메뉴 막대를 가리는 일이 전혀 없습니다.";
-"mode.arrowsOnly.note" = "스와이프를 무시합니다. 마우스를 사용하거나 제스처가 저절로 작동할 때 유용합니다.";
+"mode.swipeOff.note" = "스와이프도 화살표도 없습니다. 단축키나 메뉴 막대에서 앱을 전환합니다. 마우스를 쓰거나 제스처가 저절로 작동할 때 유용합니다.";
 "anchor.notchWindow" = "노치 앱의 윈도우";
 "anchor.cameraHousing" = "카메라 하우징만";
 "anchor.notchWindow.note" = "눈에 보이는 아일랜드 어디서나 스와이프가 작동하고, 화살표는 그 양옆에 놓입니다. 화면에 노치 앱이 없으면 하우징을 기준으로 삼습니다.";

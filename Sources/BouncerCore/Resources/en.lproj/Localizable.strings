@@ -190,10 +190,10 @@
 
 "mode.both" = "Swipe and arrows";
 "mode.swipeOnly" = "Swipe only";
-"mode.arrowsOnly" = "Arrows only";
+"mode.swipeOff" = "Swipe off";
 "mode.both.note" = "A two-finger horizontal swipe over the notch. The arrows show up on hover to mark where.";
 "mode.swipeOnly.note" = "No arrows are shown. Nothing ever covers the menu bar.";
-"mode.arrowsOnly.note" = "The swipe is ignored. Useful with a mouse, or if the gesture fires on its own.";
+"mode.swipeOff.note" = "No swipe, no arrows. Switch apps with the shortcut or from the menu bar. Handy with a mouse, or if the gesture fires on its own.";
 "anchor.notchWindow" = "The notch app's window";
 "anchor.cameraHousing" = "The camera housing only";
 "anchor.notchWindow.note" = "The swipe works anywhere on the island you see, and the arrows sit on either side of it. With no notch app on screen, falls back to the housing.";

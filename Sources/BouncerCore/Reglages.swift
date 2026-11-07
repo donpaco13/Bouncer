@@ -34,18 +34,21 @@ import Foundation
 /// deux. Le trackpad n'est pas universel (souris externe), et les flèches ne plaisent pas à tout
 /// le monde (elles s'allument au passage sur la barre des menus).
 public enum ModeActivation: String, CaseIterable, Identifiable, Sendable {
-    case lesDeux, swipeSeul, flechesSeules
+    case lesDeux, swipeSeul
+    /// Ni swipe ni flèches : raccourci et menu seulement. La valeur enregistrée reste
+    /// "flechesSeules" (ancien mode, devenu vide quand les flèches ont cessé d'être cliquables).
+    case swipeCoupe = "flechesSeules"
 
     public var id: String { rawValue }
 
-    public var swipeActif: Bool { self != .flechesSeules }
-    public var flechesActives: Bool { self != .swipeSeul }
+    public var swipeActif: Bool { self != .swipeCoupe }
+    public var flechesActives: Bool { self == .lesDeux }
 
     public var libelle: String {
         switch self {
         case .lesDeux: return texte("mode.both")
         case .swipeSeul: return texte("mode.swipeOnly")
-        case .flechesSeules: return texte("mode.arrowsOnly")
+        case .swipeCoupe: return texte("mode.swipeOff")
         }
     }
 
@@ -54,7 +57,7 @@ public enum ModeActivation: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .lesDeux: return texte("mode.both.note")
         case .swipeSeul: return texte("mode.swipeOnly.note")
-        case .flechesSeules: return texte("mode.arrowsOnly.note")
+        case .swipeCoupe: return texte("mode.swipeOff.note")
         }
     }
 }

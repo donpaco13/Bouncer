@@ -188,10 +188,10 @@
 
 "mode.both" = "Deslizamiento y flechas";
 "mode.swipeOnly" = "Solo deslizamiento";
-"mode.arrowsOnly" = "Solo flechas";
+"mode.swipeOff" = "Deslizamiento desactivado";
 "mode.both.note" = "Un deslizamiento horizontal con dos dedos sobre el notch. Las flechas aparecen al pasar el cursor para indicar dónde.";
 "mode.swipeOnly.note" = "No se muestra ninguna flecha. Nada cubre nunca la barra de menús.";
-"mode.arrowsOnly.note" = "El deslizamiento se ignora. Útil con un ratón, o si el gesto se dispara solo.";
+"mode.swipeOff.note" = "Sin deslizamiento ni flechas. Cambia de app con el atajo o desde la barra de menús. Útil con un ratón, o si el gesto se activa solo.";
 "anchor.notchWindow" = "La ventana de la app de notch";
 "anchor.cameraHousing" = "Solo la carcasa de la cámara";
 "anchor.notchWindow.note" = "El deslizamiento funciona en toda la isla que ves, y las flechas se sitúan a ambos lados. Sin app de notch en pantalla, recurre a la carcasa.";

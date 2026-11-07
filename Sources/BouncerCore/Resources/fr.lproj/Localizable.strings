@@ -168,10 +168,10 @@
 
 "mode.both" = "Le swipe et les flèches";
 "mode.swipeOnly" = "Le swipe seul";
-"mode.arrowsOnly" = "Les flèches seules";
+"mode.swipeOff" = "Swipe coupé";
 "mode.both.note" = "Swipe horizontal à deux doigts sur l'encoche. Les flèches apparaissent au survol pour montrer où.";
 "mode.swipeOnly.note" = "Aucune flèche ne s'affiche. Rien ne recouvre jamais la barre des menus.";
-"mode.arrowsOnly.note" = "Le swipe est ignoré. Utile avec une souris, ou si le geste part tout seul.";
+"mode.swipeOff.note" = "Ni swipe ni flèches. On change d'app avec le raccourci ou depuis la barre des menus. Utile avec une souris, ou si le geste part tout seul.";
 "anchor.notchWindow" = "La fenêtre de l'app d'encoche";
 "anchor.cameraHousing" = "Le boîtier de la caméra seul";
 "anchor.notchWindow.note" = "Le swipe marche partout sur l'île qu'on voit, et les flèches se posent de part et d'autre. Sans app d'encoche à l'écran, revient au boîtier.";

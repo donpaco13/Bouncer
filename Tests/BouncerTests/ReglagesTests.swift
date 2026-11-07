@@ -130,7 +130,9 @@ struct ReglagesTests {
     func modeActivation() {
         #expect(ModeActivation.lesDeux.swipeActif && ModeActivation.lesDeux.flechesActives)
         #expect(ModeActivation.swipeSeul.swipeActif && !ModeActivation.swipeSeul.flechesActives)
-        #expect(!ModeActivation.flechesSeules.swipeActif && ModeActivation.flechesSeules.flechesActives)
+        #expect(!ModeActivation.swipeCoupe.swipeActif && !ModeActivation.swipeCoupe.flechesActives)
+        // L'ancien « flèches seules » enregistré se relit en « swipe coupé ».
+        #expect(ModeActivation(rawValue: "flechesSeules") == .swipeCoupe)
     }
 }
 
