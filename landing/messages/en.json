@@ -68,7 +68,7 @@
     "chapo": "Vibe Island, boringNotch, NotchNook, Notchy: each one draws its own pill under your notch. Open two and they land on the same rectangle, one over the other.",
     "corps": "macOS has no idea which one should be in front. <fort>The only way out it gives you is to quit one app to see the other</fort>, then reopen it when you need it back. Bouncer does that rotation for you with one gesture, and only removes the current app once the next one is on screen.",
     "aLecran": "{app}, on screen",
-    "memeEndroit": "{app}, drawing in the same place",
+    "memeEndroit": "{app} draws in the same place",
     "sans": "Without Bouncer: both apps draw into the same rectangle",
     "avec": "With Bouncer: one app on screen, the others wait their turn",
     "mainTitre": "By hand",
