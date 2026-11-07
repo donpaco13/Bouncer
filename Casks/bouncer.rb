@@ -1,6 +1,6 @@
 cask "bouncer" do
   version "0.1.0"
-  sha256 "606c0ebc920d92ee0cb5bcfae4e52fd6dde2e2877d6054f174c27d63910d5d27"
+  sha256 "764419c69874124ab9ad4f3eb1e843046b3c4d7762c052d27a3427ab2921e6da"
 
   url "https://github.com/donpaco13/Bouncer/releases/download/v#{version}/Bouncer-#{version}.zip"
   name "Bouncer"
@@ -19,9 +19,9 @@ cask "bouncer" do
   # logiciel malveillant ».
   # C'est un contournement de Gatekeeper que nous écrivons nous-mêmes, assumé comme tel.
   # À supprimer le jour où l'app est notarisée.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Bouncer.app"]
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-dr", "com.apple.quarantine", "{{appdir}}/Bouncer.app"]
   end
 
   uninstall quit: "io.github.donpaco13.bouncer"

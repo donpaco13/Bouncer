@@ -29,7 +29,7 @@ export V=0.1.0
 
 11. `git push origin main`
 12. `git tag "v$V" && git push origin "v$V"`
-13. `gh release create "v$V" "dist/Bouncer-$V.zip" --title "Bouncer $V" --notes-file docs/distribution/NOTES-$V.md`
+13. `gh release create "v$V" "dist/Bouncer-$V.zip" --title "Bouncer $V" --notes-file dist/RELEASE-NOTES-v$V.md`
 14. `curl -sIL "https://github.com/donpaco13/Bouncer/releases/download/v$V/Bouncer-$V.zip" | grep -E "^HTTP|content-length"`
 
 ## 5. Le tap
@@ -60,7 +60,7 @@ Le cask part **après** la release : tant que l'archive n'est pas en ligne, `bre
 
 - ⌨ La notarisation Apple : décision en attente (99 €/an). Sans elle, le `postflight` du cask reste nécessaire.
 - ⌨ Le premier lancement sur une **machine vierge** : c'est le seul test qui prouve que l'autorisation d'Accessibilité tient chez quelqu'un dont le trousseau n'a pas le certificat `Bouncer Local Signing`.
-- ⌨ Les notes de release (`docs/distribution/NOTES-$V.md`), à écrire avant l'étape 14.
+- ⌨ Les notes de release (`dist/RELEASE-NOTES-v$V.md`), à écrire avant l'étape 14.
 
 ## Rollback
 

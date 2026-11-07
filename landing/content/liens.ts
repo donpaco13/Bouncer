@@ -6,9 +6,14 @@
     et c'est la seule ligne à changer le jour où la landing a son domaine. */
 export const SITE = "https://donpaco13.github.io/Bouncer";
 
+/** La version publiée. Même valeur que VERSION dans build.sh : le nom de l'archive en dérive. */
+export const VERSION = "0.1.0";
+
 export const LIENS = {
   depot: "https://github.com/donpaco13/Bouncer",
   versions: "https://github.com/donpaco13/Bouncer/releases",
+  /** L'archive de la release, en téléchargement direct. */
+  telechargement: `https://github.com/donpaco13/Bouncer/releases/download/v${VERSION}/Bouncer-${VERSION}.zip`,
   matrice:
     "https://github.com/donpaco13/Bouncer/blob/main/docs/COMPATIBILITE.md",
 } as const;

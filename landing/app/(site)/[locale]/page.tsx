@@ -28,7 +28,7 @@ export default async function Page({
     applicationCategory: "UtilitiesApplication",
     operatingSystem: "macOS 14 or later",
     license: "https://opensource.org/licenses/MIT",
-    downloadUrl: LIENS.versions,
+    downloadUrl: LIENS.telechargement,
     offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
   };
 

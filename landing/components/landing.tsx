@@ -389,7 +389,7 @@ export function Landing() {
               <div className="opt">
                 <h3>{t("installation.zipTitre")}</h3>
                 <p>{t("installation.zipCorps")}</p>
-                <a className="btn" href={LIENS.versions}>
+                <a className="btn" href={LIENS.telechargement}>
                   <Pomme />
                   {t("installation.telecharger")}
                 </a>
