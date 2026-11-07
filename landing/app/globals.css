@@ -172,11 +172,10 @@ strong{font-weight:600}
 
 /* Problème : le conflit dessiné en éclaté */
 .scenes{display:grid;gap:16px}
-/* L'emplacement de la vidéo, au format qu'elle aura (16:9) */
+/* La vidéo, en 16:9, quand elle existe */
 .film{margin-bottom:72px}
-.film .ecran{display:block;position:relative;width:100%;max-width:760px;aspect-ratio:16/9;border-radius:22px;overflow:hidden;--nw:150px;--nh:32px;
+.film .ecran{display:block;position:relative;width:100%;max-width:760px;aspect-ratio:16/9;border-radius:22px;overflow:hidden;
   background:radial-gradient(70% 120% at 50% 130%,#5a4ad1 0,rgba(90,74,209,0) 70%),linear-gradient(#070a22,#1b1d5e)}
-.film .pill{opacity:1;width:calc(var(--nw)*var(--w));pointer-events:none}.film .pill>*{opacity:1}
 .film figcaption{margin-top:12px;font-size:14px;color:var(--muted)}
 .scene{--nw:132px;--nh:30px;position:relative;background:#101018;border-radius:22px;height:178px;overflow:hidden;color:#fff}
 .scene .strip{height:var(--nh);background:#1f1f2b;display:flex;justify-content:space-between;align-items:center;padding:0 16px;font:500 12px var(--sys);color:#d1d1d6}
@@ -314,7 +313,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   td:nth-child(3){grid-row:1;grid-column:2}
   td:nth-child(4){grid-column:1/-1;font-size:14px}
   .ways2{grid-template-columns:minmax(0,1fr)}
-  .film{margin-bottom:48px}.film .ecran{--nw:100px;border-radius:16px}.film .pill{font-size:11px}
+  .film{margin-bottom:48px}.film .ecran{border-radius:16px}
   .versus>div{grid-template-columns:minmax(0,1fr);gap:4px}
   .trust{grid-template-columns:minmax(0,1fr);gap:18px}
   .cut span{left:auto;right:8px}

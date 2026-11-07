@@ -144,9 +144,10 @@ export function Landing() {
         <section className="paper" id="problem">
           {/* La démo du héros est une simulation : la vidéo est la preuve.
               Muette, en boucle, sans son à couper. Tant qu'elle n'est pas
-              tournée, l'encoche dessinée tient sa place, à la même taille. */}
-          <figure className="wrap film">
-            {videoPrete() ? (
+              tournée, rien ne s'affiche : un cadre vide qui promet une vidéo
+              coûte un écran et fait chantier. */}
+          {videoPrete() ? (
+            <figure className="wrap film">
               <video
                 className="ecran"
                 src={`../${VIDEO.mp4}`}
@@ -159,14 +160,9 @@ export function Landing() {
                 controls
                 preload="metadata"
               />
-            ) : (
-              <div className="ecran" aria-hidden="true">
-                <span className="notch" />
-                <Pastille signe={va.signe} valeur={va.valeur} w={2.15} />
-              </div>
-            )}
-            <figcaption>{t(videoPrete() ? "video.legende" : "video.attente")}</figcaption>
-          </figure>
+              <figcaption>{t("video.legende")}</figcaption>
+            </figure>
+          ) : null}
           <div className="wrap cols">
             <div>
               <h2>{t("probleme.titre")}</h2>
