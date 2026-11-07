@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { Bascule } from "@/content/compatibilite";
 import type { Signe } from "@/content/demo";
-import { Marque, SIGNES, largeur } from "./signes";
+import { IconeMenu, Marque, SIGNES, largeur } from "./signes";
 
 /** Une app de l'encoche, textes déjà résolus dans la langue de la page : aucun
     dictionnaire ne part au navigateur. */
@@ -63,7 +63,8 @@ export function Bureau({
 }: {
   apps: AppBureau[];
   l: LibellesBureau;
-  nav: { href: string; libelle: string }[];
+  /** `seulMac` : l'entrée vise une section absente de la page du téléphone. */
+  nav: { href: string; libelle: string; seulMac?: boolean }[];
   langue: ReactNode;
   indice: ReactNode;
   children: ReactNode;
@@ -205,7 +206,7 @@ export function Bureau({
               Bouncer : la langue passe à gauche, à côté de la marque. */}
           <li className="lang-m">{langue}</li>
           {nav.map((n) => (
-            <li key={n.href} className="nav">
+            <li key={n.href} className={n.seulMac ? "nav v-mac" : "nav"}>
               <a className="mb" href={n.href}>
                 {n.libelle}
               </a>
@@ -229,12 +230,7 @@ export function Bureau({
                 setOuvert((o) => !o);
               }}
             >
-              <svg viewBox="0 0 18 14" width="18" height="14" aria-hidden="true">
-                <path d="M1 0h16v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" />
-                <circle cx="5" cy="10" r="2" />
-                <circle cx="9" cy="10" r="2" opacity=".45" />
-                <circle cx="13" cy="10" r="2" opacity=".45" />
-              </svg>
+              <IconeMenu />
             </button>
           </li>
           <li className="lang-d">{langue}</li>
