@@ -125,8 +125,13 @@ final class FenetreAccueilController: NSObject, NSWindowDelegate {
         return GeometrieAccueil.hauteurContenu(visibleFrameHeight: visible, barreDeTitre: barreDeTitre)
     }
 
+    /// « Vu » ne s'enregistre que si Bouncer est prêt à servir. Fermer le guide après « Passer »
+    /// sans avoir accordé l'Accessibilité laissait une app inerte et un guide qui ne revenait plus :
+    /// tant qu'il reste quelque chose à faire, il se rouvre au lancement suivant.
     func windowWillClose(_ notification: Notification) {
-        defaults.set(true, forKey: Self.cleVue)
+        if windowManager.etatAccueil.pretAServir {
+            defaults.set(true, forKey: Self.cleVue)
+        }
         fenetre = nil
     }
 }
@@ -271,12 +276,7 @@ struct VueAccueil: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var etape: EtapeAccueil = .bienvenue
 
-    private var etat: EtatAccueil {
-        EtatAccueil(
-            accessibiliteAccordee: windowManager.accessibilityTrusted,
-            appsEncocheInstallees: windowManager.entreesMenu.count
-        )
-    }
+    private var etat: EtatAccueil { windowManager.etatAccueil }
 
     var body: some View {
         VStack(spacing: 0) {

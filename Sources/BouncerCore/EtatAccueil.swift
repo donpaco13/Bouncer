@@ -50,6 +50,14 @@ public struct EtatAccueil: Equatable {
     }
 }
 
+public extension WindowManager {
+    /// Le bilan de l'accueil, construit à un seul endroit : la vue l'affiche, le contrôleur de
+    /// fenêtre s'en sert pour décider si le guide reviendra au prochain lancement.
+    var etatAccueil: EtatAccueil {
+        EtatAccueil(accessibiliteAccordee: accessibilityTrusted, appsEncocheInstallees: entreesMenu.count)
+    }
+}
+
 /// Les cinq écrans du parcours d'accueil, dans l'ordre de lecture.
 ///
 /// Ici et non dans la vue pour une raison unique : l'avance et le retour se bornent aux
