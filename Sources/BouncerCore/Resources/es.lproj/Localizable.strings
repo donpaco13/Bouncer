@@ -206,29 +206,45 @@
 "notch.none" = "No se ha detectado ningún notch en este Mac.";
 /* %@: the app that stayed on screen. */
 "error.accessRevoked.twoApps" = "A Bouncer le han retirado el acceso a Accesibilidad: tienes dos apps en el notch, y %@ se ha quedado junto a la nueva. Bouncer no la obligará a salir sin ese permiso; podrías perder trabajo sin guardar. Devuélvele el acceso en Ajustes del Sistema; hasta entonces, ningún gesto ordenará el notch.";
+"error.accessRevoked.twoApps.short" = "Acceso retirado: dos apps en el notch";
 "error.accessRevoked.intact" = "Tus apps abiertas siguen intactas: Bouncer no cambia nada y no cerrará ninguna app.";
 /* %@: a list of app names, already joined ("Vibe Island y Boring Notch"). */
 "error.accessRevoked.hidden" = "Siguen ocultas en segundo plano: %@. Bouncer no cambia nada y no cerrará ninguna app.";
 /* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
 "error.accessRevoked" = "A Bouncer le han retirado el acceso a Accesibilidad: el cambio de app ya no funciona. %@ Devuélvele el acceso en Ajustes del Sistema para volver a cambiar.";
+"error.accessRevoked.short" = "Bouncer ha perdido el acceso a Accesibilidad";
 /* %@: the app being switched to. */
 "error.switchInProgress" = "Ya se está cambiando a %@; espera, acaba de recibir la orden de cerrarse. Un segundo gesto ahora apagaría la app que el primero acaba de encender.";
+"error.switchInProgress.short" = "Ya se está cambiando a %@";
 /* %@: the app that hasn't closed. */
 "error.previousNotClosed" = "%@ todavía no se ha cerrado; probablemente espera una respuesta en pantalla (“¿Guardar los cambios?”). Bouncer la sigue vigilando y liberará el notch en cuanto desaparezca; nunca la forzará, perderías tu trabajo.";
+"error.previousNotClosed.short" = "%@ aún no se ha cerrado";
 /* %@: the app being relaunched. */
 "error.targetNotClosed" = "%@ tiene que relanzarse para volver al notch, y todavía no se ha cerrado. Bouncer la relanzará en cuanto desaparezca.";
+"error.targetNotClosed.short" = "%@ tiene que cerrarse primero";
 /* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
 "error.targetNotClosed.thenHide" = "%1$@ tiene que relanzarse para volver al notch, y todavía no se ha cerrado. Bouncer la relanzará en cuanto desaparezca, y después apartará %2$@, que mientras tanto sigue en pantalla.";
+"error.targetNotClosed.thenHide.short" = "%1$@ tiene que cerrarse primero";
 "error.launchFailed" = "No se ha podido abrir %@.";
+"error.launchFailed.short" = "No se ha podido abrir %@";
 /* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
 "error.accessNeverGranted" = "Bouncer todavía no tiene acceso a Accesibilidad: el cambio a %1$@ se ha rechazado. %2$@ Bouncer no cambia nada y no cerrará ninguna app. Permite Bouncer en Ajustes del Sistema e inténtalo de nuevo.";
+"error.accessNeverGranted.short" = "Bouncer no tiene acceso a Accesibilidad";
 "error.noNotchScreen.notAttempted" = "Ya no se detecta ninguna pantalla con notch; no se ha intentado el cambio a %1$@. %2$@ Vuelve a conectar la pantalla con notch (o abre la tapa) e inténtalo de nuevo.";
+"error.noNotchScreen.notAttempted.short" = "No se detecta ninguna pantalla con notch";
 "error.noNotch.abandoned" = "Ya no se detecta ningún notch; el cambio a %1$@ se ha abandonado. %2$@";
+"error.noNotch.abandoned.short" = "Notch perdido, cambio abandonado";
 "error.targetNeverAppeared" = "%1$@ se ha abierto sin mostrar nada en el notch. %2$@";
+"error.targetNeverAppeared.short" = "%1$@ no aparece en el notch";
 "error.relaunchFailed" = "%@ se ha cerrado bien, pero no se ha podido relanzar: está desinstalada o el sistema ha rechazado abrirla.";
+"error.relaunchFailed.short" = "No se ha podido relanzar %@";
 "error.noNotch.relaunchedUnverified" = "Ya no se detecta ningún notch; %@ se ha relanzado, pero Bouncer ya no puede comprobar qué muestra ahí. Vuelve a conectar la pantalla con notch (o abre la tapa).";
+"error.noNotch.relaunchedUnverified.short" = "Ya no se detecta ningún notch";
 "error.relaunchedNothingShown" = "%@ se ha relanzado sin mostrar nada en el notch.";
+"error.relaunchedNothingShown.short" = "%@ relanzada, pero fuera del notch";
 "error.fallback.unchanged" = "El notch no ha cambiado.";
 "error.fallback.staysPut" = "%@ se queda donde está.";
 "error.noAppDetected" = "No se ha detectado ninguna app de notch. Abre una para que Bouncer la aprenda.";
+"error.noAppDetected.short" = "No se detecta ninguna app de notch";
 "error.allAppsUnchecked" = "Todas las apps de notch están desmarcadas en Ajustes.";
+"error.allAppsUnchecked.short" = "Todas las apps están desmarcadas";

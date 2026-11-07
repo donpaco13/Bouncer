@@ -208,29 +208,45 @@
 "notch.none" = "이 Mac에서 노치가 감지되지 않았습니다.";
 /* %@: the app that stayed on screen. */
 "error.accessRevoked.twoApps" = "Bouncer의 손쉬운 사용 권한이 해제되었습니다. 노치에 앱이 두 개 있고, %@이(가) 새 앱 옆에 그대로 남아 있습니다. 저장하지 않은 작업을 잃을 수 있으므로 이 권한 없이는 Bouncer가 앱을 강제로 종료하지 않습니다. 시스템 설정에서 권한을 다시 허용하십시오. 그전까지는 어떤 제스처도 노치를 정리하지 않습니다.";
+"error.accessRevoked.twoApps.short" = "권한 해제됨: 노치에 앱이 두 개 있음";
 "error.accessRevoked.intact" = "열려 있는 앱은 그대로입니다. Bouncer는 아무것도 바꾸지 않으며 어떤 앱도 종료하지 않습니다.";
 /* %@: a list of app names, already joined ("Vibe Island 및 Boring Notch"). */
 "error.accessRevoked.hidden" = "백그라운드에 계속 숨겨져 있음: %@. Bouncer는 아무것도 바꾸지 않으며 어떤 앱도 종료하지 않습니다.";
 /* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
 "error.accessRevoked" = "Bouncer의 손쉬운 사용 권한이 해제되어 전환이 더 이상 작동하지 않습니다. %@ 다시 전환하려면 시스템 설정에서 권한을 다시 허용하십시오.";
+"error.accessRevoked.short" = "Bouncer의 손쉬운 사용 권한이 해제됨";
 /* %@: the app being switched to. */
 "error.switchInProgress" = "이미 %@(으)로 전환하는 중입니다. 방금 종료 요청을 보냈으니 잠시 기다리십시오. 지금 제스처를 한 번 더 하면 첫 번째 제스처로 켠 앱이 다시 꺼집니다.";
+"error.switchInProgress.short" = "이미 %@(으)로 전환하는 중";
 /* %@: the app that hasn't closed. */
 "error.previousNotClosed" = "%@이(가) 아직 종료되지 않았습니다. 화면에서 응답을 기다리고 있을 가능성이 큽니다(“변경 사항을 저장하시겠습니까?”). Bouncer는 계속 지켜보다가 앱이 종료되는 즉시 노치를 비웁니다. 작업을 잃을 수 있으므로 강제로 종료하지는 않습니다.";
+"error.previousNotClosed.short" = "%@이(가) 아직 종료되지 않음";
 /* %@: the app being relaunched. */
 "error.targetNotClosed" = "%@은(는) 노치로 돌아오려면 다시 실행해야 하는데 아직 종료되지 않았습니다. 종료되는 즉시 Bouncer가 다시 실행합니다.";
+"error.targetNotClosed.short" = "%@이(가) 먼저 종료되어야 함";
 /* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
 "error.targetNotClosed.thenHide" = "%1$@은(는) 노치로 돌아오려면 다시 실행해야 하는데 아직 종료되지 않았습니다. 종료되는 즉시 Bouncer가 다시 실행한 다음 %2$@을(를) 옆으로 치워 둡니다. 그때까지는 화면에 남아 있습니다.";
+"error.targetNotClosed.thenHide.short" = "%1$@이(가) 먼저 종료되어야 함";
 "error.launchFailed" = "%@을(를) 실행할 수 없습니다.";
+"error.launchFailed.short" = "%@을(를) 실행할 수 없음";
 /* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
 "error.accessNeverGranted" = "Bouncer에 아직 손쉬운 사용 권한이 없어 %1$@(으)로의 전환이 거부되었습니다. %2$@ Bouncer는 아무것도 바꾸지 않으며 어떤 앱도 종료하지 않습니다. 시스템 설정에서 Bouncer를 허용한 뒤 다시 시도하십시오.";
+"error.accessNeverGranted.short" = "Bouncer에 손쉬운 사용 권한이 없음";
 "error.noNotchScreen.notAttempted" = "노치가 있는 디스플레이가 더 이상 감지되지 않아 %1$@(으)로의 전환을 시도하지 않았습니다. %2$@ 노치 디스플레이를 다시 연결하거나 덮개를 열고 다시 시도하십시오.";
+"error.noNotchScreen.notAttempted.short" = "노치가 있는 디스플레이가 감지되지 않음";
 "error.noNotch.abandoned" = "노치가 더 이상 감지되지 않아 %1$@(으)로의 전환을 중단했습니다. %2$@";
+"error.noNotch.abandoned.short" = "노치가 없어 전환을 중단함";
 "error.targetNeverAppeared" = "%1$@이(가) 실행되었지만 노치에 아무것도 표시하지 않았습니다. %2$@";
+"error.targetNeverAppeared.short" = "%1$@이(가) 노치에 나타나지 않음";
 "error.relaunchFailed" = "%@은(는) 정상적으로 종료되었지만 다시 실행할 수 없었습니다. 삭제되었거나 시스템이 실행을 거부했습니다.";
+"error.relaunchFailed.short" = "%@을(를) 다시 실행할 수 없음";
 "error.noNotch.relaunchedUnverified" = "노치가 더 이상 감지되지 않습니다. %@을(를) 다시 실행했지만 Bouncer가 노치에 무엇이 표시되는지 더 이상 확인할 수 없습니다. 노치 디스플레이를 다시 연결하거나 덮개를 여십시오.";
+"error.noNotch.relaunchedUnverified.short" = "노치가 더 이상 감지되지 않음";
 "error.relaunchedNothingShown" = "%@이(가) 다시 실행되었지만 노치에 아무것도 표시하지 않았습니다.";
+"error.relaunchedNothingShown.short" = "%@이(가) 다시 실행되었지만 노치에 없음";
 "error.fallback.unchanged" = "노치는 그대로입니다.";
 "error.fallback.staysPut" = "%@은(는) 그대로 남아 있습니다.";
 "error.noAppDetected" = "감지된 노치 앱이 없습니다. Bouncer가 인식할 수 있도록 하나를 여십시오.";
+"error.noAppDetected.short" = "노치 앱이 감지되지 않음";
 "error.allAppsUnchecked" = "설정에서 모든 노치 앱이 선택 해제되어 있습니다.";
+"error.allAppsUnchecked.short" = "모든 앱이 선택 해제됨";

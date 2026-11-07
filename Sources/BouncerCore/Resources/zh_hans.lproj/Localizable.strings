@@ -205,29 +205,45 @@
 "notch.none" = "这台 Mac 上未检测到刘海。";
 /* %@: the app that stayed on screen. */
 "error.accessRevoked.twoApps" = "Bouncer 的辅助功能权限已被撤销：刘海里有两个 App，%@ 留在了新 App 旁边。没有这项权限，Bouncer 不会强制退出它 — 你可能会丢失未存储的工作。请在“系统设置”中重新授权；在此之前，任何手势都无法整理刘海。";
+"error.accessRevoked.twoApps.short" = "权限已撤销：刘海里有两个 App";
 "error.accessRevoked.intact" = "你打开的 App 原样未动：Bouncer 不做任何更改，也不会退出任何 App。";
 /* %@: a list of app names, already joined. */
 "error.accessRevoked.hidden" = "仍在后台隐藏：%@。Bouncer 不做任何更改，也不会退出任何 App。";
 /* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
 "error.accessRevoked" = "Bouncer 的辅助功能权限已被撤销：无法再切换。%@ 请在“系统设置”中重新授权以恢复切换。";
+"error.accessRevoked.short" = "Bouncer 的辅助功能权限已被撤销";
 /* %@: the app being switched to. */
 "error.switchInProgress" = "正在切换到 %@ — 请稍等，刚刚才请它关闭。此时再做一次手势，会把第一次手势刚打开的 App 又关掉。";
+"error.switchInProgress.short" = "正在切换到 %@";
 /* %@: the app that hasn't closed. */
 "error.previousNotClosed" = "%@ 尚未关闭 — 它可能正在屏幕上等待你的回答（“要存储更改吗？”）。Bouncer 会继续盯着它，它一退出就释放刘海；Bouncer 绝不会强制它退出，那会丢失你的工作。";
+"error.previousNotClosed.short" = "%@ 尚未关闭";
 /* %@: the app being relaunched. */
 "error.targetNotClosed" = "%@ 需要重新启动才能回到刘海，而它尚未关闭。它一退出，Bouncer 就会重新启动它。";
+"error.targetNotClosed.short" = "需要先等 %@ 关闭";
 /* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
 "error.targetNotClosed.thenHide" = "%1$@ 需要重新启动才能回到刘海，而它尚未关闭。它一退出，Bouncer 就会重新启动它，然后收起 %2$@ — 在此期间后者仍留在屏幕上。";
+"error.targetNotClosed.thenHide.short" = "需要先等 %1$@ 关闭";
 "error.launchFailed" = "无法启动 %@。";
+"error.launchFailed.short" = "无法启动 %@";
 /* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
 "error.accessNeverGranted" = "Bouncer 尚未获得辅助功能权限：切换到 %1$@ 被拒绝。%2$@ Bouncer 不做任何更改，也不会退出任何 App。请在“系统设置”中允许 Bouncer，然后重试。";
+"error.accessNeverGranted.short" = "Bouncer 没有辅助功能权限";
 "error.noNotchScreen.notAttempted" = "检测不到带刘海的显示器了 — 未尝试切换到 %1$@。%2$@ 请重新接上带刘海的显示器（或打开盖子），然后重试。";
+"error.noNotchScreen.notAttempted.short" = "未检测到带刘海的显示器";
 "error.noNotch.abandoned" = "检测不到刘海了 — 已放弃切换到 %1$@。%2$@";
+"error.noNotch.abandoned.short" = "刘海消失，已放弃切换";
 "error.targetNeverAppeared" = "%1$@ 已启动，但没有在刘海中显示任何内容。%2$@";
+"error.targetNeverAppeared.short" = "%1$@ 没有出现在刘海中";
 "error.relaunchFailed" = "%@ 已正常关闭，但无法重新启动 — 可能已卸载，或系统拒绝了启动。";
+"error.relaunchFailed.short" = "无法重新启动 %@";
 "error.noNotch.relaunchedUnverified" = "检测不到刘海了 — %@ 已重新启动，但 Bouncer 无法再检查它在刘海中显示了什么。请重新接上带刘海的显示器（或打开盖子）。";
+"error.noNotch.relaunchedUnverified.short" = "检测不到刘海了";
 "error.relaunchedNothingShown" = "%@ 已重新启动，但没有在刘海中显示任何内容。";
+"error.relaunchedNothingShown.short" = "%@ 已重新启动，但不在刘海中";
 "error.fallback.unchanged" = "刘海保持不变。";
 "error.fallback.staysPut" = "%@ 留在原处。";
 "error.noAppDetected" = "未检测到刘海 App。请打开一个，让 Bouncer 认识它。";
+"error.noAppDetected.short" = "未检测到刘海 App";
 "error.allAppsUnchecked" = "所有刘海 App 都已在设置中取消勾选。";
+"error.allAppsUnchecked.short" = "所有 App 都已取消勾选";

@@ -151,6 +151,11 @@ public func texte(_ cle: String, _ arguments: CVarArg...) -> String {
     chaine(cle, langue: langueActive, arguments)
 }
 
+/// La même, avec des arguments déjà en tableau : un variadique ne se transmet pas tel quel.
+func texte(_ cle: String, arguments: [CVarArg]) -> String {
+    chaine(cle, langue: langueActive, arguments)
+}
+
 /// Une chaîne au pluriel, dans la langue active.
 ///
 /// Séparée de `texte(_:_:)` pour que le point d'appel dise qu'il y a une règle de pluriel —

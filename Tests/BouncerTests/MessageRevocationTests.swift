@@ -51,7 +51,7 @@ struct MessageRevocationTests {
         double.accessibiliteRevoquee = true
         wm.refreshTrustState()
 
-        let message = try #require(wm.echecBascule)
+        let message = try #require(wm.echecBascule?.detail)
 
         // Le message répond aux 3 questions dans l'ordre — qu'est-ce qui ne marche plus, qu'est-ce
         // que ça change pour mes apps ouvertes, qu'est-ce que je fais pour réparer — et c'est la
@@ -98,7 +98,7 @@ struct MessageRevocationTests {
         double.accessibiliteRevoquee = true
         wm.refreshTrustState()
 
-        let message = try #require(wm.echecBascule)
+        let message = try #require(wm.echecBascule?.detail)
 
         // La variante « apps masquées » : elle nomme l'app coincée. Égalité stricte, donc aucune
         // promesse de relance possible dedans.
@@ -135,7 +135,7 @@ struct MessageRevocationTests {
 
         await wm.basculer(vers: vibe)
 
-        let message = try #require(wm.echecBascule)
+        let message = try #require(wm.echecBascule?.detail)
 
         // Le droit jamais accordé : la bascule est refusée, l'app en place le reste, et le
         // message dit où aller. Égalité stricte : pas de faux avertissement « quitterait ».
@@ -177,10 +177,59 @@ struct MessageRevocationTests {
         double.accessibiliteRevoquee = true
         await surveillance?.value
 
-        let message = try #require(wm.echecBascule)
+        let message = try #require(wm.echecBascule?.detail)
 
         // Deux apps dans l'encoche, et la précédente nommée : c'est la variante de la
         // surveillance, et rien d'autre.
         #expect(message == texte("error.accessRevoked.twoApps", boring))
+    }
+}
+
+/// Le menu montre un libellé court ; la phrase entière passe en infobulle. Un NSMenu ne replie pas
+/// le texte : une seule ligne trop longue élargit tout le menu.
+struct LibelleCourtTests {
+    private static let langues = LangueInterface.allCases.filter { $0 != .systeme }
+
+    /// Les clés que `WindowManager` passe à `EchecBascule`, lues dans le source : un échec ajouté
+    /// sans son `.short` s'afficherait sous sa clé brute dans le menu.
+    private static func clesEchec() throws -> Set<String> {
+        let racine = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(
+            contentsOf: racine.appendingPathComponent("Sources/BouncerCore/WindowManager.swift"),
+            encoding: .utf8)
+        let motif = try NSRegularExpression(pattern: #"EchecBascule\("([a-zA-Z.]+)""#)
+        let plage = NSRange(source.startIndex..., in: source)
+        return Set(motif.matches(in: source, range: plage).compactMap {
+            Range($0.range(at: 1), in: source).map { String(source[$0]) }
+        })
+    }
+
+    @Test func chaqueEchecAUnLibelleCourtDUneLigneDansChaqueLangue() throws {
+        let cles = try Self.clesEchec()
+        #expect(cles.count >= 15, "le motif ne trouve plus les échecs : \(cles.sorted())")
+        for langue in Self.langues {
+            for cle in cles {
+                // Les mêmes arguments que le message complet : le nom d'app, puis le repli.
+                let court = chaine(cle + ".short", langue: langue, ["Vibe Island", "L'encoche est inchangée."])
+                #expect(court != cle + ".short", "\(cle) n'a pas de libellé court en \(langue.rawValue)")
+                #expect(court.count < 50, "\(cle) en \(langue.rawValue) : « \(court) » (\(court.count))")
+                #expect(!court.contains("\n"))
+            }
+        }
+    }
+
+    @Test func seulsLesEchecsDAccesProposentLesReglages() {
+        #expect(EchecBascule("error.accessRevoked", "x").concerneAccessibilite)
+        #expect(EchecBascule("error.accessRevoked.twoApps", "x").concerneAccessibilite)
+        #expect(EchecBascule("error.accessNeverGranted", "x", "y").concerneAccessibilite)
+        #expect(!EchecBascule("error.launchFailed", "x").concerneAccessibilite)
+        #expect(!EchecBascule("error.noAppDetected").concerneAccessibilite)
+    }
+
+    @Test func leDetailResteLaPhraseEntiere() {
+        let echec = EchecBascule("error.launchFailed", "Vibe Island")
+        #expect(echec.detail == texte("error.launchFailed", "Vibe Island"))
+        #expect(echec.court == texte("error.launchFailed.short", "Vibe Island"))
     }
 }
