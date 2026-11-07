@@ -31,9 +31,10 @@ export type LibellesBureau = {
 };
 
 /** Le temps que met une app relancée à afficher sa fenêtre, à peu près celui
-    mesuré sur boringNotch. Puis le court instant où les deux sont à l'écran. */
+    mesuré sur boringNotch. Le passage de l'une à l'autre, une fois la nouvelle
+    arrivée, est le même que pour une bascule instantanée : il vit dans le CSS
+    (`.pill` et `.pill.show`). */
 const RELANCE_MS = 950;
-const CHEVAUCHEMENT_MS = 320;
 
 /**
  * LE HAUT DE LA PAGE EST LE HAUT DE L'ÉCRAN DU MAC.
@@ -72,7 +73,6 @@ export function Bureau({
   const [cur, setCur] = useState(0);
   const [on, setOn] = useState(true);
   const [busy, setBusy] = useState(-1);
-  const [arrivee, setArrivee] = useState(false);
   const [touche, setTouche] = useState(false);
   const [ouvert, setOuvert] = useState(false);
   const [annonce, setAnnonce] = useState("");
@@ -122,13 +122,11 @@ export function Bureau({
     setBusy(k);
     setAnnonce(a.annonces.relance);
     minuteries.current.push(
-      window.setTimeout(() => setArrivee(true), RELANCE_MS),
       window.setTimeout(() => {
         setCur(k);
         setBusy(-1);
-        setArrivee(false);
         setAnnonce(a.annonces.arrivee);
-      }, RELANCE_MS + CHEVAUCHEMENT_MS),
+      }, RELANCE_MS),
     );
   }
   const step = (d: number) => {
@@ -182,12 +180,11 @@ export function Bureau({
     annuler();
     setOn(allume);
     setBusy(-1);
-    setArrivee(false);
     setTouche(true);
     setAnnonce(allume ? apps[cur].annonces.allume : l.eteint);
   };
 
-  const classes = ["stage", !on && "off", busy >= 0 && !arrivee && "wait"]
+  const classes = ["stage", !on && "off", busy >= 0 && "wait"]
     .filter(Boolean)
     .join(" ");
 
@@ -288,12 +285,12 @@ export function Bureau({
       >
         <span className="notch" aria-hidden="true" />
         {apps.map((a, k) => {
-          const visible = !on || k === cur || (k === busy && arrivee);
+          const visible = !on || k === cur;
           return (
             <button
               key={a.nom}
               type="button"
-              className={["pill", visible && "show", k === busy && "front"].filter(Boolean).join(" ")}
+              className={visible ? "pill show" : "pill"}
               style={{ ...largeur(a.largeur), "--i": k } as CSSProperties}
               tabIndex={-1}
               aria-hidden="true"
