@@ -15,6 +15,8 @@ VERSION="0.1.0"
 # add-trusted-cert ne change rien à ce test. Ce qui compte est que le CN reste stable, car
 # le renommer regénère la clé, donc le hash de feuille, donc la DR, et impose un
 # `tccutil reset Accessibility io.github.donpaco13.bouncer`.
+# Seul endroit où le nom de l'identité est écrit. Passer au Developer ID = mettre ici
+# "Developer ID Application: Nom (TEAMID)" et mettre à jour SIGNING_PIN dans release.sh.
 CERT_CN="Bouncer Local Signing"
 
 swift build -c release
@@ -122,6 +124,15 @@ PLIST
 # Sans ce certificat, la signature ad-hoc du linker dérive à chaque build et force à
 # ré-autoriser l'app à chaque itération.
 if ! security find-certificate -c "$CERT_CN" >/dev/null 2>&1; then
+    # En release, un nouveau certificat = une nouvelle DR = l'Accessibilité perdue chez tous
+    # les utilisateurs, sans message. release.sh pose BOUNCER_RELEASE=1 pour l'interdire.
+    if [ "${BOUNCER_RELEASE:-}" = "1" ]; then
+        echo "❌ Identité « $CERT_CN » absente du trousseau. Refus d'en créer une nouvelle :" >&2
+        echo "   la release casserait l'Accessibilité de tous les utilisateurs." >&2
+        echo "   Réimporter le .p12 sauvegardé (docs/distribution/PUBLICATION.md," >&2
+        echo "   « Sauvegarder l'identité de signature »), puis relancer ./release.sh." >&2
+        exit 1
+    fi
     echo "🔑 Certificat de signature local absent, création (une seule fois)..."
     TMP_CERT_DIR="$(mktemp -d)"
     trap 'rm -rf "$TMP_CERT_DIR"' EXIT
@@ -135,10 +146,10 @@ if ! security find-certificate -c "$CERT_CN" >/dev/null 2>&1; then
     openssl pkcs12 -export -in "$TMP_CERT_DIR/cert.pem" -inkey "$TMP_CERT_DIR/key.pem" \
         -out "$TMP_CERT_DIR/cert.p12" -passout pass:bouncer-local >/dev/null 2>&1
 
-    # -A : le trousseau autorise codesign/security à utiliser la clé sans jamais demander
-    # de confirmation interactive (import et usages futurs).
+    # -T : seul codesign peut utiliser la clé sans demander. Pas de -A (tout process) ni de
+    # -T /usr/bin/security, qui laisserait n'importe quel script exporter la clé en silence.
     security import "$TMP_CERT_DIR/cert.p12" -k ~/Library/Keychains/login.keychain-db \
-        -P bouncer-local -T /usr/bin/codesign -T /usr/bin/security -A >/dev/null
+        -P bouncer-local -T /usr/bin/codesign >/dev/null
 fi
 
 codesign --force --identifier "$BUNDLE_ID" --sign "$CERT_CN" "$APP"
