@@ -281,6 +281,11 @@ export function Bureau({
             </button>
           );
         })}
+        {/* Sur téléphone, la plus large des pastilles déborde de quelques
+            pixels sur le lien de langue et le menu. Le tap passe par cette
+            zone, limitée à l'espace réservé à l'encoche : les commandes de la
+            barre gardent leurs 44 px. */}
+        <span className="zone" aria-hidden="true" onClick={() => step(1)} />
         {/* Les flèches sont des repères, comme dans l'app : elles signalent
             qu'une autre app attend, on ne clique pas dessus. */}
         <span className="arw p" aria-hidden="true">
