@@ -13,8 +13,8 @@
 
 Bouncer décide quelle app d'encoche vous voyez sur votre MacBook. Vibe Island, boringNotch
 et les autres restent installées et ouvertes ; une seule s'affiche, et vous changez d'avis
-d'un balayage à deux doigts sur l'encoche, d'un clic sur une flèche, d'un raccourci clavier
-ou depuis la barre des menus.
+d'un balayage à deux doigts sur l'encoche, d'un raccourci clavier ou depuis la barre des
+menus.
 
 C'est pour les gens qui ont un MacBook à encoche, plusieurs apps d'encoche, et qui en ont
 assez de quitter l'une pour voir l'autre.
@@ -96,12 +96,16 @@ Pour voir ce que Bouncer trouve sous votre encoche sans ouvrir l'interface :
 
 ## Changer d'application
 
-Quatre moyens, tous équivalents : avancer d'un cran dans le cycle, qui tourne en boucle.
+Trois moyens. Le swipe et le raccourci avancent d'un cran dans le cycle, qui tourne en boucle.
+Le menu va droit à l'app choisie.
 
 - **Le swipe sur l'encoche.** Placez le curseur sur la surface de l'app d'encoche et balayez horizontalement à deux doigts. Gauche ou droite ne change rien, le geste avance d'un cran.
-- **Les flèches au survol.** Approchez la souris du boîtier caméra, deux flèches (‹ et ›) apparaissent de part et d'autre. Cliquez sur l'une. Hors survol, Bouncer ne dessine rien.
 - **Le raccourci global.** `⌃⌥⌘B` marche depuis n'importe quelle app, plein écran compris. Sans trackpad, c'est la seule commande qui n'oblige ni à viser l'encoche ni à ouvrir un menu.
 - **La barre des menus.** `●` désigne l'app qui occupe l'encoche, `○` une app en attente (cliquez dessus pour la ramener, ouverte ou fermée), `◐` une bascule en cours. Chaque entrée précise en infobulle si la bascule sera instantanée ou par relance.
+
+Quand la souris approche du boîtier caméra, deux flèches (‹ et ›) apparaissent de part et
+d'autre de l'encoche. Elles signalent qu'une autre app attend son tour, et un clic passe au
+travers, jusqu'à la barre des menus dessous. Hors survol, Bouncer ne dessine rien.
 
 Bouncer n'a pas d'icône dans le Dock ni de fenêtre à gérer (`LSUIElement = true`). Au premier
 lancement, il ouvre un guide en cinq écrans qui vérifie l'autorisation Accessibilité en

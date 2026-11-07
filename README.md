@@ -13,7 +13,7 @@
 
 Bouncer decides which notch app you see on your MacBook. Vibe Island, boringNotch and the
 others stay installed and open; one shows at a time, and you change your mind with a
-two-finger swipe on the notch, an arrow, a keyboard shortcut, or the menu bar.
+two-finger swipe on the notch, a keyboard shortcut, or the menu bar.
 
 It is for people with a notched MacBook who run more than one notch app and are tired of
 quitting one to see the other.
@@ -94,12 +94,16 @@ To see what Bouncer finds under your notch without opening the interface:
 
 ## Switching apps
 
-Four ways, all doing the same thing: move one step through the cycle, which loops.
+Three ways. The swipe and the shortcut move one step through the cycle, which loops. The menu
+goes straight to the app you pick.
 
 - **Swipe on the notch.** Put the pointer over the notch app's surface and swipe horizontally with two fingers. Left or right makes no difference, the gesture moves one step.
-- **Arrows on hover.** Bring the cursor near the camera housing and two arrows (‹ and ›) appear on either side. Click one. Away from the notch, Bouncer draws nothing.
 - **Global shortcut.** `⌃⌥⌘B` works from any app, full screen included. Without a trackpad it is the one command that makes you neither aim at the notch nor open a menu.
 - **Menu bar.** `●` is the app holding the notch, `○` one waiting (click it to bring it back, open or closed), `◐` a switch in progress. Each entry says in a tooltip whether the switch will be instant or a relaunch.
+
+When the cursor comes near the camera housing, two arrows (‹ and ›) appear on either side of the
+notch. They show that another app is waiting, and a click goes through them to the menu bar
+underneath. Away from the notch, Bouncer draws nothing.
 
 Bouncer has no Dock icon and no window to manage (`LSUIElement = true`). On first launch it
 opens a five-screen welcome guide that checks the Accessibility permission live and has you
