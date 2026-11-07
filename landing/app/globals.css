@@ -441,11 +441,11 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 
 /* Gestes : une encoche, trois façons, la liste suit. 12 s, 4 s par façon.
    À l'arrêt : la première app et le raccourci. */
-.gest{--T:12s;height:190px}
+.gest{--T:12s;height:130px}
 .gest .strip span{visibility:hidden}
 .menuicon{position:absolute;right:14px;top:0;height:var(--nh);display:grid;place-items:center}
 .menuicon svg{width:16px;height:12px;fill:#d1d1d6}
-.gest .keys{top:66px}
+.gest .keys{top:58px}
 .gest .keys kbd{min-width:44px;height:44px;font-size:20px}
 .gest .anime,.gest .chev,.gest .curseur,.gest .doigts,.gest .gmenu{display:none}
 .chev{position:absolute;top:0;z-index:4;width:22px;height:var(--nh);place-items:center}
