@@ -363,6 +363,8 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .desk{min-height:auto;border-radius:0}
   .intro{padding:92px 16px 128px}
 }
+/* Sous 800 px, les flèches des cartes tombent sur Finder et 9:41 : la barre se tait. */
+@media (max-width:800px){.ways .scene .strip span{visibility:hidden}}
 /* Sous 380 px, l'heure cède sa place au menu de Bouncer. */
 @media (max-width:379px){.menubar .time{display:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
