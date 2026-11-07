@@ -62,6 +62,14 @@ Le cask part **après** la release : tant que l'archive n'est pas en ligne, `bre
 - ⌨ Le premier lancement sur une **machine vierge** : c'est le seul test qui prouve que l'autorisation d'Accessibilité tient chez quelqu'un dont le trousseau n'a pas le certificat `Bouncer Local Signing`.
 - ⌨ Les notes de release (`dist/RELEASE-NOTES-v$V.md`), à écrire avant l'étape 14.
 
+## Sauvegarder l'identité de signature
+
+La designated requirement de chaque copie installée épingle le hash du certificat `Bouncer Local Signing` (`SIGNING_PIN` dans `release.sh`). Si la clé est perdue, toute release suivante fait perdre l'Accessibilité à tous les utilisateurs. `./release.sh` refuse alors de créer un nouveau certificat : il faut réimporter la sauvegarde.
+
+- ⌨ Export, une fois : Trousseaux d'accès > session > Mes certificats > clic droit sur `Bouncer Local Signing` > Exporter, format `.p12`, mot de passe fort. Ranger le fichier et le mot de passe hors du Mac. (`security export -t identities` exporterait toutes les identités du trousseau, pas seulement celle-ci.)
+- Réimport (demande le mot de passe) : `security import bouncer-signing.p12 -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign`
+- Contrôle : `security find-certificate -c "Bouncer Local Signing" -Z | grep SHA-1` doit afficher `30B315389485F49618366DA1B4D2ADBA1E408C86`.
+
 ## Rollback
 
 ```bash

@@ -13,12 +13,18 @@ cd "$(dirname "$0")"
 
 APP="Bouncer.app"
 DIST="dist"
+# Fragment de la designated requirement que toute release doit porter. Le hash est le SHA-1
+# du certificat « Bouncer Local Signing » ; TCC y ancre l'Accessibilité de chaque utilisateur.
+# Un autre certificat = Accessibilité perdue partout. Developer ID : remplacer par
+# 'certificate leaf[subject.OU] = TEAMID' (lire `codesign -d -r- Bouncer.app`).
+SIGNING_PIN='certificate leaf = H"30b315389485f49618366da1b4d2adba1e408c86"'
 CASK="Casks/bouncer.rb"
 
 # On délègue la construction ET la signature à build.sh : le certificat local, la
 # designated requirement et l'Info.plist n'ont qu'un seul propriétaire. Effet de bord
 # assumé : build.sh installe aussi la copie dans /Applications et la relance.
-./build.sh
+# BOUNCER_RELEASE=1 : build.sh refuse de créer un certificat s'il manque.
+BOUNCER_RELEASE=1 ./build.sh
 
 # La version vient du bundle, pas d'une variable recopiée ici. build.sh écrit
 # CFBundleShortVersionString ; la dupliquer garantirait un jour un artefact dont le nom
@@ -29,6 +35,13 @@ VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/
 # casse l'autorisation Accessibilité chez l'utilisateur, sans message clair. On refuse de
 # l'empaqueter.
 codesign --verify --strict "$APP"
+DR="$(codesign -d -r- "$APP" 2>&1)"
+[[ "$DR" == *"$SIGNING_PIN"* ]] || {
+    echo "❌ $APP n'est pas signé avec l'identité épinglée ($SIGNING_PIN)." >&2
+    echo "   DR obtenue : $DR" >&2
+    echo "   Réimporter le .p12 sauvegardé (docs/distribution/PUBLICATION.md)." >&2
+    exit 1
+}
 echo "✅ Signature vérifiée"
 
 mkdir -p "$DIST"
