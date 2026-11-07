@@ -52,7 +52,7 @@ struct ZoneSurvolTests {
     // repère de test, le bord gauche du bandeau tombe donc à 904.
     //
     // Ce que ces deux tests interdisent de revenir : les flèches calées sur les bornes de la
-    // fenêtre d'encoche se logeaient à 1025→1047, soit 118 pt DEDANS, et volaient le clic de
+    // fenêtre d'encoche se logeaient à 1025→1047, soit 118 pt DEDANS, dessinées par-dessus
     // Vorssaint (le panel vit au niveau `statusBar + 10`, au-dessus des icônes).
 
     /// Le bandeau des icônes de statut, mesuré. Aligné à droite de l'écran.
@@ -95,12 +95,10 @@ struct ZoneSurvolTests {
     private var ecran: CGRect { CGRect(x: 0, y: 0, width: 1352, height: 878) }
 
     @Test func sansFenetreDEncocheLaGeometrieNeBougePas() {
-        // Sans fenêtre, la zone écoutée ne dépend que du boîtier : la rangée de la barre des
-        // menus, la bande des flèches qui vit une rangée plus bas (`bandeFleches`, depuis que le
-        // panel a quitté la barre des menus) et les 6 pt de détente. Rien de la fenêtre, rien du
-        // plancher — c'est ce que ce test verrouille, et pas une valeur.
+        // Sans fenêtre, la zone écoutée ne dépend que du boîtier : la bande des flèches et ses
+        // 6 pt de détente. Rien de la fenêtre, rien du plancher.
         let bande = zoneSurvol(encoche: boitier, marge: marge)
-        let attendu = bande.union(bandeFleches(survol: bande)).insetBy(dx: 0, dy: -6)
+        let attendu = bande.insetBy(dx: 0, dy: -6)
         #expect(zoneSwipe(bande: bande, fenetre: nil) == attendu)
         #expect(zoneSwipe(bande: bande, fenetre: nil).width == bande.width)
     }
