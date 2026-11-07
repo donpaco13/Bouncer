@@ -32,15 +32,33 @@ public struct EtatAccueil: Equatable {
     /// LISTER les apps au lieu d'en suggérer, la mesure à relever est ce que la fenêtre affiche.
     private static let maxSuggestions = 3
 
+    /// Une encoche est à l'écran. Faux sur un Mac sans encoche, ou capot fermé sur un écran
+    /// externe : Bouncer n'a alors rien à arbitrer, quoi que dise le reste du bilan.
+    public let encochePresente: Bool
+
+    /// Une seule app d'encoche : le cycle n'a qu'un élément et devient un interrupteur — le swipe
+    /// la masque puis la ramène (cf. `WindowManager.cycle(forward:)`). Ça marche, mais ce n'est
+    /// pas ce que Bouncer promet, et le bilan ne doit pas le peindre en vert.
+    public let uneSeuleApp: Bool
+
     /// Plus rien à faire : l'accueil peut se refermer sans laisser une app inerte derrière lui.
+    /// C'est ce qui décide si le guide revient au lancement suivant. L'encoche et la deuxième app
+    /// n'y entrent pas : l'une dépend du capot, l'autre est un conseil, et ni l'une ni l'autre ne
+    /// justifie de rouvrir le guide à chaque démarrage.
     public var pretAServir: Bool { accessibiliteAccordee && appsAInstaller.isEmpty }
+
+    /// Le bilan peut dire « Tout est en place » sans mentir.
+    public var toutEnPlace: Bool { pretAServir && encochePresente && !uneSeuleApp }
 
     public init(
         accessibiliteAccordee: Bool,
         appsEncocheInstallees: Int,
+        encochePresente: Bool = true,
         connues: [String: String] = appsEncocheConnues
     ) {
         self.accessibiliteAccordee = accessibiliteAccordee
+        self.encochePresente = encochePresente
+        uneSeuleApp = appsEncocheInstallees == 1
         appsAInstaller = appsEncocheInstallees > 0
             ? []
             : connues.values
@@ -48,6 +66,22 @@ public struct EtatAccueil: Equatable {
                 .prefix(Self.maxSuggestions)
                 .map { $0 }
     }
+}
+
+public extension WindowManager {
+    /// Le bilan de l'accueil, construit à un seul endroit : la vue l'affiche, le contrôleur de
+    /// fenêtre s'en sert pour décider si le guide reviendra au prochain lancement.
+    var etatAccueil: EtatAccueil {
+        EtatAccueil(
+            accessibiliteAccordee: accessibilityTrusted,
+            appsEncocheInstallees: entreesMenu.count,
+            encochePresente: encochePresente
+        )
+    }
+
+    /// Lu sur la description que le sondage publie déjà (`notch.none` quand `zoneEncoche()` ne
+    /// trouve rien) : pas de seconde détection, et l'accueil se met à jour au même rythme.
+    var encochePresente: Bool { lastNotchZoneDescription != texte("notch.none") }
 }
 
 /// Les cinq écrans du parcours d'accueil, dans l'ordre de lecture.
@@ -130,8 +164,9 @@ public enum GeometrieAccueil {
             // simulateur: 122 + padding: 22 + titre: 31 + sous-titre: 46 + raccourci: 39 = 260 pt
             return 260
         case .pret:
-            // sceau: 72 + padding: 22 + titre: 31 + bilan: 44 + apercu: 57 = 226 pt
-            return 226
+            // sceau: 72 + padding: 22 + titre: 31 + bilan: 66 (trois lignes, encoche absente)
+            // + apercu: 57 = 248 pt
+            return 248
         }
     }
 

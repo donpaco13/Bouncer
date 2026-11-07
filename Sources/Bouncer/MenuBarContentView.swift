@@ -11,18 +11,29 @@ struct MenuBarContentView: View {
     let ouvrirAccueil: () -> Void
 
     var body: some View {
-        if !windowManager.accessibilityTrusted {
+        let echec = windowManager.echecBascule
+        // Un échec d'accès porte déjà son entrée vers les Réglages juste en dessous : deux entrées
+        // qui ouvrent le même volet, l'une au-dessus de l'autre, ne disent rien de plus.
+        if !windowManager.accessibilityTrusted && echec?.concerneAccessibilite != true {
             Button(texte("menu.grantAccess")) {
                 windowManager.openAccessibilitySettings()
             }
             Divider()
         }
 
-        if let echec = windowManager.echecBascule {
+        if let echec {
             // Une bascule ratée ne change rien à l'écran — c'est la garantie de la machine à
             // états, l'app précédente reste en place. Sans cette ligne, le geste passerait donc
-            // pour non détecté. Rien à cliquer : il n'y a qu'à réessayer.
-            Text("⚠️ \(echec)")
+            // pour non détecté. Une ligne courte : un menu ne replie pas le texte, il s'élargit.
+            // La phrase entière est dans l'infobulle.
+            Text("⚠️ \(echec.court)")
+                .help(echec.detail)
+                .accessibilityHint(echec.detail)
+            if echec.concerneAccessibilite {
+                Button(texte("welcome.access.openSettings")) {
+                    windowManager.openAccessibilitySettings()
+                }
+            }
             Divider()
         }
 

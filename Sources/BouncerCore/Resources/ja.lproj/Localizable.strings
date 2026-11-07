@@ -92,6 +92,8 @@
 "welcome.ready.access.missing" = "アクセシビリティはまだ許可されていません";
 /* %@: a list of app names, already joined by the formatter ("Vibe Island or Boring Notch"). */
 "welcome.ready.noAppInstalled" = "ノッチAppがインストールされていません。%@ を試してみてください";
+"welcome.ready.oneApp" = "Appが1つだけです。スワイプで隠して、また表示するだけです。もう1つ追加してください。";
+"welcome.ready.notch.missing" = "画面にノッチがありません。Bouncerは、蓋を開けたノッチ付きMacBookでのみ動作します。";
 "welcome.ready.menuBarNote" = "BouncerはDockではなく、メニューバーに常駐します。";
 "welcome.ready.menuBarPreview" = "Bouncerのメニューバーアイコンは、画面右上にある2つ重なった長方形です。";
 /* Fake Finder menu drawn in the menu bar preview. */
@@ -206,29 +208,45 @@
 "notch.none" = "このMacではノッチが検出されませんでした。";
 /* %@: the app that stayed on screen. */
 "error.accessRevoked.twoApps" = "Bouncerのアクセシビリティの許可が取り消されました。ノッチに2つのAppがあり、%@ が新しいAppの隣に残っています。その権限がない状態で、Bouncerが強制終了することはありません。保存していない作業が失われるおそれがあるためです。システム設定で許可を戻してください。それまで、ジェスチャでノッチが整理されることはありません。";
+"error.accessRevoked.twoApps.short" = "許可が取り消され、ノッチにAppが2つあります";
 "error.accessRevoked.intact" = "開いているAppはそのままです。Bouncerは何も変更せず、どのAppも終了しません。";
 /* %@: a list of app names, already joined ("Vibe Island and Boring Notch"). */
 "error.accessRevoked.hidden" = "バックグラウンドで隠れたままのApp: %@。Bouncerは何も変更せず、どのAppも終了しません。";
 /* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
 "error.accessRevoked" = "Bouncerのアクセシビリティの許可が取り消されました。切り替えはもう動作しません。%@ もう一度切り替えるには、システム設定で許可を戻してください。";
+"error.accessRevoked.short" = "Bouncerのアクセシビリティ許可が取り消されました";
 /* %@: the app being switched to. */
 "error.switchInProgress" = "%@ への切り替えはすでに進行中です。終了の指示を出したところなので、少しお待ちください。今もう一度ジェスチャをすると、たった今オンにしたAppがオフになってしまいます。";
+"error.switchInProgress.short" = "%@ への切り替え中です";
 /* %@: the app that hasn't closed. */
 "error.previousNotClosed" = "%@ はまだ終了していません。おそらく画面上で応答を待っています（「変更を保存しますか？」など）。Bouncerは引き続き監視し、終了し次第ノッチを空けます。強制終了は決してしません。作業が失われてしまうためです。";
+"error.previousNotClosed.short" = "%@ がまだ終了していません";
 /* %@: the app being relaunched. */
 "error.targetNotClosed" = "%@ がノッチに戻るには再起動が必要ですが、まだ終了していません。終了し次第、Bouncerが再起動します。";
+"error.targetNotClosed.short" = "%@ の終了を待っています";
 /* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
 "error.targetNotClosed.thenHide" = "%1$@ がノッチに戻るには再起動が必要ですが、まだ終了していません。終了し次第Bouncerが再起動し、その後 %2$@ を脇にどけます。";
+"error.targetNotClosed.thenHide.short" = "%1$@ の終了を待っています";
 "error.launchFailed" = "%@ を起動できませんでした。";
+"error.launchFailed.short" = "%@ を起動できませんでした";
 /* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
 "error.accessNeverGranted" = "Bouncerにはまだアクセシビリティの許可がありません。%1$@ への切り替えは拒否されました。%2$@ Bouncerは何も変更せず、どのAppも終了しません。システム設定でBouncerを許可してから、もう一度お試しください。";
+"error.accessNeverGranted.short" = "Bouncerにアクセシビリティの許可がありません";
 "error.noNotchScreen.notAttempted" = "ノッチ付きのディスプレイが検出されなくなりました。%1$@ への切り替えは試みていません。%2$@ ノッチ付きのディスプレイを接続し直す（またはふたを開く）と、再試行できます。";
+"error.noNotchScreen.notAttempted.short" = "ノッチのあるディスプレイが見つかりません";
 "error.noNotch.abandoned" = "ノッチが検出されなくなりました。%1$@ への切り替えは中止しました。%2$@";
+"error.noNotch.abandoned.short" = "ノッチが見つからず、切り替えを中止しました";
 "error.targetNeverAppeared" = "%1$@ は起動しましたが、ノッチには何も表示されませんでした。%2$@";
+"error.targetNeverAppeared.short" = "%1$@ がノッチに表示されません";
 "error.relaunchFailed" = "%@ は正常に終了しましたが、再起動できませんでした。アンインストールされたか、システムが起動を拒否しました。";
+"error.relaunchFailed.short" = "%@ を再起動できませんでした";
 "error.noNotch.relaunchedUnverified" = "ノッチが検出されなくなりました。%@ は再起動しましたが、そこに何が表示されているかをBouncerはもう確認できません。ノッチ付きのディスプレイを接続し直してください（またはふたを開いてください）。";
+"error.noNotch.relaunchedUnverified.short" = "ノッチが検出されなくなりました";
 "error.relaunchedNothingShown" = "%@ は再起動しましたが、ノッチには何も表示されませんでした。";
+"error.relaunchedNothingShown.short" = "%@ は再起動しましたがノッチに表示されません";
 "error.fallback.unchanged" = "ノッチは変わっていません。";
 "error.fallback.staysPut" = "%@ はそのままです。";
 "error.noAppDetected" = "ノッチAppが検出されていません。Bouncerが認識できるよう、1つ開いてください。";
+"error.noAppDetected.short" = "ノッチAppが見つかりません";
 "error.allAppsUnchecked" = "設定で、すべてのノッチAppのチェックが外れています。";
+"error.allAppsUnchecked.short" = "すべてのAppのチェックが外れています";

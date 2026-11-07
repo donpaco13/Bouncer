@@ -30,6 +30,39 @@ struct AccueilTests {
         #expect(!etat.pretAServir)
     }
 
+    /// Sans encoche (Mac de bureau, capot fermé) Bouncer n'a rien à arbitrer : le bilan ne dit
+    /// pas « Tout est en place ». Mais le guide ne doit pas revenir à chaque lancement pour un
+    /// capot fermé : `pretAServir` n'en dépend pas.
+    @Test func sansEncocheRienNEstEnPlaceMaisLeGuideNeRevientPas() {
+        let etat = EtatAccueil(
+            accessibiliteAccordee: true, appsEncocheInstallees: 2, encochePresente: false, connues: connues)
+        #expect(!etat.encochePresente)
+        #expect(!etat.toutEnPlace)
+        #expect(etat.pretAServir)
+    }
+
+    /// Une seule app : le cycle devient un interrupteur. Ça fonctionne, donc le guide est servi,
+    /// mais le bilan ne la peint pas en vert.
+    @Test func uneSeuleAppNEstPasToutEnPlace() {
+        let etat = EtatAccueil(accessibiliteAccordee: true, appsEncocheInstallees: 1, connues: connues)
+        #expect(etat.uneSeuleApp)
+        #expect(etat.pretAServir)
+        #expect(!etat.toutEnPlace)
+    }
+
+    @Test func deuxAppsUneEncocheEtLAccesToutEstEnPlace() {
+        let etat = EtatAccueil(accessibiliteAccordee: true, appsEncocheInstallees: 2, connues: connues)
+        #expect(!etat.uneSeuleApp)
+        #expect(etat.encochePresente)
+        #expect(etat.toutEnPlace)
+    }
+
+    @Test func sansAppLaSuggestionPrimeSurLeCasDUneSeule() {
+        let etat = EtatAccueil(accessibiliteAccordee: true, appsEncocheInstallees: 0, connues: connues)
+        #expect(!etat.uneSeuleApp)
+        #expect(!etat.toutEnPlace)
+    }
+
     @Test func leCatalogueDAmorcageEtLaTableDesNomsNePeuventPasDiverger() {
         #expect(amorcageCatalogue == Set(appsEncocheConnues.keys))
         #expect(!appsEncocheConnues.isEmpty)
@@ -167,5 +200,42 @@ struct PiedDePageTests {
         let etat = EtatAccueil(accessibiliteAccordee: true, appsEncocheInstallees: 0)
         #expect(etat.appsAInstaller.count == 3)
         #expect(etat.appsAInstaller == ["boringNotch", "Cyclop", "gh-notch"])
+    }
+}
+
+/// `encochePresente` ne recode pas la détection : il lit ce que le sondage publie à partir de
+/// `zoneEncoche()`. Ce test passe par ce chemin réel, géométrie injectée.
+@MainActor
+struct EncocheAccueilTests {
+    private func manager(encoche: @escaping @MainActor () -> Bool) -> WindowManager {
+        let suite = "EncocheAccueilTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let zone = CGRect(x: 0, y: 0, width: 200, height: 32)
+        return WindowManager(
+            startTimer: false,
+            catalogue: CatalogueApps(defaults: defaults, resolveur: { _ in nil }),
+            controleur: ControleurAppsDouble(),
+            reglages: Reglages(defaults: defaults),
+            geometrie: { encoche() ? (zone, "Écran test", zone) : nil },
+            scan: { _, _ in [] },
+            demanderAccessibilite: false,
+            verifierAccessibilite: { true }
+        )
+    }
+
+    @Test func leBilanSuitLEncocheQuandLeCapotSeFermeEtSeRouvre() {
+        var ouverte = true
+        let wm = manager(encoche: { ouverte })
+        #expect(wm.etatAccueil.encochePresente)
+
+        ouverte = false
+        wm.sonder()
+        #expect(!wm.etatAccueil.encochePresente)
+        #expect(!wm.etatAccueil.toutEnPlace)
+
+        ouverte = true
+        wm.sonder()
+        #expect(wm.etatAccueil.encochePresente)
     }
 }

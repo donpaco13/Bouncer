@@ -94,6 +94,8 @@
 "welcome.ready.access.missing" = "Accessibility not granted yet";
 /* %@: a list of app names, already joined by the formatter ("Vibe Island or Boring Notch"). */
 "welcome.ready.noAppInstalled" = "No notch app installed. Try %@";
+"welcome.ready.oneApp" = "Only one app: swiping hides it and brings it back. Add a second one.";
+"welcome.ready.notch.missing" = "No notch on screen: Bouncer only works on a MacBook with a notch, lid open.";
 "welcome.ready.menuBarNote" = "Bouncer lives in the menu bar, not the Dock.";
 "welcome.ready.menuBarPreview" = "Bouncer's menu bar icon is two stacked rectangles, at the top right of the screen.";
 /* Fake Finder menu drawn in the menu bar preview. */
@@ -208,29 +210,45 @@
 "notch.none" = "No notch detected on this Mac.";
 /* %@: the app that stayed on screen. */
 "error.accessRevoked.twoApps" = "Bouncer's Accessibility access was revoked: you have two apps in the notch, and %@ stayed next to the new one. Bouncer won't force it to quit without that permission — you could lose unsaved work. Give it access back in System Settings; until then, no gesture will tidy the notch.";
+"error.accessRevoked.twoApps.short" = "Access revoked: two apps in the notch";
 "error.accessRevoked.intact" = "Your open apps are untouched: Bouncer changes nothing and won't quit any app.";
 /* %@: a list of app names, already joined ("Vibe Island and Boring Notch"). */
 "error.accessRevoked.hidden" = "Still hidden in the background: %@. Bouncer changes nothing and won't quit any app.";
 /* %@: error.accessRevoked.intact or error.accessRevoked.hidden. */
 "error.accessRevoked" = "Bouncer's Accessibility access was revoked: switching no longer works. %@ Give it access back in System Settings to switch again.";
+"error.accessRevoked.short" = "Bouncer lost Accessibility access";
 /* %@: the app being switched to. */
 "error.switchInProgress" = "Already switching to %@ — hang on, it was just asked to close. A second gesture now would turn off the app the first one just turned on.";
+"error.switchInProgress.short" = "Already switching to %@";
 /* %@: the app that hasn't closed. */
 "error.previousNotClosed" = "%@ hasn't closed yet — it's probably waiting for an answer on screen (“Save changes?”). Bouncer keeps watching it and will free the notch as soon as it's gone; it will never force it, that would lose your work.";
+"error.previousNotClosed.short" = "%@ hasn't closed yet";
 /* %@: the app being relaunched. */
 "error.targetNotClosed" = "%@ has to relaunch to come back to the notch, and it hasn't closed yet. Bouncer will relaunch it as soon as it's gone.";
+"error.targetNotClosed.short" = "%@ has to close first";
 /* %1$@: the app being relaunched, %2$@: the app to set aside afterwards. */
 "error.targetNotClosed.thenHide" = "%1$@ has to relaunch to come back to the notch, and it hasn't closed yet. Bouncer will relaunch it as soon as it's gone, then set %2$@ aside — it stays on screen in the meantime.";
+"error.targetNotClosed.thenHide.short" = "%1$@ has to close first";
 "error.launchFailed" = "%@ could not be launched.";
+"error.launchFailed.short" = "%@ couldn't be launched";
 /* %1$@: the app, %2$@: error.fallback.staysPut or error.fallback.unchanged. */
 "error.accessNeverGranted" = "Bouncer doesn't have Accessibility access yet: the switch to %1$@ was refused. %2$@ Bouncer changes nothing and won't quit any app. Allow Bouncer in System Settings, then try again.";
+"error.accessNeverGranted.short" = "Bouncer has no Accessibility access";
 "error.noNotchScreen.notAttempted" = "No notch display detected anymore — the switch to %1$@ wasn't attempted. %2$@ Plug the notch display back in (or open the lid) and try again.";
+"error.noNotchScreen.notAttempted.short" = "No notch display detected";
 "error.noNotch.abandoned" = "No notch detected anymore — the switch to %1$@ was abandoned. %2$@";
+"error.noNotch.abandoned.short" = "Notch lost, switch abandoned";
 "error.targetNeverAppeared" = "%1$@ launched without showing anything in the notch. %2$@";
+"error.targetNeverAppeared.short" = "%1$@ didn't show up in the notch";
 "error.relaunchFailed" = "%@ closed fine, but couldn't be relaunched — uninstalled, or the system refused the launch.";
+"error.relaunchFailed.short" = "%@ couldn't be relaunched";
 "error.noNotch.relaunchedUnverified" = "No notch detected anymore — %@ was relaunched, but Bouncer can no longer check what it shows there. Plug the notch display back in (or open the lid).";
+"error.noNotch.relaunchedUnverified.short" = "No notch detected anymore";
 "error.relaunchedNothingShown" = "%@ relaunched without showing anything in the notch.";
+"error.relaunchedNothingShown.short" = "%@ relaunched but isn't in the notch";
 "error.fallback.unchanged" = "The notch is unchanged.";
 "error.fallback.staysPut" = "%@ stays put.";
 "error.noAppDetected" = "No notch app detected. Open one so Bouncer can learn it.";
+"error.noAppDetected.short" = "No notch app detected";
 "error.allAppsUnchecked" = "Every notch app is unchecked in Settings.";
+"error.allAppsUnchecked.short" = "All notch apps are unchecked";

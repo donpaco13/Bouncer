@@ -82,11 +82,14 @@ struct BouncerApp: App {
         // jusqu'ici rien à l'écran ne le disait. Le `◐` du menu ne compte pas — personne n'a le
         // menu ouvert en swipant. La barre des menus, elle, est toujours visible : c'est la seule
         // surface qui répond au geste sans qu'on ait rien à ouvrir.
+        //
+        // L'Accessibilité absente allume aussi le triangle : sans elle Bouncer ne fait rien, et
+        // une icône normale laissait croire qu'il tournait. C'est le premier lancement typique.
         MenuBarExtra(
             "Bouncer",
             systemImage: windowManager.bundleIDEnCoursDeBascule != nil
                 ? "hourglass"
-                : (windowManager.echecBascule == nil
+                : (windowManager.echecBascule == nil && windowManager.accessibilityTrusted
                     ? "rectangle.on.rectangle" : "exclamationmark.triangle")
         ) {
             MenuBarContentView(

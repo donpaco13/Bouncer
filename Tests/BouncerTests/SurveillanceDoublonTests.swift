@@ -240,7 +240,7 @@ struct CablageSurveillanceTests {
 
         await wm.basculer(vers: vibe)
         // Le message dit les DEUX moitiés : la relance à venir, et la précédente encore à l'écran.
-        #expect(wm.echecBascule?.contains(boring) == true)
+        #expect(wm.echecBascule?.detail.contains(boring) == true)
         let surveillance = wm.surveillanceFermeture
         #expect(surveillance != nil)
         await surveillance?.value
@@ -329,6 +329,6 @@ struct CablageSurveillanceTests {
 
         // L'app est bel et bien revenue : c'est ce que la relance sans garde nous doit.
         #expect(double.journal.contains(.lance(vibe)))
-        #expect(wm.echecBascule == texte("error.noNotch.relaunchedUnverified", vibe))
+        #expect(wm.echecBascule?.detail == texte("error.noNotch.relaunchedUnverified", vibe))
     }
 }
