@@ -16,6 +16,8 @@ export const LIENS = {
   telechargement: `https://github.com/donpaco13/Bouncer/releases/download/v${VERSION}/Bouncer-${VERSION}.zip`,
   matrice:
     "https://github.com/donpaco13/Bouncer/blob/main/docs/COMPATIBILITE.md",
+  /** Pour signaler une app d'encoche absente de la matrice. */
+  issue: "https://github.com/donpaco13/Bouncer/issues/new",
 } as const;
 
 /** La ligne d'installation est identique dans toutes les langues. */

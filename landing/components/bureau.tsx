@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { Bascule } from "@/content/compatibilite";
 import type { Signe } from "@/content/demo";
-import { Marque, SIGNES, largeur } from "./signes";
+import { IconeMenu, Marque, SIGNES, largeur } from "./signes";
 
 /** Une app de l'encoche, textes déjà résolus dans la langue de la page : aucun
     dictionnaire ne part au navigateur. */
@@ -25,8 +25,6 @@ export type LibellesBureau = {
   menu: string;
   menuTitre: string;
   appSuivante: string;
-  precedente: string;
-  suivante: string;
   eteint: string;
   date: string;
   depot: string;
@@ -41,13 +39,17 @@ const CHEVAUCHEMENT_MS = 320;
  * LE HAUT DE LA PAGE EST LE HAUT DE L'ÉCRAN DU MAC.
  *
  * La barre des menus sert de navigation au site, l'encoche pend au milieu et
- * elle marche : clic, balayage à deux doigts, flèches au survol, ⌃⌥⌘B, et le
+ * elle marche : clic, balayage à deux doigts, ⌃⌥⌘B, et le
  * menu de Bouncer en haut à droite, avec ● ○ ◐ et l'interrupteur. Ce sont les
  * vraies pièces de l'app, pas un panneau de test posé sous une illustration.
  *
- * Rien ne bouge tout seul. Chaque changement d'état vient d'un geste du
- * visiteur, et la voie relance montre la règle du moteur : l'app en place reste
- * affichée tant que la suivante n'est pas arrivée.
+ * Sur Mac, rien ne bouge tout seul. Chaque changement d'état vient d'un geste
+ * du visiteur, et la voie relance montre la règle du moteur : l'app en place
+ * reste affichée tant que la suivante n'est pas arrivée.
+ *
+ * Sur téléphone, personne n'a de trackpad sous la main : l'encoche tourne
+ * seule, en CSS, jusqu'au premier geste (`.desk` sans `.used`). Ce geste
+ * reprend la démo depuis l'app à l'écran, lue dans l'animation.
  *
  * Le texte du héros arrive en `children`, rendu au serveur.
  */
@@ -61,7 +63,8 @@ export function Bureau({
 }: {
   apps: AppBureau[];
   l: LibellesBureau;
-  nav: { href: string; libelle: string }[];
+  /** `seulMac` : l'entrée vise une section absente de la page du téléphone. */
+  nav: { href: string; libelle: string; seulMac?: boolean }[];
   langue: ReactNode;
   indice: ReactNode;
   children: ReactNode;
@@ -86,8 +89,28 @@ export function Bureau({
   };
   useEffect(() => annuler, []);
 
-  function go(k: number) {
-    if (!on || busy >= 0 || k === cur) return;
+  /* L'app que montre le cycle CSS du téléphone, lue dans la progression de
+     l'animation de la première pastille. Sans cycle en cours (Mac, mouvement
+     réduit, ou après le premier geste), c'est l'app courante. */
+  const affichee = () => {
+    if (touche) return cur;
+    const cycle = scene.current
+      ?.querySelector(".pill")
+      ?.getAnimations()
+      .find((a) => a instanceof CSSAnimation);
+    const p = cycle?.effect?.getComputedTiming().progress;
+    return typeof p === "number" ? Math.floor(p * apps.length) % apps.length : cur;
+  };
+  /* Le premier geste arrête le cycle et fige l'app qu'il montrait. */
+  const reprendre = () => {
+    const k = affichee();
+    setTouche(true);
+    setCur(k);
+    return k;
+  };
+
+  function go(k: number, depuis = cur) {
+    if (!on || busy >= 0 || k === depuis) return;
     setTouche(true);
     const a = apps[k];
     if (a.voie === "rapide") {
@@ -108,7 +131,10 @@ export function Bureau({
       }, RELANCE_MS + CHEVAUCHEMENT_MS),
     );
   }
-  const step = (d: number) => go((cur + d + apps.length) % apps.length);
+  const step = (d: number) => {
+    const depuis = reprendre();
+    go((depuis + d + apps.length) % apps.length, depuis);
+  };
   /* Un balayage de trackpad émet des dizaines d'événements : un seul cran par
      demi-seconde, comme dans l'app. */
   const freine = (d: number) => {
@@ -180,7 +206,7 @@ export function Bureau({
               Bouncer : la langue passe à gauche, à côté de la marque. */}
           <li className="lang-m">{langue}</li>
           {nav.map((n) => (
-            <li key={n.href} className="nav">
+            <li key={n.href} className={n.seulMac ? "nav v-mac" : "nav"}>
               <a className="mb" href={n.href}>
                 {n.libelle}
               </a>
@@ -200,16 +226,11 @@ export function Bureau({
               onClick={() => {
                 /* Ouvrir le menu compte comme un premier geste : l'infobulle
                    s'efface, sinon elle passerait devant le menu sur téléphone. */
-                setTouche(true);
+                reprendre();
                 setOuvert((o) => !o);
               }}
             >
-              <svg viewBox="0 0 18 14" width="18" height="14" aria-hidden="true">
-                <path d="M1 0h16v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" />
-                <circle cx="5" cy="10" r="2" />
-                <circle cx="9" cy="10" r="2" opacity=".45" />
-                <circle cx="13" cy="10" r="2" opacity=".45" />
-              </svg>
+              <IconeMenu />
             </button>
           </li>
           <li className="lang-d">{langue}</li>
@@ -273,7 +294,7 @@ export function Bureau({
               key={a.nom}
               type="button"
               className={["pill", visible && "show", k === busy && "front"].filter(Boolean).join(" ")}
-              style={largeur(a.largeur)}
+              style={{ ...largeur(a.largeur), "--i": k } as CSSProperties}
               tabIndex={-1}
               aria-hidden="true"
               onClick={() => step(1)}
@@ -283,13 +304,33 @@ export function Bureau({
             </button>
           );
         })}
-        <button className="arw p" type="button" aria-label={l.precedente} onClick={() => step(-1)}>
-          <span aria-hidden="true">‹</span>
-        </button>
-        <button className="arw n" type="button" aria-label={l.suivante} onClick={() => step(1)}>
-          <span aria-hidden="true">›</span>
-        </button>
-        <p className="hint" aria-hidden="true">
+        {/* Sur téléphone, la plus large des pastilles déborde de quelques
+            pixels sur le lien de langue et le menu. Le tap passe par cette
+            zone, limitée à l'espace réservé à l'encoche : les commandes de la
+            barre gardent leurs 44 px. */}
+        <span className="zone" aria-hidden="true" onClick={() => step(1)} />
+        {/* Les flèches sont des repères, comme dans l'app : elles signalent
+            qu'une autre app attend, on ne clique pas dessus. */}
+        <span className="arw p" aria-hidden="true">
+          <span>‹</span>
+        </span>
+        <span className="arw n" aria-hidden="true">
+          <span>›</span>
+        </span>
+        {/* Le cycle du téléphone : deux doigts balaient l'encoche avant chaque
+            bascule, et la file ●○○ suit. Affiché seulement pendant le cycle. */}
+        <span className="boucle" aria-hidden="true">
+          <span className="doigts">
+            <i />
+            <i />
+          </span>
+          <span className="file">
+            {apps.map((a, k) => (
+              <i key={a.nom} style={{ "--i": k } as CSSProperties} />
+            ))}
+          </span>
+        </span>
+        <p className="hint v-mac" aria-hidden="true">
           <span className="fingers">
             <i />
             <i />

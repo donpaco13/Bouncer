@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { CAMPAGNE, COMPATIBILITE, type LigneCompatibilite } from "@/content/compatibilite";
+import { A_TESTER, CAMPAGNE, COMPATIBILITE, type LigneCompatibilite } from "@/content/compatibilite";
 import { APPS_APERCU, appDemo } from "@/content/demo";
 import { COMMANDE_BREW, LIENS } from "@/content/liens";
 import { absolue } from "@/content/seo";
@@ -8,7 +8,7 @@ import { VIDEO, videoPrete } from "@/content/video";
 import { NOMS_LANGUES, routing } from "@/i18n/routing";
 import { BoutonCopie, LigneCommande } from "./actions";
 import { Bureau, type AppBureau } from "./bureau";
-import { Pastille, Pomme } from "./signes";
+import { IconeMenu, Pastille, Pomme } from "./signes";
 
 /* Les balises que le texte traduit a le droit de porter. Elles restent dans le
    code : une traduction choisit où le renfort tombe dans sa phrase, pas de quoi
@@ -55,7 +55,7 @@ export function Landing() {
     };
   });
 
-  const [va, bn] = apps;
+  const [va, bn, nn] = apps;
   /* La pastille que montrent les scènes de la page : la première app du cycle. */
   const vitrine = { signe: va.signe, valeur: va.valeur };
   /* Le texte est en anglais britannique, la date suit. */
@@ -65,6 +65,53 @@ export function Landing() {
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(CAMPAGNE));
+
+  /* Le tableau et la note de méthode servent deux fois : en clair sur Mac,
+     dans le dépliant sur téléphone. */
+  const tableau = (
+    <div className="tbl">
+      <table>
+        <caption className="sr">{t("compatibilite.legendeTableau")}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{t("compatibilite.colonneApp")}</th>
+            <th scope="col">{t("compatibilite.colonneCachee")}</th>
+            <th scope="col">{t("compatibilite.colonnePreuve")}</th>
+            <th scope="col">{t("compatibilite.colonneNote")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {LIGNES.map((l) => (
+            <tr key={l.bundleID}>
+              <td>
+                <b>{l.app}</b> <span className="v">{l.version}</span>
+              </td>
+              <td>
+                <span className={l.bascule === "rapide" ? "route i" : "route r"}>
+                  {t(l.bascule === "rapide" ? "compatibilite.cacheeOuverte" : "compatibilite.cacheeFermee")}
+                </span>
+              </td>
+              <td>
+                <span className={l.preuve === "mesure" ? "chip m" : "chip p"}>
+                  {t(l.preuve === "mesure" ? "compatibilite.preuveMesure" : "compatibilite.preuvePredit")}
+                </span>
+              </td>
+              <td className="v">{t(`compatibilite.lignes.${l.cle}.note`)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+  const banc = (
+    <p className="bench">
+      {t.rich("compatibilite.banc", {
+        date: dateCampagne,
+        lien: lienVers(LIENS.matrice),
+      })}
+    </p>
+  );
+  const aTester = A_TESTER.map((a) => a.app).join(", ");
 
   return (
     <>
@@ -81,13 +128,11 @@ export function Landing() {
             menu: t("apercu.menu"),
             menuTitre: t("apercu.menuTitre"),
             appSuivante: t("apercu.appSuivante"),
-            precedente: t("apercu.precedente"),
-            suivante: t("apercu.suivante"),
             eteint: t("apercu.annonceEteint"),
             date: t("chrome.date"),
             depot: LIENS.depot,
           }}
-          nav={NAV.map(([href, cle]) => ({ href, libelle: t(`chrome.nav.${cle}`) }))}
+          nav={NAV.map(([href, cle]) => ({ href, libelle: t(`chrome.nav.${cle}`), seulMac: href === "#engine" }))}
           langue={
             /* Deux langues, donc un seul lien : celui vers l'autre, écrit dans
                l'autre. Relatif, parce que `trailingSlash` garantit que l'URL
@@ -99,35 +144,43 @@ export function Landing() {
           indice={t.rich("apercu.indice", { kbd: (c) => <kbd>{c}</kbd> })}
         >
           <div className="intro" id="top">
-            <p className="eyebrow">{t("heros.surtitre")}</p>
+            {/* Deux variantes, choisies par le CSS selon le pointeur : `.v-mac`
+                pour la souris et le trackpad, `.v-tel` pour le doigt. */}
+            <p className="eyebrow v-mac">{t("heros.surtitre")}</p>
             <h1>
               {t("heros.titreLigne1")}
               <br />
               {t("heros.titreLigne2")}
             </h1>
-            <p className="who">{t("heros.pourQui")}</p>
+            <p className="who v-mac">{t("heros.pourQui")}</p>
+            <p className="who v-tel">{t("heros.resume")}</p>
             <div className="cta">
-              <a className="btn mac" href="#install">
+              <a className="btn mac v-mac" href="#install">
                 <Pomme />
                 {t("heros.installer")}
               </a>
               {/* Sur téléphone, un bouton d'installation d'app Mac ne mène
-                  nulle part : on propose d'emporter l'adresse à la place. */}
-              <div className="ailleurs">
+                  nulle part : on propose d'envoyer l'adresse au Mac. */}
+              <div className="ailleurs v-tel">
                 <p>{t("heros.surMac")}</p>
                 <BoutonCopie
                   className="btn"
+                  partage
                   texte={absolue(`/${locale}/`)}
-                  copier={t("heros.copierLien")}
+                  copier={t("heros.envoyer")}
                   copie={t("heros.lienCopie")}
                   echec={t("heros.echecLien")}
                 />
+                <a className="link" href={LIENS.depot}>
+                  {t("heros.voirCode")}
+                </a>
               </div>
-              <a className="link" href="#apps">
+              <a className="link v-mac" href="#apps">
                 {t("heros.voirCompatibles")}
               </a>
             </div>
-            <p className="fine">{t.rich("heros.mentions", { lien: lienVers(LIENS.depot) })}</p>
+            <p className="fine v-mac">{t.rich("heros.mentions", { lien: lienVers(LIENS.depot) })}</p>
+            <p className="fine v-tel">{t("heros.mentionsTel")}</p>
           </div>
 
           <svg className="hills" viewBox="0 0 1440 190" preserveAspectRatio="none" aria-hidden="true">
@@ -146,9 +199,10 @@ export function Landing() {
         <section className="paper" id="problem">
           {/* La démo du héros est une simulation : la vidéo est la preuve.
               Muette, en boucle, sans son à couper. Tant qu'elle n'est pas
-              tournée, l'encoche dessinée tient sa place, à la même taille. */}
-          <figure className="wrap film">
-            {videoPrete() ? (
+              tournée, rien ne s'affiche : un cadre vide qui promet une vidéo
+              coûte un écran et fait chantier. */}
+          {videoPrete() ? (
+            <figure className="wrap film">
               <video
                 className="ecran"
                 src={`../${VIDEO.mp4}`}
@@ -161,15 +215,10 @@ export function Landing() {
                 controls
                 preload="metadata"
               />
-            ) : (
-              <div className="ecran" aria-hidden="true">
-                <span className="notch" />
-                <Pastille signe={va.signe} valeur={va.valeur} w={2.15} />
-              </div>
-            )}
-            <figcaption>{t(videoPrete() ? "video.legende" : "video.attente")}</figcaption>
-          </figure>
-          <div className="wrap cols">
+              <figcaption>{t("video.legende")}</figcaption>
+            </figure>
+          ) : null}
+          <div className="wrap cols v-mac">
             <div>
               <h2>{t("probleme.titre")}</h2>
               <p className="lede">{t("probleme.chapo")}</p>
@@ -208,33 +257,50 @@ export function Landing() {
               </figure>
             </div>
           </div>
+          {/* Téléphone : une scène animée remplace deux scènes, le comparatif
+              et deux paragraphes. Les deux apps se posent l'une sur l'autre,
+              puis Bouncer range la seconde et la file apparaît. À l'arrêt
+              (mouvement réduit), la scène montre la collision. */}
+          <div className="wrap v-tel">
+            <h2>{t("probleme.titreTel")}</h2>
+            <p className="lede">{t("probleme.chapoTel")}</p>
+            <figure className="scene nuit heurt" role="img" aria-label={`${t("probleme.sans")}. ${t("probleme.avec")}.`}>
+              <Barre />
+              <span className="halo" />
+              <span className="notch" />
+              <Pastille signe={va.signe} valeur={va.valeur} w={va.largeur} />
+              <Pastille signe={bn.signe} valeur={bn.valeur} w={bn.largeur} className="b" />
+              <p className="queue">
+                {[va, bn].map((a, k) => (
+                  <span key={a.nom} className={k === 0 ? "on" : undefined}>
+                    {k === 0 ? "●" : "○"} {a.nom}
+                  </span>
+                ))}
+              </p>
+              <p className="etats">
+                <span className="sans">{t("probleme.sansTitre")}</span>
+                <span className="avec">{t("probleme.avecTitre")}</span>
+              </p>
+            </figure>
+          </div>
         </section>
 
-        {/* ------------------------ QUATRE FAÇONS --------------------------
-            La même encoche à la même échelle, et le geste dessiné dessus. */}
+        {/* ------------------------ TROIS FAÇONS ---------------------------
+            La même encoche à la même échelle, et le geste dessiné dessus. Trois
+            gestes changent d'app, la quatrième carte montre les flèches, qui ne
+            sont qu'un repère. */}
         <section id="gesture">
           <div className="wrap">
             <div className="head">
               <h2>{t("commandes.titre")}</h2>
-              <p className="lede">{t("commandes.chapo")}</p>
+              <p className="lede v-mac">{t("commandes.chapo")}</p>
             </div>
-            <div className="ways">
+            <div className="ways v-mac">
               <Facon titre={t("commandes.swipeTitre")} corps={t("commandes.swipeCorps")} pastille={vitrine}>
                 <span className="touch">
                   <i />
                   <i />
                 </span>
-              </Facon>
-              <Facon titre={t("commandes.flechesTitre")} corps={t("commandes.flechesCorps")} pastille={vitrine}>
-                <span className="arw p">
-                  <span>‹</span>
-                </span>
-                <span className="arw n">
-                  <span>›</span>
-                </span>
-                <svg className="cursor" viewBox="0 0 16 24">
-                  <path d="M1 1v19l5-5 3.5 7.5 3-1.4L9 13.6h7z" fill="#fff" stroke="#000" strokeWidth="1.2" />
-                </svg>
               </Facon>
               <Facon titre={t("commandes.raccourciTitre")} corps={t("commandes.raccourciCorps")} pastille={vitrine}>
                 <span className="keys">
@@ -255,6 +321,74 @@ export function Landing() {
                   ))}
                 </div>
               </Facon>
+              <Facon titre={t("commandes.flechesTitre")} corps={t("commandes.flechesCorps")} pastille={vitrine}>
+                <span className="arw p">
+                  <span>‹</span>
+                </span>
+                <span className="arw n">
+                  <span>›</span>
+                </span>
+                <svg className="cursor" viewBox="0 0 16 24">
+                  <path d="M1 1v19l5-5 3.5 7.5 3-1.4L9 13.6h7z" fill="#fff" stroke="#000" strokeWidth="1.2" />
+                </svg>
+              </Facon>
+            </div>
+            {/* Téléphone : une seule encoche joue les trois façons l'une après
+                l'autre, 4 s chacune, et la liste suit. Les flèches apparaissent
+                avec le curseur, comme repère, pendant le balayage. */}
+            <div className="v-tel">
+              <figure className="scene nuit gest" aria-hidden="true">
+                <Barre />
+                <span className="menuicon">
+                  <IconeMenu />
+                </span>
+                <span className="notch" />
+                {apps.map((a, k) => (
+                  <Pastille
+                    key={a.nom}
+                    signe={a.signe}
+                    valeur={a.valeur}
+                    w={a.largeur}
+                    i={k}
+                    className={k === 0 ? undefined : "anime"}
+                  />
+                ))}
+                <span className="chev p">
+                  <i>‹</i>
+                </span>
+                <span className="chev n">
+                  <i>›</i>
+                </span>
+                <svg className="curseur" viewBox="0 0 16 24">
+                  <path d="M1 1v19l5-5 3.5 7.5 3-1.4L9 13.6h7z" fill="#fff" stroke="#000" strokeWidth="1.2" />
+                </svg>
+                <span className="doigts">
+                  <i />
+                  <i />
+                </span>
+                <span className="keys">
+                  <kbd>⌃</kbd>
+                  <kbd>⌥</kbd>
+                  <kbd>⌘</kbd>
+                  <kbd>B</kbd>
+                </span>
+                <div className="gmenu">
+                  {apps.map((a, k) => (
+                    <div key={a.nom} className={k === 0 ? "row hl" : "row"}>
+                      <span>{k === apps.length - 1 ? "●" : "○"}</span>
+                      <span>{a.nom}</span>
+                    </div>
+                  ))}
+                </div>
+              </figure>
+              <ol className="etapes">
+                {(["swipeTel", "raccourciTel", "menuTel"] as const).map((c, k) => (
+                  <li key={c} style={{ "--i": k } as CSSProperties}>
+                    {t(`commandes.${c}`)}
+                  </li>
+                ))}
+              </ol>
+              <p className="repere">{t("commandes.flechesTel")}</p>
             </div>
           </div>
         </section>
@@ -266,55 +400,73 @@ export function Landing() {
         <section className="paper" id="apps">
           <div className="wrap">
             <h2>{t("compatibilite.titre")}</h2>
-            <p className="lede">{t("compatibilite.chapo")}</p>
-            <p className="nope">{t("compatibilite.pasPourVous")}</p>
-            <div className="tbl">
-              <table>
-                <caption className="sr">{t("compatibilite.legendeTableau")}</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">{t("compatibilite.colonneApp")}</th>
-                    <th scope="col">{t("compatibilite.colonneCachee")}</th>
-                    <th scope="col">{t("compatibilite.colonnePreuve")}</th>
-                    <th scope="col">{t("compatibilite.colonneNote")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {LIGNES.map((l) => (
-                    <tr key={l.bundleID}>
-                      <td>
-                        <b>{l.app}</b> <span className="v">{l.version}</span>
-                      </td>
-                      <td>
-                        <span className={l.bascule === "rapide" ? "route i" : "route r"}>
-                          {t(l.bascule === "rapide" ? "compatibilite.cacheeOuverte" : "compatibilite.cacheeFermee")}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={l.preuve === "mesure" ? "chip m" : "chip p"}>
-                          {t(l.preuve === "mesure" ? "compatibilite.preuveMesure" : "compatibilite.preuvePredit")}
-                        </span>
-                      </td>
-                      <td className="v">{t(`compatibilite.lignes.${l.cle}.note`)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="v-mac">
+              <p className="lede">{t("compatibilite.chapo")}</p>
+              <p className="nope">{t("compatibilite.pasPourVous")}</p>
+              {tableau}
+              <p className="bench">
+                {t("compatibilite.aTester", { apps: aTester })}{" "}
+                {t.rich("compatibilite.issue", { lien: lienVers(LIENS.issue) })}
+              </p>
+              {banc}
             </div>
-            <p className="bench">
-              {t.rich("compatibilite.banc", {
-                date: dateCampagne,
-                lien: lienVers(LIENS.matrice),
-              })}
-            </p>
+            {/* Téléphone : les deux voies du moteur en image, puis des pastilles
+                en deux groupes au lieu de dix cartes. Le contour garde la
+                distinction mesuré / prédit, le tableau complet se déplie. */}
+            <div className="v-tel">
+              <div className="voies" aria-hidden="true">
+                <figure className="voie rapide nuit">
+                  <span className="notch" />
+                  <Pastille signe={va.signe} valeur="" w={va.largeur} i={0} />
+                  <Pastille signe={nn.signe} valeur="" w={nn.largeur} i={1} />
+                </figure>
+                <figure className="voie lente nuit">
+                  <span className="notch" />
+                  <Pastille signe={va.signe} valeur="" w={va.largeur} i={0} />
+                  <Pastille signe={bn.signe} valeur="" w={bn.largeur} i={1} />
+                </figure>
+              </div>
+              {(["rapide", "relance"] as const).map((voie) => (
+                <div key={voie} className={`groupe g-${voie}`}>
+                  <h3>{t(voie === "rapide" ? "compatibilite.groupeRapide" : "compatibilite.groupeRelance")}</h3>
+                  <ul className="apps">
+                    {LIGNES.filter((l) => l.bascule === voie).map((l) => (
+                      <li key={l.bundleID} className={l.preuve === "predit" ? "p" : undefined}>
+                        {l.app}
+                        {l.preuve === "predit" ? <span className="sr">, {t("compatibilite.preuvePredit")}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              <div className="groupe">
+                <h3>{t("compatibilite.groupeATester")}</h3>
+                <ul className="apps">
+                  {A_TESTER.map((a) => (
+                    <li key={a.app} className="a">
+                      {a.app}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <p className="legende">{t("compatibilite.legendePredit")}</p>
+              <p className="issue">{t.rich("compatibilite.issue", { lien: lienVers(LIENS.issue) })}</p>
+              <details>
+                <summary>{t("compatibilite.detail")}</summary>
+                {tableau}
+                {banc}
+              </details>
+              <p className="nope">{t("compatibilite.pasPourVousCourt")}</p>
+            </div>
           </div>
         </section>
 
         {/* ---------------------------- LE MOTEUR -------------------------
             Deux chiffres mesurés, une garantie. Le détail technique (scan,
             bundle ID, Space privé) vit dans docs/COMPATIBILITE.md, pas ici.
-            La frise : la nouvelle app est à l'écran avant que l'ancienne parte. */}
-        <section className="dark" id="engine">
+            La frise : la nouvelle app est à l'écran avant que l'ancienne parte.
+            Pas sur téléphone : ses deux chiffres y passent dans la compatibilité. */}
+        <section className="dark v-mac" id="engine">
           <div className="wrap">
             <h2>{t("moteur.titre")}</h2>
             <div className="cols inv">
@@ -378,7 +530,7 @@ export function Landing() {
             Gatekeeper reste replié, avec la phrase exacte que macOS affiche :
             « n'a pas pu vérifier » / « cannot verify », jamais « endommagée ». */}
         <section className="install" id="install">
-          <div className="wrap">
+          <div className="wrap v-mac">
             <h2>{t("installation.titre")}</h2>
             <p className="lede">{t("installation.chapo")}</p>
             <div className="closer" aria-hidden="true">
@@ -426,6 +578,33 @@ export function Landing() {
               <p>{t("installation.gatekeeper2")}</p>
               <p>{t("installation.gatekeeper3")}</p>
             </details>
+          </div>
+          {/* Téléphone : on n'installe pas depuis un iPhone. La page finit sur
+              l'écran du Mac, la ligne Homebrew à lire, le bouton d'envoi, et
+              ce qui rassure, visible sans rien déplier. */}
+          <div className="wrap v-tel">
+            <div className="ecran-fin">
+              <span className="notch" aria-hidden="true" />
+              <span aria-hidden="true">
+                <Pastille signe={va.signe} valeur={va.valeur} w={va.largeur} />
+              </span>
+              <h2>{t("installation.titreTel")}</h2>
+              <p className="lede">{t("installation.chapoTel")}</p>
+              <code className="ligne">{COMMANDE_BREW}</code>
+              <BoutonCopie
+                className="btn"
+                partage
+                texte={absolue(`/${locale}/`)}
+                copier={t("heros.envoyer")}
+                copie={t("heros.lienCopie")}
+                echec={t("heros.echecLien")}
+              />
+            </div>
+            <ul className="confiance">
+              {(["accesLigne", "sortieLigne", "desinstallerLigne"] as const).map((c) => (
+                <li key={c}>{t.rich(`installation.${c}`, { fort, code })}</li>
+              ))}
+            </ul>
           </div>
         </section>
       </main>
@@ -479,7 +658,7 @@ function Barre() {
   );
 }
 
-/** Une carte des quatre façons : la scène avec son geste, un titre, une phrase. */
+/** Une carte des façons de changer d'app : la scène avec son geste, un titre, une phrase. */
 function Facon({
   titre,
   corps,
@@ -504,3 +683,4 @@ function Facon({
     </article>
   );
 }
+

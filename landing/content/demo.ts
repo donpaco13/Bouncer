@@ -33,14 +33,16 @@ export type AppApercu = {
   contenu: CleContenu;
   signe: Signe;
   /** Largeur de la pastille dépliée, en multiples de la largeur de l'encoche.
-      Chaque app a la sienne : c'est ce qui rend la bascule visible. */
+      Chaque app a la sienne : c'est ce qui rend la bascule visible. Le texte
+      doit tenir dans l'aile droite à 390 px (encoche de 104 px) : sous 2,1,
+      « 3 fichiers » passe sous l'encoche. */
   largeur: number;
 };
 
 export const APPS_APERCU = [
-  { cle: "vibeIsland", contenu: "agents", signe: "pastilles", largeur: 2.05 },
+  { cle: "vibeIsland", contenu: "agents", signe: "pastilles", largeur: 2.1 },
   { cle: "boringNotch", contenu: "musique", signe: "onde", largeur: 1.78 },
-  { cle: "notchNook", contenu: "fichiers", signe: "tiroir", largeur: 1.92 },
+  { cle: "notchNook", contenu: "fichiers", signe: "tiroir", largeur: 2.14 },
 ] as const satisfies readonly [AppApercu, AppApercu, ...AppApercu[]];
 
 /** La ligne de la matrice qui porte une app de la démo. Lève au build si

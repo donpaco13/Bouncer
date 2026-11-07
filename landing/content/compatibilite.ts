@@ -34,7 +34,18 @@ export type LigneCompatibilite = {
   preuve: Preuve;
 };
 
-export const COMPATIBILITE = matrice.apps as readonly LigneCompatibilite[];
+/** Une app qu'on sait exister mais que personne n'a encore testée : ni
+    mesurée, ni lue à la source. Elle n'a ni version, ni bundleID, ni voie, et
+    n'entre donc pas dans le tableau. */
+export type AppATester = { app: string; depot?: string; preuve: "aTester" };
+
+const LIGNES = matrice.apps as readonly (LigneCompatibilite | AppATester)[];
+
+/** Les apps mesurées ou prédites : le tableau, et la démo du héros. */
+export const COMPATIBILITE = LIGNES.filter((l): l is LigneCompatibilite => l.preuve !== "aTester");
+
+/** Les apps pas encore testées, en fin de liste. */
+export const A_TESTER = LIGNES.filter((l): l is AppATester => l.preuve === "aTester");
 
 /** Le jour de la campagne de mesure, au format ISO. */
 export const CAMPAGNE = matrice.campagne;

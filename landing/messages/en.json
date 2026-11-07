@@ -40,8 +40,6 @@
     "menu": "Bouncer menu",
     "menuTitre": "Notch apps",
     "appSuivante": "Next app",
-    "precedente": "Previous notch app",
-    "suivante": "Next notch app",
     "indice": "Swipe here with two fingers, or press <kbd>⌃⌥⌘B</kbd>",
     "annonceRapide": "In the notch: {app}. Instant switch.",
     "annonceRelance": "Relaunching {app}. The current app stays until the new one is on screen.",
@@ -57,10 +55,13 @@
     "voirCompatibles": "Does it work with my apps? ›",
     "mentions": "<lien>Source code on GitHub</lien> · macOS 14 or later · no account",
     "installer": "Install Bouncer, it’s free",
-    "surMac": "Bouncer runs on your Mac. Open this page on your MacBook.",
-    "copierLien": "Copy link",
+    "surMac": "Bouncer runs on your Mac.",
     "lienCopie": "Link copied",
-    "echecLien": "Copy the page address"
+    "echecLien": "Copy the page address",
+    "resume": "Bouncer shows one notch app at a time (Vibe Island, boringNotch, NotchNook…) and moves to the next with a two-finger swipe.",
+    "envoyer": "Send to my Mac",
+    "voirCode": "See the code on GitHub",
+    "mentionsTel": "Free · open source · macOS 14+ · no account"
   },
   "probleme": {
     "titre": "macOS doesn’t coordinate notch apps",
@@ -73,19 +74,26 @@
     "mainTitre": "By hand",
     "mainCorps": "Quit the app, reopen the other one from Spotlight, wait for it to load. Then do it all again the other way.",
     "avecTitre": "With Bouncer",
-    "avecCorps": "One swipe. The switch takes ≈ 50 ms when the app can be hidden, ≈ 1 s when it has to be relaunched."
+    "avecCorps": "One swipe. The switch takes ≈ 50 ms when the app can be hidden, ≈ 1 s when it has to be relaunched.",
+    "titreTel": "Without Bouncer, your apps pile up",
+    "chapoTel": "Open two and they draw over each other under the notch. To see the second, you have to quit the first.",
+    "sansTitre": "Without Bouncer"
   },
   "commandes": {
-    "titre": "Four ways to change app",
+    "titre": "Three ways to switch",
     "chapo": "Take whichever is closest to hand. They all move one step through the cycle, and the cycle loops.",
     "swipeTitre": "Swipe on the notch",
     "swipeCorps": "Pointer over the notch app, two fingers sideways on the trackpad. Left or right makes no difference, the gesture moves one step.",
-    "flechesTitre": "Arrows on hover",
-    "flechesCorps": "Bring the cursor near the camera housing and two arrows appear on either side. Click one. Away from the notch, Bouncer draws nothing.",
+    "flechesTitre": "Arrows as a cue",
+    "flechesCorps": "Bring the cursor near the camera housing and two arrows appear on either side, if another app is waiting its turn. There’s nothing to click. They remind you that a swipe or ⌃⌥⌘B moves to the next one. Away from the notch, Bouncer draws nothing.",
     "raccourciTitre": "Global shortcut",
     "raccourciCorps": "Works from any app, full screen included. Without a trackpad, it is the one command that makes you neither aim at the notch nor open a menu.",
     "menuTitre": "Menu bar",
-    "menuCorps": "No Dock icon, no window. ● is the app holding the notch, ○ one waiting, ◐ a switch in progress. Click a waiting app to bring it back."
+    "menuCorps": "No Dock icon, no window. ● is the app holding the notch, ○ one waiting, ◐ a switch in progress. Click a waiting app to bring it back.",
+    "swipeTel": "Swipe the notch with two fingers on the trackpad.",
+    "raccourciTel": "Press ⌃⌥⌘B, from any app.",
+    "menuTel": "Pick the app in the menu bar.",
+    "flechesTel": "When the cursor nears the notch, two arrows show that another app is waiting its turn."
   },
   "moteur": {
     "titre": "What happens when you switch",
@@ -163,7 +171,15 @@
     "colonneCachee": "While hidden",
     "cacheeOuverte": "Stays open",
     "cacheeFermee": "Quit, then relaunched",
-    "pasPourVous": "Not for you if you only run one notch app. With just one, there’s nothing for Bouncer to choose between."
+    "pasPourVous": "Not for you if you only run one notch app. With just one, there’s nothing for Bouncer to choose between.",
+    "groupeRapide": "Instant, ≈ 50 ms",
+    "groupeRelance": "Relaunched, ≈ 1 s",
+    "groupeATester": "Not tested yet",
+    "legendePredit": "Outlined apps are predicted from their code, not measured yet.",
+    "detail": "Per-app details",
+    "pasPourVousCourt": "Not for you if you only run one notch app.",
+    "aTester": "Not tested yet: {apps}.",
+    "issue": "Your app isn’t listed? <lien>Open an issue</lien>"
   },
   "installation": {
     "titre": "Get Bouncer",
@@ -188,10 +204,14 @@
     "sortieTitre": "What leaves your Mac",
     "sortieCorps": "Bouncer can send its crash reports to Sentry. That’s off by default, and nothing is sent until you turn it on in the Bouncer menu.",
     "desinstallerTitre": "To uninstall",
-    "desinstallerCorps": "Drag Bouncer to the Bin, or run <code>brew uninstall --zap bouncer</code> if you installed it with Homebrew."
+    "desinstallerCorps": "Drag Bouncer to the Bin, or run <code>brew uninstall --zap bouncer</code> if you installed it with Homebrew.",
+    "titreTel": "Free and open source",
+    "chapoTel": "MIT licence, no account. On your Mac, it takes one line:",
+    "accesLigne": "<fort>Accessibility</fort>: to read the window list and hide your notch apps’ windows.",
+    "sortieLigne": "<fort>Crash reports</fort>: sending to Sentry is off by default.",
+    "desinstallerLigne": "<fort>Uninstall</fort>: drag Bouncer to the Bin, or run <code>brew uninstall --zap bouncer</code>."
   },
   "video": {
-    "attente": "A real switch, filmed on a MacBook, will play here soon.",
     "legende": "A real switch, filmed on a MacBook Pro, at real speed.",
     "description": "Eight-second video, no sound. Two notch apps draw over each other, Bouncer keeps only one, then a two-finger swipe moves to the next."
   }

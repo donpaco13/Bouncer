@@ -40,8 +40,6 @@
     "menu": "Menu de Bouncer",
     "menuTitre": "Apps d’encoche",
     "appSuivante": "App suivante",
-    "precedente": "App d’encoche précédente",
-    "suivante": "App d’encoche suivante",
     "indice": "Balayez ici à deux doigts ou tapez <kbd>⌃⌥⌘B</kbd>",
     "annonceRapide": "Dans l’encoche : {app}. Bascule instantanée.",
     "annonceRelance": "Relance de {app}. L’app en place reste jusqu’à ce que la nouvelle soit à l’écran.",
@@ -57,10 +55,13 @@
     "voirCompatibles": "Est-ce que ça marche avec mes apps ? ›",
     "mentions": "<lien>Code source sur GitHub</lien> · macOS 14 ou plus récent · sans compte",
     "installer": "Installer Bouncer, c’est gratuit",
-    "surMac": "Bouncer s’installe sur Mac. Ouvrez cette page sur votre MacBook.",
-    "copierLien": "Copier le lien",
+    "surMac": "Bouncer s’installe sur Mac.",
     "lienCopie": "Lien copié",
-    "echecLien": "Copiez l’adresse de la page"
+    "echecLien": "Copiez l’adresse de la page",
+    "resume": "Bouncer affiche une seule app d’encoche à la fois (Vibe Island, boringNotch, NotchNook…) et passe à la suivante d’un balayage à deux doigts.",
+    "envoyer": "Envoyer sur mon Mac",
+    "voirCode": "Voir le code sur GitHub",
+    "mentionsTel": "Gratuit · open source · macOS 14+ · sans compte"
   },
   "probleme": {
     "titre": "macOS ne coordonne pas les apps d’encoche",
@@ -73,19 +74,26 @@
     "mainTitre": "À la main",
     "mainCorps": "Quitter l’app, rouvrir l’autre depuis Spotlight, attendre qu’elle se charge. Puis tout refaire dans l’autre sens.",
     "avecTitre": "Avec Bouncer",
-    "avecCorps": "Un balayage. La bascule prend ≈ 50 ms quand l’app se laisse cacher, ≈ 1 s quand il faut la relancer."
+    "avecCorps": "Un balayage. La bascule prend ≈ 50 ms quand l’app se laisse cacher, ≈ 1 s quand il faut la relancer.",
+    "titreTel": "Sans Bouncer, vos apps se superposent",
+    "chapoTel": "Ouvrez-en deux et elles dessinent l’une sur l’autre sous l’encoche. Pour voir la seconde, il faut quitter la première.",
+    "sansTitre": "Sans Bouncer"
   },
   "commandes": {
-    "titre": "Quatre façons de changer d’app",
+    "titre": "Trois façons de changer d’app",
     "chapo": "Prenez celle qui tombe sous la main. Toutes avancent d’un cran dans le cycle, et le cycle boucle.",
     "swipeTitre": "Balayer l’encoche",
     "swipeCorps": "Curseur sur l’app d’encoche, deux doigts à l’horizontale sur le trackpad. À gauche ou à droite, peu importe, le geste avance d’un cran.",
-    "flechesTitre": "Les flèches au survol",
-    "flechesCorps": "Approchez le curseur du boîtier caméra et deux flèches apparaissent de part et d’autre. Cliquez sur l’une. Loin de l’encoche, Bouncer ne dessine rien.",
+    "flechesTitre": "Les flèches, en repère",
+    "flechesCorps": "Approchez le curseur du boîtier caméra et deux flèches apparaissent de part et d’autre, si une autre app attend son tour. Rien à cliquer dessus. Elles rappellent qu’un balayage ou ⌃⌥⌘B passe à la suivante. Loin de l’encoche, Bouncer ne dessine rien.",
     "raccourciTitre": "Le raccourci global",
     "raccourciCorps": "Marche depuis n’importe quelle app, plein écran compris. Sans trackpad, c’est la seule commande qui n’oblige ni à viser l’encoche ni à ouvrir un menu.",
     "menuTitre": "La barre des menus",
-    "menuCorps": "Pas d’icône dans le Dock, pas de fenêtre. ● désigne l’app qui tient l’encoche, ○ une app en attente, ◐ une bascule en cours. Cliquez sur une app en attente pour la ramener."
+    "menuCorps": "Pas d’icône dans le Dock, pas de fenêtre. ● désigne l’app qui tient l’encoche, ○ une app en attente, ◐ une bascule en cours. Cliquez sur une app en attente pour la ramener.",
+    "swipeTel": "Balayer l’encoche à deux doigts sur le trackpad.",
+    "raccourciTel": "Taper ⌃⌥⌘B, depuis n’importe quelle app.",
+    "menuTel": "Choisir l’app dans la barre des menus.",
+    "flechesTel": "Quand le curseur approche de l’encoche, deux flèches signalent qu’une autre app attend son tour."
   },
   "moteur": {
     "titre": "Ce qui se passe quand vous changez d’app",
@@ -163,7 +171,15 @@
     "colonneCachee": "Quand elle est cachée",
     "cacheeOuverte": "Reste ouverte",
     "cacheeFermee": "Fermée, puis relancée",
-    "pasPourVous": "Pas pour vous si vous n’avez qu’une app d’encoche. Avec une seule, Bouncer n’a rien à départager."
+    "pasPourVous": "Pas pour vous si vous n’avez qu’une app d’encoche. Avec une seule, Bouncer n’a rien à départager.",
+    "groupeRapide": "Instantané, ≈ 50 ms",
+    "groupeRelance": "Par relance, ≈ 1 s",
+    "groupeATester": "Pas encore testées",
+    "legendePredit": "Les apps en contour sont prédites d’après leur code, pas encore mesurées.",
+    "detail": "Détail par app",
+    "pasPourVousCourt": "Pas pour vous si vous n’avez qu’une app d’encoche.",
+    "aTester": "Pas encore testées : {apps}.",
+    "issue": "Votre app n’est pas là ? <lien>Ouvrez une issue</lien>"
   },
   "installation": {
     "titre": "Installer Bouncer",
@@ -188,10 +204,14 @@
     "sortieTitre": "Ce qui sort de votre Mac",
     "sortieCorps": "Bouncer sait envoyer ses rapports de plantage à Sentry. C’est coupé par défaut, et rien ne part tant que vous ne l’activez pas dans le menu de Bouncer.",
     "desinstallerTitre": "Pour désinstaller",
-    "desinstallerCorps": "Glissez Bouncer à la corbeille, ou tapez <code>brew uninstall --zap bouncer</code> si vous l’avez installé avec Homebrew."
+    "desinstallerCorps": "Glissez Bouncer à la corbeille, ou tapez <code>brew uninstall --zap bouncer</code> si vous l’avez installé avec Homebrew.",
+    "titreTel": "Gratuit et open source",
+    "chapoTel": "Licence MIT, sans compte. Sur votre Mac, une ligne suffit :",
+    "accesLigne": "<fort>Accessibilité</fort> : pour lire la liste des fenêtres et cacher celles de vos apps d’encoche.",
+    "sortieLigne": "<fort>Rapports de plantage</fort> : l’envoi à Sentry est coupé par défaut.",
+    "desinstallerLigne": "<fort>Désinstaller</fort> : glissez Bouncer à la corbeille, ou tapez <code>brew uninstall --zap bouncer</code>."
   },
   "video": {
-    "attente": "Bientôt ici, une vraie bascule filmée sur un MacBook.",
     "legende": "Une vraie bascule, filmée sur un MacBook Pro, à vitesse réelle.",
     "description": "Vidéo de huit secondes, sans son. Deux apps d’encoche dessinent l’une sur l’autre, Bouncer n’en garde qu’une, puis un balayage à deux doigts passe à la suivante."
   }
