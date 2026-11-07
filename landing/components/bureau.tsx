@@ -25,8 +25,6 @@ export type LibellesBureau = {
   menu: string;
   menuTitre: string;
   appSuivante: string;
-  precedente: string;
-  suivante: string;
   eteint: string;
   date: string;
   depot: string;
@@ -41,7 +39,7 @@ const CHEVAUCHEMENT_MS = 320;
  * LE HAUT DE LA PAGE EST LE HAUT DE L'ÉCRAN DU MAC.
  *
  * La barre des menus sert de navigation au site, l'encoche pend au milieu et
- * elle marche : clic, balayage à deux doigts, flèches au survol, ⌃⌥⌘B, et le
+ * elle marche : clic, balayage à deux doigts, ⌃⌥⌘B, et le
  * menu de Bouncer en haut à droite, avec ● ○ ◐ et l'interrupteur. Ce sont les
  * vraies pièces de l'app, pas un panneau de test posé sous une illustration.
  *
@@ -283,12 +281,14 @@ export function Bureau({
             </button>
           );
         })}
-        <button className="arw p" type="button" aria-label={l.precedente} onClick={() => step(-1)}>
-          <span aria-hidden="true">‹</span>
-        </button>
-        <button className="arw n" type="button" aria-label={l.suivante} onClick={() => step(1)}>
-          <span aria-hidden="true">›</span>
-        </button>
+        {/* Les flèches sont des repères, comme dans l'app : elles signalent
+            qu'une autre app attend, on ne clique pas dessus. */}
+        <span className="arw p" aria-hidden="true">
+          <span>‹</span>
+        </span>
+        <span className="arw n" aria-hidden="true">
+          <span>›</span>
+        </span>
         <p className="hint" aria-hidden="true">
           <span className="fingers">
             <i />

@@ -85,13 +85,14 @@ a.mb:hover,button.mb:hover,button.mb[aria-expanded="true"]{background:rgba(255,2
 .off .pill.show{box-shadow:0 0 0 1.5px #ff453a}
 .off .pill.show~.pill.show{top:7px;opacity:.82}
 
-/* Flèches au survol, comme dans l'app : de part et d'autre de l'encoche */
-.arw{position:absolute;top:0;z-index:4;width:44px;height:var(--nh);display:grid;place-items:center;border:0;background:none;cursor:pointer;opacity:.5;transition:opacity .2s}
+/* Flèches au survol, comme dans l'app : de part et d'autre de l'encoche. Un
+   repère qui signale l'app suivante, pas un bouton : le clic les traverse. */
+.arw{position:absolute;top:0;z-index:4;width:44px;height:var(--nh);display:grid;place-items:center;pointer-events:none;opacity:.5;transition:opacity .2s}
 .arw span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.55);font:600 15px/1 var(--sys);color:#fff}
 .arw.p{right:calc(50% + var(--nw)*var(--cw)/2 + 2px)}
 .arw.n{left:calc(50% + var(--nw)*var(--cw)/2 + 2px)}
 .arw{transition:opacity .2s,left .4s var(--ease),right .4s var(--ease)}
-.stage:hover .arw,.arw:focus-visible{opacity:1}
+.stage:hover .arw{opacity:1}
 .stage{--cw:2.05}
 
 /* Infobulle d'amorce, disparaît après le premier geste */
@@ -194,7 +195,7 @@ strong{font-weight:600}
 .queue span{padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.08);color:#c7c7cc}
 .queue .on{background:rgba(48,209,88,.16);color:#7ee29a}
 
-/* Quatre façons : la même encoche à la même échelle, le geste dessiné dessus */
+/* Trois façons : la même encoche à la même échelle, le geste dessiné dessus */
 .ways{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:56px}
 .way{background:var(--paper);border-radius:28px;padding:14px 14px 30px;display:grid;gap:10px;align-content:start}
 .way .scene{height:132px;border-radius:18px}

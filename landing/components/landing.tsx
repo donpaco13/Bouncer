@@ -81,8 +81,6 @@ export function Landing() {
             menu: t("apercu.menu"),
             menuTitre: t("apercu.menuTitre"),
             appSuivante: t("apercu.appSuivante"),
-            precedente: t("apercu.precedente"),
-            suivante: t("apercu.suivante"),
             eteint: t("apercu.annonceEteint"),
             date: t("chrome.date"),
             depot: LIENS.depot,
@@ -210,8 +208,10 @@ export function Landing() {
           </div>
         </section>
 
-        {/* ------------------------ QUATRE FAÇONS --------------------------
-            La même encoche à la même échelle, et le geste dessiné dessus. */}
+        {/* ------------------------ TROIS FAÇONS ---------------------------
+            La même encoche à la même échelle, et le geste dessiné dessus. Trois
+            gestes changent d'app, la quatrième carte montre les flèches, qui ne
+            sont qu'un repère. */}
         <section id="gesture">
           <div className="wrap">
             <div className="head">
@@ -224,17 +224,6 @@ export function Landing() {
                   <i />
                   <i />
                 </span>
-              </Facon>
-              <Facon titre={t("commandes.flechesTitre")} corps={t("commandes.flechesCorps")} pastille={vitrine}>
-                <span className="arw p">
-                  <span>‹</span>
-                </span>
-                <span className="arw n">
-                  <span>›</span>
-                </span>
-                <svg className="cursor" viewBox="0 0 16 24">
-                  <path d="M1 1v19l5-5 3.5 7.5 3-1.4L9 13.6h7z" fill="#fff" stroke="#000" strokeWidth="1.2" />
-                </svg>
               </Facon>
               <Facon titre={t("commandes.raccourciTitre")} corps={t("commandes.raccourciCorps")} pastille={vitrine}>
                 <span className="keys">
@@ -254,6 +243,17 @@ export function Landing() {
                     </div>
                   ))}
                 </div>
+              </Facon>
+              <Facon titre={t("commandes.flechesTitre")} corps={t("commandes.flechesCorps")} pastille={vitrine}>
+                <span className="arw p">
+                  <span>‹</span>
+                </span>
+                <span className="arw n">
+                  <span>›</span>
+                </span>
+                <svg className="cursor" viewBox="0 0 16 24">
+                  <path d="M1 1v19l5-5 3.5 7.5 3-1.4L9 13.6h7z" fill="#fff" stroke="#000" strokeWidth="1.2" />
+                </svg>
               </Facon>
             </div>
           </div>
@@ -479,7 +479,7 @@ function Barre() {
   );
 }
 
-/** Une carte des quatre façons : la scène avec son geste, un titre, une phrase. */
+/** Une carte des façons de changer d'app : la scène avec son geste, un titre, une phrase. */
 function Facon({
   titre,
   corps,

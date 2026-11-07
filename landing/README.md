@@ -19,14 +19,16 @@ fenêtre du navigateur est le haut de l'écran du Mac.
 
 1. **Le héros** (`components/bureau.tsx`). La barre des menus sert de
    navigation au site. L'encoche pend au milieu et elle marche : clic,
-   balayage à deux doigts sur le trackpad, flèches au survol, `⌃⌥⌘B`, et le
-   menu de Bouncer en haut à droite, avec ● ○ ◐ et l'interrupteur. Trois
+   balayage à deux doigts sur le trackpad, `⌃⌥⌘B`, et le menu de Bouncer en
+   haut à droite, avec ● ○ ◐ et l'interrupteur. Les flèches au survol sont un
+   repère, comme dans l'app : on ne clique pas dessus. Trois
    apps tournent : Vibe Island et NotchNook basculent tout de suite,
    boringNotch passe par une relance et l'app en place reste affichée tant
    que la nouvelle n'est pas arrivée.
 2. **Pourquoi** : le conflit entre deux apps dessiné en éclaté, puis la même
    encoche avec Bouncer.
-3. **Quatre façons de changer d'app**, chacune dessinée sur la même encoche.
+3. **Trois façons de changer d'app**, chacune dessinée sur la même encoche,
+   plus une carte pour les flèches, qui ne servent que de repère.
 4. **La compatibilité**, remontée parce que le héros y renvoie : 7 apps
    mesurées, 3 prédites, lues dans `content/compatibilite.json`, et pour
    chacune ce qu'elle devient quand elle est cachée.
@@ -135,12 +137,12 @@ Aucune image, aucune police, aucun appel réseau.
 ## Les intentions à ne pas casser
 
 - **L'encoche du héros est le produit.** On voit Bouncer marcher avant
-  d'avoir lu une ligne, avec les vraies pièces de l'app : flèches au survol,
-  menu ● ○ ◐, interrupteur, raccourci.
+  d'avoir lu une ligne, avec les vraies pièces de l'app : flèches au survol
+  (un repère, pas des boutons), menu ● ○ ◐, interrupteur, raccourci.
 - **Rien ne bouge tout seul dans la démo.** Chaque changement d'état vient
   d'un clic, d'une touche ou d'un balayage. Ce qui s'anime sans geste montre
   un geste à faire : les deux doigts de l'infobulle, et les gestes dessinés
-  dans les cartes « quatre façons ».
+  dans les cartes « trois façons ».
 - **L'interrupteur porte le problème ET sa solution.** Bouncer éteint, les
   trois pastilles dessinent au même endroit, cerclées de rouge.
 - **La voie relance montre la règle « on avant off ».** Le menu passe en ◐,
