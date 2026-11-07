@@ -55,7 +55,7 @@ export function Landing() {
     };
   });
 
-  const [va, bn, nn] = apps;
+  const [va, bn] = apps;
   /* La pastille que montrent les scènes de la page : la première app du cycle. */
   const vitrine = { signe: va.signe, valeur: va.valeur };
   /* Le texte est en anglais britannique, la date suit. */
@@ -410,22 +410,10 @@ export function Landing() {
               </p>
               {banc}
             </div>
-            {/* Téléphone : les deux voies du moteur en image, puis des pastilles
-                en deux groupes au lieu de dix cartes. Le contour garde la
+            {/* Téléphone : des pastilles en deux groupes, un par voie du moteur
+                avec sa vitesse, au lieu de dix cartes. Le contour garde la
                 distinction mesuré / prédit, le tableau complet se déplie. */}
             <div className="v-tel">
-              <div className="voies" aria-hidden="true">
-                <figure className="voie rapide nuit">
-                  <span className="notch" />
-                  <Pastille signe={va.signe} valeur="" w={va.largeur} i={0} />
-                  <Pastille signe={nn.signe} valeur="" w={nn.largeur} i={1} />
-                </figure>
-                <figure className="voie lente nuit">
-                  <span className="notch" />
-                  <Pastille signe={va.signe} valeur="" w={va.largeur} i={0} />
-                  <Pastille signe={bn.signe} valeur="" w={bn.largeur} i={1} />
-                </figure>
-              </div>
               {(["rapide", "relance"] as const).map((voie) => (
                 <div key={voie} className={`groupe g-${voie}`}>
                   <h3>{t(voie === "rapide" ? "compatibilite.groupeRapide" : "compatibilite.groupeRelance")}</h3>

@@ -485,33 +485,6 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .etapes li::before{animation:barre var(--T) linear calc(var(--i)*var(--T)/3 - var(--T)) infinite}
 }
 
-/* Compatibilité : les deux voies du moteur côte à côte. À gauche l'app se
-   cache et la suivante sort aussitôt ; à droite la relance, où l'app en place
-   reste, liseré jaune, tant que la suivante n'est pas arrivée. À l'arrêt :
-   une app dans chaque encoche. */
-.voies{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);margin-top:var(--s4)}
-.voie{--nw:56px;--nh:20px;position:relative;height:92px;border-radius:18px;overflow:hidden;margin:0}
-.voie .pill{opacity:1;width:calc(var(--nw)*var(--wl));padding:0 6px 0 8px}
-.voie .pill>*{opacity:1}
-.voie .pill svg{height:7px}
-.voie .pill+.pill{display:none}
-.voie::after{content:"";position:absolute;left:14px;bottom:14px;width:8px;height:8px;border-radius:50%;background:#30d158}
-.voie.lente::after{background:#ff9f0a}
-.voie.lente .pill::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 2px rgba(255,214,10,.8);opacity:0}
-@keyframes bascule{0%,49.9%{transform:translateX(-50%) scaleX(1)}50%,100%{transform:translateX(-50%) scaleX(var(--k))}}
-@keyframes bascule-t{0%,49.9%{opacity:1}50%,100%{opacity:0}}
-@keyframes relance{0%,56%,100%{transform:translateX(-50%) scaleX(var(--k))}5%,50%{transform:translateX(-50%) scaleX(1)}}
-@keyframes relance-t{0%,3%,53%,100%{opacity:0}8%,50%{opacity:1}}
-@keyframes attente{0%,30%,42%,50%,100%{opacity:0}36%,47%{opacity:1}}
-@media (prefers-reduced-motion:no-preference){
-  .voie .pill+.pill{display:flex}
-  .voie.rapide{--T:3.2s}.voie.lente{--T:6s}
-  .voie.rapide .pill{animation:bascule var(--T) linear calc(var(--i)*var(--T)/2 - var(--T)) infinite}
-  .voie.rapide .pill>*{animation:bascule-t var(--T) linear calc(var(--i)*var(--T)/2 - var(--T)) infinite}
-  .voie.lente .pill{animation:relance var(--T) var(--ease) calc(var(--i)*var(--T)/2 - var(--T)) infinite}
-  .voie.lente .pill>*{animation:relance-t var(--T) ease calc(var(--i)*var(--T)/2 - var(--T)) infinite}
-  .voie.lente .pill::after{animation:attente var(--T) ease calc(var(--i)*var(--T)/2 - var(--T)) infinite}
-}
 /* Les apps en pastilles, par voie. Plein : mesuré. Contour : prédit. Tirets :
    pas encore testé. */
 .groupe{margin-top:var(--s4)}
