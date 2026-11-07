@@ -813,7 +813,6 @@ private struct SimulateurNotchInteractif: View {
     @State private var indexActif: Int = 0
     @State private var positionDoigtsX: CGFloat = 0
     @State private var sensDernierGeste: String = "droite"
-    @State private var estSurvole: Bool = false
 
     private let timer = Timer.publish(every: 3.2, on: .main, in: .common).autoconnect()
 
@@ -853,31 +852,19 @@ private struct SimulateurNotchInteractif: View {
                 }
                 .accessibilityHidden(true)
 
-                // Flèches latérales ‹ et › (cliquables)
+                // Flèches ‹ › : indicateurs PASSIFS, à hauteur de l'encoche, comme `NotchArrowsView`
+                // dans l'app réelle. Rien à cliquer : on bascule au swipe, au raccourci ou au menu.
                 HStack(spacing: largeurBoitierDessine + 2 * debordementFleches) {
-                    // Les flèches portent un SENS, contrairement au swipe : c'est toute la
-                    // distinction que ce simulateur doit enseigner (cf. Swipe.swift, « une flèche
-                    // qui pointe à gauche et envoie à droite mentirait »). ‹ recule, › avance,
-                    // exactement comme `NotchArrowsView` dans l'app réelle.
-                    BoutonFlecheEncoche(
-                        symbole: "chevron.left",
-                        libelleAccessible: texte("welcome.sim.arrow.previous.label"),
-                        indication: texte("welcome.sim.arrow.previous.hint")
-                    ) {
-                        parFleche(avance: false)
+                    ForEach(["chevron.left", "chevron.right"], id: \.self) { symbole in
+                        Image(systemName: symbole)
+                            .font(.system(size: 10.5, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 21, height: 21)
+                            .background(Circle().fill(Color(white: 0.20).opacity(0.70)))
                     }
-                    .help(texte("welcome.sim.arrow.previous.tooltip"))
-
-                    BoutonFlecheEncoche(
-                        symbole: "chevron.right",
-                        libelleAccessible: texte("welcome.sim.arrow.next.label"),
-                        indication: texte("welcome.sim.arrow.next.hint")
-                    ) {
-                        parFleche(avance: true)
-                    }
-                    .help(texte("welcome.sim.arrow.next.tooltip"))
                 }
                 .padding(.top, 2.5)
+                .accessibilityHidden(true)
 
                 // Contenu de l'app sous l'encoche
                 VStack(spacing: 7) {
@@ -968,23 +955,13 @@ private struct SimulateurNotchInteractif: View {
                 .accessibilityHidden(true)
             }
             .frame(height: 122)
-            .onHover { survole in
-                estSurvole = survole
-            }
 
         }
         .frame(width: 420)
         .onReceive(timer) { _ in
-            guard !reduceMotion && !estSurvole else { return }
+            guard !reduceMotion else { return }
             animerSwipeAutomatique()
         }
-    }
-
-    /// Un clic sur une flèche : le sens compte, et il ne touche pas à l'indicateur de swipe —
-    /// « swipe gauche ➔ avance » resterait vrai, mais l'afficher après un clic sur ‹ laisserait
-    /// croire que la flèche et le geste font la même chose. Ils font justement le contraire.
-    private func parFleche(avance: Bool) {
-        deplacer(de: avance ? 1 : -1, decalageDoigts: 0)
     }
 
     /// Un swipe : quel que soit son sens, il AVANCE d'un cran. C'est la dynamique réelle de
@@ -1034,53 +1011,5 @@ private struct EncochePhysiqueShape: Shape {
         path.closeSubpath()
 
         return path
-    }
-}
-
-// MARK: - Bouton Flèche de l'Encoche
-
-private struct BoutonFlecheEncoche: View {
-    let symbole: String
-    let libelleAccessible: String
-    /// Ce que fait CE bouton-là. Figée sur « fait avancer le cycle », elle mentait sur ‹.
-    let indication: String
-    let action: () -> Void
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @FocusState private var estFocus: Bool
-    @State private var survol: Bool = false
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: symbole)
-                .font(.system(size: 10.5, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 21, height: 21)
-                .background(
-                    Circle()
-                        .fill(Color(white: 0.20).opacity(survol ? 0.95 : 0.70))
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(
-                            estFocus ? Color.accentColor : Color.white.opacity(survol ? 0.4 : 0.15),
-                            lineWidth: estFocus ? 2 : 1
-                        )
-                )
-                .scaleEffect(reduceMotion ? 1.0 : (survol || estFocus ? 1.08 : 1.0))
-        }
-        .buttonStyle(.plain)
-        .focused($estFocus)
-        .accessibilityLabel(libelleAccessible)
-        .accessibilityHint(indication)
-        .onHover { s in
-            if reduceMotion {
-                survol = s
-            } else {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    survol = s
-                }
-            }
-        }
     }
 }

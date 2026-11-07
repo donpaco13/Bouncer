@@ -69,12 +69,6 @@
 "welcome.sim.app2.subtitle" = "Batterie 94%% · 45 W";
 "welcome.sim.app3.subtitle" = "2 notifications en attente";
 "welcome.sim.app.label" = "Application simulée : %1$@, %2$@";
-"welcome.sim.arrow.previous.label" = "Flèche gauche : app précédente";
-"welcome.sim.arrow.previous.hint" = "Revient à l'application précédente du cycle";
-"welcome.sim.arrow.previous.tooltip" = "Cliquez pour revenir à l'app précédente";
-"welcome.sim.arrow.next.label" = "Flèche droite : app suivante";
-"welcome.sim.arrow.next.hint" = "Passe à l'application suivante du cycle";
-"welcome.sim.arrow.next.tooltip" = "Cliquez pour passer à l'app suivante";
 
 /* MARK: - Guide de démarrage, écran 5 (prêt) */
 

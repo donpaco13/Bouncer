@@ -76,12 +76,6 @@
 "welcome.sim.app3.subtitle" = "2 条通知待处理";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "模拟 App：%1$@，%2$@";
-"welcome.sim.arrow.previous.label" = "左箭头：上一个 App";
-"welcome.sim.arrow.previous.hint" = "回到循环中的上一个 App";
-"welcome.sim.arrow.previous.tooltip" = "点按以回到上一个 App";
-"welcome.sim.arrow.next.label" = "右箭头：下一个 App";
-"welcome.sim.arrow.next.hint" = "前往循环中的下一个 App";
-"welcome.sim.arrow.next.tooltip" = "点按以前往下一个 App";
 
 /* MARK: - Welcome guide, step 5 (ready) */
 

@@ -79,12 +79,6 @@
 "welcome.sim.app3.subtitle" = "대기 중인 알림 2개";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "시뮬레이션 앱: %1$@, %2$@";
-"welcome.sim.arrow.previous.label" = "왼쪽 화살표: 이전 앱";
-"welcome.sim.arrow.previous.hint" = "순환 목록의 이전 앱으로 돌아갑니다";
-"welcome.sim.arrow.previous.tooltip" = "클릭하면 이전 앱으로 돌아갑니다";
-"welcome.sim.arrow.next.label" = "오른쪽 화살표: 다음 앱";
-"welcome.sim.arrow.next.hint" = "순환 목록의 다음 앱으로 이동합니다";
-"welcome.sim.arrow.next.tooltip" = "클릭하면 다음 앱으로 이동합니다";
 
 /* MARK: - Welcome guide, step 5 (ready) */
 

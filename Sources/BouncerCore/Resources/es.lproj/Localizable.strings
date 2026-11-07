@@ -77,12 +77,6 @@
 "welcome.sim.app3.subtitle" = "2 notificaciones en espera";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "App simulada: %1$@, %2$@";
-"welcome.sim.arrow.previous.label" = "Flecha izquierda: app anterior";
-"welcome.sim.arrow.previous.hint" = "Vuelve a la app anterior del ciclo";
-"welcome.sim.arrow.previous.tooltip" = "Haz clic para volver a la app anterior";
-"welcome.sim.arrow.next.label" = "Flecha derecha: app siguiente";
-"welcome.sim.arrow.next.hint" = "Pasa a la app siguiente del ciclo";
-"welcome.sim.arrow.next.tooltip" = "Haz clic para pasar a la app siguiente";
 
 /* MARK: - Welcome guide, step 5 (ready) */
 

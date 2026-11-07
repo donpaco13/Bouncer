@@ -77,12 +77,6 @@
 "welcome.sim.app3.subtitle" = "未読の通知が2件";
 /* %1$@: app name, %2$@: its subtitle. */
 "welcome.sim.app.label" = "模擬App: %1$@、%2$@";
-"welcome.sim.arrow.previous.label" = "左矢印: 前のApp";
-"welcome.sim.arrow.previous.hint" = "サイクル内の前のAppに戻ります";
-"welcome.sim.arrow.previous.tooltip" = "クリックで前のAppに戻る";
-"welcome.sim.arrow.next.label" = "右矢印: 次のApp";
-"welcome.sim.arrow.next.hint" = "サイクル内の次のAppに進みます";
-"welcome.sim.arrow.next.tooltip" = "クリックで次のAppに進む";
 
 /* MARK: - Welcome guide, step 5 (ready) */
 
