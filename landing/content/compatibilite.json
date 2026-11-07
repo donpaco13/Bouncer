@@ -2,7 +2,7 @@
   "_source": "Dérivé de docs/COMPATIBILITE.md (campagne du 5 septembre 2026, révisée le 7 septembre 2026). C'EST CE FICHIER-LÀ QUI FAIT AUTORITÉ : toute correction se fait dans le .md d'abord, et se reporte ici ensuite. Ne jamais écrire une version, un verdict ou un bundleID directement dans le JSX — deux listes finissent toujours par diverger.",
   "_champs": {
     "bascule": "rapide = masquage Accessibilité ; relance = quitter puis relancer, la fenêtre d'encoche vit dans un Space CGS privé. Il n'y a plus de catégorie « invisible » : les trois apps qui dessinent sur toute la largeur de l'écran (NotchNook, Notchy, Mew Notch) sont régies par leur bundleID depuis le 7 septembre 2026, sans que le filtre de largeur à 80 % ait bougé.",
-    "preuve": "mesure = l'app a été installée, lancée, et Bouncer a agi dessus sur la machine de banc. predit = le verdict est lu dans la source, pas encore joué de bout en bout.",
+    "preuve": "mesure = l'app a été installée, lancée, et Bouncer a agi dessus sur la machine de banc. predit = le verdict est lu dans la source, pas encore joué de bout en bout. aTester = ni mesurée ni retenue dans la matrice : seuls le nom (et le dépôt quand on le connaît) sont sûrs, donc ni version, ni bundleID, ni voie. Ces lignes viennent de la veille des apps d'agents de code (premortem landing mobile, 7 novembre 2026), pas de la campagne.",
     "bundleID": "relevé dans l'Info.plist de l'app téléchargée, pas supposé."
   },
   "campagne": "2026-09-05",
@@ -86,6 +86,19 @@
       "bundleID": "com.monuk7735.mew.notch",
       "bascule": "relance",
       "preuve": "mesure"
+    },
+    {
+      "app": "CodeIsland",
+      "depot": "wxtsky/CodeIsland",
+      "preuve": "aTester"
+    },
+    {
+      "app": "coucou",
+      "preuve": "aTester"
+    },
+    {
+      "app": "Claude Island",
+      "preuve": "aTester"
     }
   ]
 }
