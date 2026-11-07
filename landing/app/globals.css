@@ -392,17 +392,19 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
    texte éteint, cachée sous l'encoche. */
 .pill{--k:calc(1 / var(--wl))}
 .boucle{display:none}
-/* Chaque app tient un tiers du cycle. La suivante grandit par-dessus avant
-   que celle en place se replie dessous : l'encoche n'est jamais vide. Le
-   z-index ne bouge pas, il bascule une fois, quand plus rien ne se chevauche. */
+/* Chaque app tient un tiers du cycle, et la même règle que sur Mac : la
+   suivante se déplie sous celle en place, qui reste lisible. À 3 % de son
+   cycle, dépliée à 95 %, elle passe dessus et son texte s'allume ; au même
+   instant (33,33 + 3 = 36,33 % du sien), le texte de l'ancienne s'éteint
+   d'un coup. Puis l'ancienne se replie dessous. La file ●○○ suit le texte,
+   pas la pastille. */
 @keyframes tour{
-  0%{transform:translateX(-50%) scaleX(var(--k));z-index:2}
+  0%{transform:translateX(-50%) scaleX(var(--k))}
   6%,39.5%{transform:translateX(-50%) scaleX(1)}
-  20%{z-index:2}20.01%,100%{z-index:1}
-  45%,100%{transform:translateX(-50%) scaleX(var(--k))}}
-@keyframes tour-t{0%,37%,100%{opacity:0}1.2%,34%{opacity:1}}
+  45%,100%{transform:translateX(-50%) scaleX(var(--k))}
+  0%,3%{z-index:1}3.01%,36.33%{z-index:2}36.34%,100%{z-index:1}}
+@keyframes tour-t{0%,3%{opacity:0}3.6%,36.33%{opacity:1}36.34%,100%{opacity:0}}
 @keyframes balaye{0%,60%{opacity:0;transform:translateX(-46px)}68%{opacity:1}88%{opacity:1;transform:translateX(40px)}95%,100%{opacity:0;transform:translateX(40px)}}
-@keyframes point{0%,32%{opacity:1}34%,100%{opacity:0}}
 @media (hover:none) and (pointer:coarse) and (prefers-reduced-motion:no-preference){
   .desk:not(.used) .stage{--T:9s}
   .desk:not(.used) .stage .pill{width:calc(var(--nw)*var(--wl));opacity:1;transition:none;
@@ -414,7 +416,7 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
 .boucle .doigts i{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 0 5px rgba(255,255,255,.14)}
 .boucle .file{position:absolute;left:50%;top:calc(var(--nh) + 32px);transform:translateX(-50%);display:flex;gap:8px}
 .boucle .file i{position:relative;width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7)}
-.boucle .file i::after{content:"";position:absolute;inset:0;border-radius:50%;background:#fff;animation:point var(--T) linear calc(var(--i)*var(--T)/3 - var(--T)) infinite}
+.boucle .file i::after{content:"";position:absolute;inset:0;border-radius:50%;background:#fff;animation:tour-t var(--T) linear calc(var(--i)*var(--T)/3 - var(--T)) infinite}
 /* Le héros du téléphone tient dans l'écran, le titre juste sous la file ●○○,
    et le haut de la section suivante dépasse en bas : on voit qu'il y a une suite. */
 @media (hover:none) and (pointer:coarse) and (max-width:760px){
