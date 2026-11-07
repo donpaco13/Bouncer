@@ -302,10 +302,15 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-ite
 footer nav{display:flex;flex-wrap:wrap;gap:0 22px}
 footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:none}
 
+/* Sous 900 px, le texte et son visuel ne tiennent plus côte à côte : la
+   colonne de texte devenait trop étroite, avec un grand vide en face. */
+@media (max-width:900px){
+  .cols{grid-template-columns:minmax(0,1fr);gap:40px}
+  .inv>:first-child,.inv>:last-child{grid-column:auto;grid-row:auto}
+}
 @media (max-width:760px){
   section{padding:72px 0}
-  .cols,.head{grid-template-columns:1fr;gap:40px}
-  .inv>:first-child,.inv>:last-child{grid-column:auto;grid-row:auto}
+  .head{grid-template-columns:1fr;gap:40px}
   .inv{margin-top:18px}
   .head{gap:0}.head .lede{margin-top:18px}
   .scene .tag:not(.r){display:none}
