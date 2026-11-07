@@ -84,7 +84,6 @@
     "chapo": "Prenez celle qui tombe sous la main. Le balayage et le raccourci avancent d’un cran, le menu va droit à l’app choisie.",
     "swipeTitre": "Balayer l’encoche",
     "swipeCorps": "Curseur sur l’app d’encoche, deux doigts à l’horizontale sur le trackpad. À gauche ou à droite, peu importe, le geste avance d’un cran.",
-    "flechesTitre": "Les flèches, en repère",
     "flechesCorps": "Approchez le curseur du boîtier caméra et deux flèches apparaissent de part et d’autre, si une autre app attend son tour. Rien à cliquer dessus. Elles rappellent qu’un balayage ou ⌃⌥⌘B passe à la suivante. Loin de l’encoche, Bouncer ne dessine rien.",
     "raccourciTitre": "Le raccourci global",
     "raccourciCorps": "Marche depuis n’importe quelle app, plein écran compris. Sans trackpad, c’est la seule commande qui n’oblige ni à viser l’encoche ni à ouvrir un menu.",

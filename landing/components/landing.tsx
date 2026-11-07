@@ -287,8 +287,8 @@ export function Landing() {
 
         {/* ------------------------ TROIS FAÇONS ---------------------------
             La même encoche à la même échelle, et le geste dessiné dessus. Trois
-            gestes changent d'app, la quatrième carte montre les flèches, qui ne
-            sont qu'un repère. */}
+            cartes pour les trois façons de changer d'app. Les flèches ne sont
+            qu'un repère : une note sous la grille, pas une quatrième carte. */}
         <section id="gesture">
           <div className="wrap">
             <div className="head">
@@ -321,18 +321,8 @@ export function Landing() {
                   ))}
                 </div>
               </Facon>
-              <Facon titre={t("commandes.flechesTitre")} corps={t("commandes.flechesCorps")} pastille={vitrine}>
-                <span className="arw p">
-                  <span>‹</span>
-                </span>
-                <span className="arw n">
-                  <span>›</span>
-                </span>
-                <svg className="cursor" viewBox="0 0 16 24">
-                  <path d="M1 1v19l5-5 3.5 7.5 3-1.4L9 13.6h7z" fill="#fff" stroke="#000" strokeWidth="1.2" />
-                </svg>
-              </Facon>
             </div>
+            <p className="repere v-mac">{t("commandes.flechesCorps")}</p>
             {/* Téléphone : une seule encoche joue les trois façons l'une après
                 l'autre, 4 s chacune, et la liste suit. Les flèches apparaissent
                 avec le curseur, comme repère, pendant le balayage. */}

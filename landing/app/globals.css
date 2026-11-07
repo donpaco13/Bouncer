@@ -212,7 +212,7 @@ strong{font-weight:600}
 .queue .on{background:rgba(48,209,88,.16);color:#7ee29a}
 
 /* Trois façons : la même encoche à la même échelle, le geste dessiné dessus */
-.ways{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:56px}
+.ways{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px}
 .way{background:var(--paper);border-radius:28px;padding:14px 14px 30px;display:grid;gap:10px;align-content:start}
 .way .scene{height:132px;border-radius:18px}
 .way h3{font:600 22px/1.2 var(--disp);letter-spacing:-.015em;padding:14px 16px 0}
@@ -220,10 +220,6 @@ strong{font-weight:600}
 .touch{position:absolute;z-index:5;left:50%;top:6px;display:flex;gap:9px;margin-left:-14px;animation:sw 2.6s var(--ease) infinite}
 .touch i{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.55);box-shadow:0 0 0 6px rgba(255,255,255,.12)}
 @keyframes sw{0%,15%{transform:translateX(-70px);opacity:0}25%{opacity:1}60%{transform:translateX(50px);opacity:1}75%,100%{transform:translateX(50px);opacity:0}}
-.way .arw{opacity:1;--cw:calc(2.15 + var(--dw,0));animation:glow 2.4s ease-in-out infinite}
-.way .arw span{background:rgba(255,255,255,.22)}
-@keyframes glow{0%,100%{opacity:.35}50%{opacity:1}}
-.cursor{position:absolute;top:30px;left:calc(50% + var(--nw)*(2.15 + var(--dw,0))/2 + 26px);width:16px}
 .keys{position:absolute;left:50%;top:52px;transform:translateX(-50%);display:flex;gap:8px}
 .keys kbd{display:grid;place-items:center;min-width:46px;height:46px;border-radius:10px;font:500 21px var(--sys);color:#fff;
   background:linear-gradient(#3a3a46,#2a2a34);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 2px 0 #000}
@@ -315,7 +311,6 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .scene .tag:not(.r){display:none}
   .ways{grid-template-columns:1fr;gap:14px;margin-top:36px}.way{border-radius:22px}
   .way .menu{right:50%;transform:translateX(50%)}
-  .way .arw{display:grid}
   /* La valeur doit tenir dans l'aile droite de la pastille, sinon l'encoche la mange. */
   .scene{--nw:100px;--dw:.22}.scene .pill{font-size:11px}
   .stage{--dw:.1}
@@ -363,8 +358,17 @@ footer a{display:inline-flex;min-height:44px;align-items:center;text-decoration:
   .desk{min-height:auto;border-radius:0}
   .intro{padding:92px 16px 128px}
 }
-/* Sous 800 px, les flèches des cartes tombent sur Finder et 9:41 : la barre se tait. */
-@media (max-width:800px){.ways .scene .strip span{visibility:hidden}}
+/* Entre le téléphone et le grand écran, trois colonnes n'ont plus la place
+   de la pastille : chaque carte se pose en ligne, la scène à gauche. */
+@media (min-width:761px) and (max-width:1060px){
+  .ways{grid-template-columns:1fr;gap:16px}
+  .way{grid-template-columns:minmax(0,330px) 1fr;column-gap:24px;align-items:center;padding-bottom:14px}
+  .way .scene{grid-row:span 2}
+  .way h3{padding:0;align-self:end}.way p{padding:0;align-self:start}
+}
+/* Dans une carte, la pastille tombe sur Finder et 9:41 : la barre se tait.
+   La carte du menu, sans pastille, les garde. */
+.ways .scene:has(.pill) .strip span{visibility:hidden}
 /* Sous 380 px, l'heure cède sa place au menu de Bouncer. */
 @media (max-width:379px){.menubar .time{display:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}html{scroll-behavior:auto}}

@@ -84,7 +84,6 @@
     "chapo": "Take whichever is closest to hand. The swipe and the shortcut move one step. The menu goes straight to the app you pick.",
     "swipeTitre": "Swipe on the notch",
     "swipeCorps": "Pointer over the notch app, two fingers sideways on the trackpad. Left or right makes no difference, the gesture moves one step.",
-    "flechesTitre": "Arrows as a cue",
     "flechesCorps": "Bring the cursor near the camera housing and two arrows appear on either side, if another app is waiting its turn. There’s nothing to click. They remind you that a swipe or ⌃⌥⌘B moves to the next one. Away from the notch, Bouncer draws nothing.",
     "raccourciTitre": "Global shortcut",
     "raccourciCorps": "Works from any app, full screen included. Without a trackpad, it is the one command that makes you neither aim at the notch nor open a menu.",
